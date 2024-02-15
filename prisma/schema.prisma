@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+  OWNER
+}
+
+enum FileType {
+  IMAGE
+}
+
+model User {
+  id           String @id @default(uuid())
+  role         Role   @default(USER)
+  email        String @unique
+  hashPassword String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  firstName String?
+  lastName  String?
+
+  sessions        Session[]
+  authorOfImages  Image[]   @relation("author")
+  creatorOfImages Image[]   @relation("creator")
+}
+
+model Session {
+  id           String  @id
+  platform     String?
+  browser      String?
+  os           String?
+  refreshToken String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+}
+
+model Image {
+  id           String   @id @default(uuid())
+  name         String
+  localization String
+  dateTaken    DateTime
+
+  title       String?
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdBy     User    @relation(fields: [createdById], references: [id], name: "creator")
+  createdById   String
+  author        User?   @relation(fields: [authorId], references: [id], name: "author")
+  authorId      String?
+  authorDetails String?
+
+  file    File?   @relation(fields: [fileId], references: [id], name: "file")
+  fileId  String? @unique
+  cover   File?   @relation(fields: [coverId], references: [id], name: "cover")
+  coverId String? @unique
+}
+
+model File {
+  id     String @id @default(uuid())
+  path   String
+  image  Image? @relation("file")
+  covers Image? @relation("cover")
+}
