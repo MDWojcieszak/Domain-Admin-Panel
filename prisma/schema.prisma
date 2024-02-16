@@ -17,15 +17,24 @@ enum Role {
   OWNER
 }
 
+enum SocialMediaType {
+  FACEBOOK
+  INSTAGRAM
+  TWITTER
+  TIKTOK
+  LINKEDIN
+  GITHUB
+}
+
 enum FileType {
   IMAGE
 }
 
 model User {
-  id           String @id @default(uuid())
-  role         Role   @default(USER)
-  email        String @unique
-  hashPassword String
+  id           String  @id @default(uuid())
+  role         Role    @default(USER)
+  email        String  @unique
+  hashPassword String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -33,8 +42,21 @@ model User {
   lastName  String?
 
   sessions        Session[]
-  authorOfImages  Image[]   @relation("author")
-  creatorOfImages Image[]   @relation("creator")
+  authorOfImages  ImageData[]   @relation("author")
+  creatorOfImages ImageData[]   @relation("creator")
+  socialMedia     SocialMedia[]
+
+  avatar   Image?  @relation(fields: [avatarId], references: [id])
+  avatarId String? @unique
+}
+
+model SocialMedia {
+  id       String          @id @default(uuid())
+  username String
+  link     String
+  type     SocialMediaType
+  author   User            @relation(fields: [authorId], references: [id])
+  authorId String
 }
 
 model Session {
@@ -51,9 +73,8 @@ model Session {
   userId String
 }
 
-model Image {
+model ImageData {
   id           String   @id @default(uuid())
-  name         String
   localization String
   dateTaken    DateTime
 
@@ -63,21 +84,29 @@ model Image {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  createdBy     User    @relation(fields: [createdById], references: [id], name: "creator")
-  createdById   String
-  author        User?   @relation(fields: [authorId], references: [id], name: "author")
-  authorId      String?
-  authorDetails String?
+  createdBy   User    @relation(fields: [createdById], references: [id], name: "creator")
+  createdById String
+  author      User?   @relation(fields: [authorId], references: [id], name: "author")
+  authorId    String?
 
-  file    File?   @relation(fields: [fileId], references: [id], name: "file")
-  fileId  String? @unique
-  cover   File?   @relation(fields: [coverId], references: [id], name: "cover")
-  coverId String? @unique
+  image   Image  @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  imageId String @unique
 }
 
-model File {
+model Image {
+  id           String      @id @default(uuid())
+  originalUrl  String
+  coverUrl     String
+  lowResUrl    String
+  data         ImageData?
+  dimensions   Dimensions? @relation(fields: [dimensionsId], references: [id], onDelete: Cascade)
+  dimensionsId String?     @unique
+  avatar       User?
+}
+
+model Dimensions {
   id     String @id @default(uuid())
-  path   String
-  image  Image? @relation("file")
-  covers Image? @relation("cover")
+  width  String
+  height String
+  image  Image?
 }
