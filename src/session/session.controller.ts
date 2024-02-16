@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { SessionService } from './session.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SessionDto } from './dto/session.dto';
-import { GetCurrentUser, GetCurrentUserId } from '../common/decorators';
+import { GetCurrentUser } from '../common/decorators';
 
 @ApiBearerAuth()
 @ApiTags('Session')
@@ -11,7 +11,7 @@ export class SessionController {
   constructor(private sessionService: SessionService) {}
 
   @Get('all')
-  getAllForUser(@GetCurrentUserId() userId: string) {
+  getAllForUser(@GetCurrentUser('sub') userId: string) {
     return this.sessionService.getAllForUser(userId);
   }
 
