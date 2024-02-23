@@ -123,7 +123,7 @@ export class FileService {
           fit: sharp.fit.cover,
           withoutEnlargement: true,
         })
-        .jpeg({ quality })
+        .webp({ quality })
         .toFile(outputPath);
     } catch (error) {
       console.error('Error resizing and compressing image:', error);
