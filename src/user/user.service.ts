@@ -4,6 +4,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { hash } from 'argon2';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserDto } from 'src/user/dto';
+import { PaginationDto } from '../common/dto';
 
 @Injectable()
 export class UserService {
@@ -16,6 +17,24 @@ export class UserService {
     if (!user) throw new ForbiddenException();
     delete user.hashPassword;
     return user;
+  }
+
+  async getMultiple(dto: PaginationDto) {
+    const total = await this.prisma.user.count();
+    const users = await this.prisma.user.findMany({
+      take: dto.take,
+      skip: dto.skip,
+      select: {
+        id: true,
+        createdAt: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { users, total, params: { ...dto } };
   }
 
   async create(dto: UserDto) {
