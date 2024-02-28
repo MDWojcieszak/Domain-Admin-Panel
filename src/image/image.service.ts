@@ -5,10 +5,11 @@ import {
   Logger,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { ImageDataDto, ImageDto, ImageSizeType, PaginationDto } from './dto';
+import { ImageDataDto, ImageDto, ImageSizeType } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReadStream, createReadStream } from 'fs';
 import { FileService } from '../file/file.service';
+import { PaginationDto } from '../common/dto';
 
 @Injectable()
 export class ImageService {
@@ -33,10 +34,20 @@ export class ImageService {
   }
 
   async getMultiple(dto: PaginationDto) {
-    const total = await this.prisma.image.count();
-    const images = await this.prisma.image.findMany({
+    const total = await this.prisma.imageData.count();
+    const images = await this.prisma.imageData.findMany({
       take: dto.take,
       skip: dto.skip,
+      select: {
+        id: true,
+        author: { select: { firstName: true, lastName: true } },
+        dateTaken: true,
+        imageId: true,
+        localization: true,
+        description: true,
+        title: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
     return { images, total, params: { ...dto } };
   }
