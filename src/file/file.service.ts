@@ -36,21 +36,9 @@ export class FileService {
       LOW_RES_PATH,
     );
     try {
-      await this.resizeCompressAndSaveImage(
-        image.buffer,
-        coverPath,
-        1920,
-        1920,
-        80,
-      );
+      await this.resizeCompressAndSaveImage(image.buffer, coverPath, 1920, 80);
 
-      await this.resizeCompressAndSaveImage(
-        image.buffer,
-        lowResPath,
-        80,
-        80,
-        100,
-      );
+      await this.resizeCompressAndSaveImage(image.buffer, lowResPath, 80, 100);
 
       writeFileSync(originalPath, image.buffer);
 
@@ -65,7 +53,7 @@ export class FileService {
       });
 
       return {
-        imageId: savedImage.id,
+        id: savedImage.id,
       };
     } catch (error) {
       this.unlinkFile(originalPath);
@@ -112,14 +100,12 @@ export class FileService {
     inputBuffer: Buffer,
     outputPath: string,
     maxWidth: number,
-    maxHeight: number,
     quality: number,
   ) {
     try {
       await sharp(inputBuffer)
         .resize({
           width: maxWidth,
-          height: maxHeight,
           fit: sharp.fit.cover,
           withoutEnlargement: true,
         })
