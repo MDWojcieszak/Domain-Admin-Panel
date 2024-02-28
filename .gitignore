@@ -39,3 +39,8 @@ lerna-debug.log*
 
 #prisma
 prisma/migrations/*
+
+#storage
+public/image/cover/*
+public/image/low_res/*
+public/image/original/*
