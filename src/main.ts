@@ -4,11 +4,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerTheme } from 'swagger-themes';
 import { SwaggerThemeNameEnum } from 'swagger-themes/build/enums/swagger-theme-name';
+import { Transport } from '@nestjs/microservices';
+import { config } from './config/config';
 
 const theme = new SwaggerTheme();
 const darkStyle = theme.getBuffer(SwaggerThemeNameEnum.DARK);
 
-const config = new DocumentBuilder()
+const swaggerConfig = new DocumentBuilder()
   .setTitle('WHCP Backend')
 
   .setDescription('XD')
@@ -37,7 +39,12 @@ const config = new DocumentBuilder()
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  const document = SwaggerModule.createDocument(app, config);
+  app.connectMicroservice({
+    transport: Transport.RMQ,
+    options: config().rabbitMQConfig,
+  });
+  app.startAllMicroservices();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document, { customCss: darkStyle });
   await app.listen(3000);
 }

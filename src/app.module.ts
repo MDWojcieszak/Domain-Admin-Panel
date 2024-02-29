@@ -11,6 +11,8 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AutorizatonGuard } from './common/guards';
 import { JwtModule } from '@nestjs/jwt';
 import { FileModule } from './file/file.module';
+import { ServerModule } from './server/server.module';
+import { config } from './config/config';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { FileModule } from './file/file.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      load: [config],
     }),
     AuthModule,
     UserModule,
@@ -25,6 +28,7 @@ import { FileModule } from './file/file.module';
     PrismaModule,
     SessionModule,
     FileModule,
+    ServerModule,
   ],
   controllers: [],
   providers: [
