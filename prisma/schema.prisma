@@ -30,6 +30,24 @@ enum FileType {
   IMAGE
 }
 
+enum ServerSessionStatus {
+  UNKNOWN
+  STARTED
+  ONGOING
+  CLOSED
+  ENDED
+  FAILED
+}
+
+enum ServerStatus {
+  UNKNOWN
+  OFFLINE
+  ONLINE
+  ERROR
+  MAINTENANCE
+  WAKE_IN_PROGRESS
+}
+
 model User {
   id           String  @id @default(uuid())
   role         Role    @default(USER)
@@ -46,8 +64,10 @@ model User {
   creatorOfImages ImageData[]   @relation("creator")
   socialMedia     SocialMedia[]
 
-  avatar   Image?  @relation(fields: [avatarId], references: [id])
-  avatarId String? @unique
+  avatar           Image?             @relation(fields: [avatarId], references: [id])
+  avatarId         String?            @unique
+  serverSessions   Process[]
+  serverProperties ServerProperties[]
 }
 
 model SocialMedia {
@@ -109,4 +129,84 @@ model Dimensions {
   width  String
   height String
   image  Image?
+}
+
+model Server {
+  id   String @id @default(uuid())
+  name String
+
+  ipAddress String
+  location  String?
+
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  properties ServerProperties?
+}
+
+model ServerProperties {
+  id       String @id @default(uuid())
+  server   Server @relation(fields: [serverId], references: [id])
+  serverId String @unique
+
+  status      ServerStatus
+  startedBy   User?        @relation(fields: [startedById], references: [id])
+  startedById String?
+
+  cpuInfo    CPUInfo?
+  memoryInfo MemoryInfo?
+  diskInfo   DiskInfo[]
+
+  uptime BigInt?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  cPUInfoId    String
+  memoryInfoId String
+}
+
+model CPUInfo {
+  id                 String           @id @default(uuid())
+  cores              Int
+  physicalCores      Int
+  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id])
+  serverPropertiesId String           @unique
+}
+
+model MemoryInfo {
+  id                 String           @id @default(uuid())
+  total              Int?
+  free               Int?
+  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id])
+  serverPropertiesId String           @unique
+}
+
+model DiskInfo {
+  id                 String           @id @default(uuid())
+  fs                 String?
+  type               String?
+  used               Int?
+  available          Int?
+  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id])
+  serverPropertiesId String
+}
+
+model Process {
+  id        String    @id @default(uuid())
+  startedAt DateTime  @default(now())
+  stoppedAt DateTime?
+  name      String
+
+  startedBy   User                @relation(fields: [startedById], references: [id])
+  startedById String
+  status      ServerSessionStatus
+  logs        ProcessLog[]
+}
+
+model ProcessLog {
+  id        String   @id @default(uuid())
+  message   String
+  timestamp DateTime @default(now())
+
+  session   Process @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
 }
