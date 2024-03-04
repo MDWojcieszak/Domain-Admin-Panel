@@ -13,6 +13,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { FileModule } from './file/file.module';
 import { ServerModule } from './server/server.module';
 import { config } from './config/config';
+import { MultiVerseModule } from './multi-verse/multi-verse.module';
+import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { config } from './config/config';
     SessionModule,
     FileModule,
     ServerModule,
+    MultiVerseModule,
+    CronJobsModule,
   ],
   controllers: [],
   providers: [
