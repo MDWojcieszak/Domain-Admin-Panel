@@ -3,7 +3,7 @@ export const config = () => ({
     urls: [process.env.RABBITMQ_URL],
     queue: process.env.MAIN_QUEUE,
     queueOptions: {
-      durable: false,
+      durable: true,
     },
   },
 });
