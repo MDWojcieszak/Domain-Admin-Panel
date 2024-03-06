@@ -145,38 +145,41 @@ model Server {
 
 model ServerProperties {
   id       String @id @default(uuid())
-  server   Server @relation(fields: [serverId], references: [id])
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
   serverId String @unique
 
-  status      ServerStatus
-  startedBy   User?        @relation(fields: [startedById], references: [id])
+  status      ServerStatus?
+  startedBy   User?         @relation(fields: [startedById], references: [id], onDelete: NoAction)
   startedById String?
 
   cpuInfo    CPUInfo?
   memoryInfo MemoryInfo?
-  diskInfo   DiskInfo[]
 
   uptime BigInt?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  cPUInfoId    String
-  memoryInfoId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  cPUInfoId    String?
+  memoryInfoId String?
+  diskInfo     DiskInfo[]
 }
 
 model CPUInfo {
   id                 String           @id @default(uuid())
-  cores              Int
-  physicalCores      Int
-  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id])
+  cores              Int?
+  physicalCores      Int?
+  currentLoad        Float?
+  currentLoadUser    Float?
+  currentLoadSystem  Float?
+  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id], onDelete: Cascade)
   serverPropertiesId String           @unique
 }
 
 model MemoryInfo {
   id                 String           @id @default(uuid())
-  total              Int?
-  free               Int?
-  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id])
+  total              BigInt?
+  free               BigInt?
+  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id], onDelete: Cascade)
   serverPropertiesId String           @unique
 }
 
@@ -184,9 +187,9 @@ model DiskInfo {
   id                 String           @id @default(uuid())
   fs                 String?
   type               String?
-  used               Int?
-  available          Int?
-  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id])
+  used               BigInt?
+  available          BigInt?
+  ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id], onDelete: Cascade)
   serverPropertiesId String
 }
 
