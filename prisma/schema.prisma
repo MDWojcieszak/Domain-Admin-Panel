@@ -17,6 +17,13 @@ enum Role {
   OWNER
 }
 
+enum AccountStatus {
+  CREATED
+  EMAIL_VERIFICATION
+  ACTIVE
+  DISABLED
+}
+
 enum SocialMediaType {
   FACEBOOK
   INSTAGRAM
@@ -54,10 +61,11 @@ model User {
   email        String  @unique
   hashPassword String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  firstName String?
-  lastName  String?
+  accountStatus AccountStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  firstName     String?
+  lastName      String?
 
   sessions        Session[]
   authorOfImages  ImageData[]   @relation("author")
