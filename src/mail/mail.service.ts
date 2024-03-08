@@ -1,23 +1,41 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
-import { User } from '@prisma/client';
+import {
+  ResetPasswordConfirmationDto,
+  ResetPasswordDto,
+  WelcomeEmailDto,
+} from './dto';
 
 @Injectable()
 export class MailService {
   constructor(private mailerService: MailerService) {}
 
-  async sendUserConfirmation() {
+  async sendUserConfirmation(dto: WelcomeEmailDto) {
     const res = await this.mailerService.sendMail({
-      to: 'mateusz@wojcieszak.dev',
-      // from: '"Support Team" <support@example.com>', // override default from
+      to: dto.email,
       subject: 'Welcome to WHCP!',
-      template: './welcome', // `.hbs` extension is appended automatically
+      template: './welcome',
+      context: dto,
+    });
+    return res;
+  }
 
-      context: {
-        firstName: 'Mateusz',
-        accessLink: 'http://localhost:5173/sign-in',
-        accessCode: '546 345',
-      },
+  async sendUserResetPassword(dto: ResetPasswordDto) {
+    const res = await this.mailerService.sendMail({
+      to: dto.email,
+      subject: 'Reset Your password.',
+      template: './reset-password',
+      context: dto,
+    });
+    return res;
+  }
+
+  async sendUserResetPasswordConfirmation(dto: ResetPasswordConfirmationDto) {
+    const res = await this.mailerService.sendMail({
+      to: dto.email,
+      subject: 'Password is changed.',
+      template: './reset-password-confirmation',
+      context: dto,
     });
     return res;
   }

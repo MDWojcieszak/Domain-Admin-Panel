@@ -20,7 +20,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           },
         },
         defaults: {
-          from: '"No Reply" <mateusz@wojcieszak.dev>',
+          from: '"WHCP" <no-reply@wojcieszak.dev>',
         },
         template: {
           dir: join(__dirname, 'templates'),
