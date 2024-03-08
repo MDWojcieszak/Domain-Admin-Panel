@@ -34,15 +34,40 @@ const swaggerConfig = new DocumentBuilder()
     },
     'JWT-refresh',
   )
+  .addBearerAuth(
+    {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'JWT reset password',
+      description: 'Enter JWT reset password token',
+      in: 'header',
+    },
+    'JWT-reset-password',
+  )
+  .addBearerAuth(
+    {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'JWT register user',
+      description: 'Enter JWT register user',
+      in: 'header',
+    },
+    'JWT-register-user',
+  )
   .build();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  app.connectMicroservice({
-    transport: Transport.RMQ,
-    options: config().rabbitMQConfig,
-  });
+  app.connectMicroservice(
+    {
+      transport: Transport.RMQ,
+      options: config().rabbitMQConfig,
+    },
+    { inheritAppConfig: true },
+  );
   app.startAllMicroservices();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document, { customCss: darkStyle });
