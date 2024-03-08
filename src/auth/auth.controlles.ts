@@ -4,18 +4,21 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
-import { AuthDto } from './dto';
+import {
+  AuthDto,
+  RegisterDto,
+  RequestResetPasswordDto,
+  ResetPasswordDto,
+} from './dto';
 import { Tokens } from './types';
-import { AuthGuard } from '@nestjs/passport';
-import { Request } from 'express';
-import { RtGuard } from '../common/guards';
-import { GetCurrentUser, Public, Roles } from '../common/decorators';
-import { Role } from '@prisma/client';
+import { GetCurrentUser, Public } from '../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { OnEvent } from '@nestjs/event-emitter';
+import { UserCreatedEvent } from '../user/events';
+import { RptGuard, RtGuard, UrtGuard } from '../common/guards';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -33,8 +36,27 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   logout(@GetCurrentUser('sessionId') sessionId: string) {
-    console.log(sessionId);
     return this.authService.logout(sessionId);
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('reset-password-request')
+  async resetPasswordRequest(@Body() dto: RequestResetPasswordDto) {
+    return this.authService.initiatePasswordReset(dto);
+  }
+
+  @Public()
+  @ApiBearerAuth('JWT-reset-password')
+  @UseGuards(RptGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('reset-password')
+  async resetPassword(
+    @GetCurrentUser('sub') userId: string,
+    @Body() dto: ResetPasswordDto,
+  ) {
+    await this.authService.resetPassword(userId, dto);
+    return { message: 'Password reset successful' };
   }
 
   @Public()
@@ -48,5 +70,20 @@ export class AuthController {
     @GetCurrentUser('refreshToken') refreshToken: string,
   ): Promise<Tokens> {
     return this.authService.refteshTokens(userId, sessionId, refreshToken);
+  }
+
+  @OnEvent('user.created')
+  handleUserCreatedEvent(payload: UserCreatedEvent) {
+    console.log('handling-register');
+    this.authService.initiateRegister(payload);
+  }
+
+  @Public()
+  @ApiBearerAuth('JWT-register-user')
+  @UseGuards(UrtGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('register')
+  register(@GetCurrentUser('sub') userId: string, @Body() dto: RegisterDto) {
+    return this.authService.register(userId, dto);
   }
 }

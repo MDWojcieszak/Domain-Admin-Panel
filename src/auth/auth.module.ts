@@ -2,13 +2,20 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controlles';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
-import { RtStrategy } from './strategies';
-import { JwtModule } from '@nestjs/jwt';
+import { RptStrategy, RtStrategy, UrtStrategy } from './strategies';
 import { SessionService } from '../session/session.service';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
-  imports: [],
+  imports: [MailModule],
   controllers: [AuthController],
-  providers: [AuthService, UserService, RtStrategy, SessionService],
+  providers: [
+    AuthService,
+    UserService,
+    RtStrategy,
+    UrtStrategy,
+    RptStrategy,
+    SessionService,
+  ],
 })
 export class AuthModule {}
