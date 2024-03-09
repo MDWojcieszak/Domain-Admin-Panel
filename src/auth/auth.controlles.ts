@@ -86,4 +86,13 @@ export class AuthController {
   register(@GetCurrentUser('sub') userId: string, @Body() dto: RegisterDto) {
     return this.authService.register(userId, dto);
   }
+
+  @Public()
+  @ApiBearerAuth('JWT-register-user')
+  @UseGuards(UrtGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('check-register')
+  checkRegisterToken(@GetCurrentUser('sub') userId: string) {
+    return this.authService.checkRegisterToken(userId);
+  }
 }

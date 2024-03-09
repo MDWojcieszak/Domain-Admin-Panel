@@ -109,8 +109,17 @@ export class AuthService {
       hashPassword,
       accountStatus: 'ACTIVE',
     });
+    return;
+  }
 
-    return changed;
+  async checkRegisterToken(userId: string) {
+    const user = await this.userService.get(userId);
+    if (user.accountStatus !== 'EMAIL_VERIFICATION')
+      throw new ForbiddenException();
+    return {
+      email: user.email,
+      firstName: user.firstName,
+    };
   }
 
   async initiatePasswordReset(dto: RequestResetPasswordDto) {
