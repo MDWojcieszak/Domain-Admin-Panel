@@ -4,9 +4,6 @@ export class UserDto {
   @IsString({ isEmail: true })
   email: string;
 
-  @IsString()
-  password: string;
-
   @IsEnum({ enum: { Role } })
   role: User['role'];
 
