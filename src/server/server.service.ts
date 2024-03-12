@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -11,7 +12,10 @@ import {
   DiskInfoDto,
   LoadDto,
   MemoryDto,
+  RegisterServerCommandsDto,
   RegisterServerDto,
+  RegisterServerSettingsDto,
+  ServerCommandDto,
   ServerPropertiesDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,7 +30,11 @@ export class ServerService {
   async startServer() {
     try {
       return await firstValueFrom(
-        this.multiVerseClient.send('start_server', {}),
+        this.multiVerseClient.send('start_server', {
+          id: 'ASDF',
+          maxMemory: 1024,
+          minMemory: 1024,
+        }),
       );
     } catch (e) {
       return e;
@@ -53,9 +61,9 @@ export class ServerService {
     }
   }
 
-  async registerServer(dto: RegisterServerDto) {
+  async handleRegisterServer(dto: RegisterServerDto) {
     try {
-      const existingServer = await this.prisma.server.findFirst({
+      const existingServer = await this.prisma.server.findUnique({
         where: {
           name: dto.name,
         },
@@ -111,6 +119,79 @@ export class ServerService {
     } catch (error) {
       throw new Error(`Failed to register server: ${error.message}`);
     }
+  }
+
+  async handleRegisterCommands(dto: RegisterServerCommandsDto) {
+    try {
+      const server = await this.find(dto.serverName);
+      const categories = this.groupCommandsByCategory(dto.commands);
+      for (const category in categories) {
+        if (Object.prototype.hasOwnProperty.call(categories, category)) {
+          let existingCategory = await this.prisma.serverCategory.findFirst({
+            where: { serverId: server.id, value: category },
+          });
+          if (!existingCategory) {
+            existingCategory = await this.prisma.serverCategory.create({
+              data: {
+                value: category,
+                server: { connect: { id: server.id } },
+              },
+            });
+          }
+          const commandsInCategory = categories[category];
+          await Promise.all(
+            commandsInCategory.map(async (command) => {
+              const existingCommand = await this.prisma.serverCommand.findFirst(
+                {
+                  where: {
+                    serverCategoryId: existingCategory.id,
+                    value: command.commandName,
+                  },
+                },
+              );
+              if (!existingCommand) {
+                await this.prisma.serverCommand.create({
+                  data: {
+                    type: command.commandType,
+                    value: command.commandName,
+                    serverCategory: { connect: { id: existingCategory.id } },
+                  },
+                });
+              }
+            }),
+          );
+        }
+      }
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to register server commands: ${error.message}`);
+    }
+  }
+
+  async handleRegisterSettings(dto: RegisterServerSettingsDto) {}
+
+  groupCommandsByCategory(
+    commands: ServerCommandDto[],
+  ): Record<string, ServerCommandDto[]> {
+    return commands.reduce(
+      (acc: Record<string, ServerCommandDto[]>, command: ServerCommandDto) => {
+        const { commandCategory } = command;
+        if (!acc[commandCategory]) {
+          acc[commandCategory] = [];
+        }
+        acc[commandCategory].push(command);
+        return acc;
+      },
+      {},
+    );
+  }
+
+  async find(serverName: string) {
+    const session = await this.prisma.server.findUnique({
+      where: { name: serverName },
+    });
+    if (!session) throw new ForbiddenException();
+    return session;
   }
 
   async createDiskInfo(serverPropertiesId: string) {

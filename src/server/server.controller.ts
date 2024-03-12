@@ -15,42 +15,19 @@ import { Public, Roles } from '../common/decorators';
 import { EventPattern, MessagePattern } from '@nestjs/microservices';
 import { validate } from 'class-validator';
 import { ProcessMessageDto } from './dto/process-message.dto';
-import { RegisterServerDto, ServerPropertiesDto } from './dto';
+import {
+  RegisterServerCommandsDto,
+  RegisterServerDto,
+  RegisterServerSettingsDto,
+  ServerPropertiesDto,
+} from './dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Server')
 @Controller('server')
 export class ServerController {
   constructor(private serverService: ServerService) {}
 
-  // @Post()
-  // async createServer(@Body() server: Server): Promise<Server> {
-  //   return this.serverService.createServer(server);
-  // }
-
-  // // Get all servers
-  // @Get()
-  // async getServers(): Promise<Server[]> {
-  //   return this.serverService.getServers();
-  // }
-
-  // // Get server by ID
-  // @Get(':id')
-  // async getServerById(@Param('id') id: string): Promise<Server> {
-  //   return this.serverService.getServerById(id);
-  // }
-
-  // // Update server by ID
-  // @Put(':id')
-  // async updateServer(@Param('id') id: string, @Body() server: Server): Promise<Server> {
-  //   return this.serverService.updateServer(id, server);
-  // }
-
-  // // Delete server by ID
-  // @Delete(':id')
-  // async deleteServer(@Param('id') id: string): Promise<void> {
-  //   return this.serverService.deleteServer(id);
-  // }
-
-  // @Roles('OWNER', 'ADMIN')
   @Public()
   @Post('start')
   startServer() {
@@ -78,7 +55,19 @@ export class ServerController {
   @Public()
   @MessagePattern('register-server')
   async registerServer(dto: RegisterServerDto) {
-    return this.serverService.registerServer(dto);
+    return this.serverService.handleRegisterServer(dto);
+  }
+
+  @Public()
+  @MessagePattern('register-commands')
+  async registerServerCommands(dto: RegisterServerCommandsDto) {
+    return this.serverService.handleRegisterCommands(dto);
+  }
+
+  @Public()
+  @MessagePattern('register-config')
+  async registerServerConfig(dto: RegisterServerSettingsDto) {
+    return this.serverService.handleRegisterSettings(dto);
   }
 
   @Public()
@@ -92,7 +81,8 @@ export class ServerController {
     console.log(dto.message);
   }
 
-  @EventPattern('status')
+  @Public()
+  @EventPattern('server-status')
   setStatus(data: any) {
     console.warn(data);
   }
