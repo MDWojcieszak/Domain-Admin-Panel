@@ -53,6 +53,12 @@ enum ServerStatus {
   ERROR
   MAINTENANCE
   WAKE_IN_PROGRESS
+  SHUTDOWN_IN_PROGRESS
+}
+
+enum CommandType {
+  MESSAGE
+  EVENT
 }
 
 model User {
@@ -141,7 +147,7 @@ model Dimensions {
 
 model Server {
   id   String @id @default(uuid())
-  name String
+  name String @unique
 
   ipAddress String
   location  String?
@@ -149,6 +155,36 @@ model Server {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
   properties ServerProperties?
+  categories ServerCategory?
+}
+
+model ServerCategory {
+  id       String @id @default(uuid())
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId String @unique
+
+  name      String?
+  value     String
+  commands  ServerCommand[]
+  settings  ServerSettings[]
+  processes Process[]
+}
+
+model ServerCommand {
+  id               String         @id @default(uuid())
+  serverCategory   ServerCategory @relation(fields: [serverCategoryId], references: [id], onDelete: Cascade)
+  serverCategoryId String
+  name             String?
+  value            String
+  type             CommandType
+}
+
+model ServerSettings {
+  id               String         @id @default(uuid())
+  serverCategory   ServerCategory @relation(fields: [serverCategoryId], references: [id], onDelete: Cascade)
+  serverCategoryId String
+  name             String?
+  value            String
 }
 
 model ServerProperties {
@@ -207,10 +243,14 @@ model Process {
   stoppedAt DateTime?
   name      String
 
-  startedBy   User                @relation(fields: [startedById], references: [id])
+  startedBy   User   @relation(fields: [startedById], references: [id])
   startedById String
-  status      ServerSessionStatus
-  logs        ProcessLog[]
+
+  category   ServerCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction)
+  categoryId String?
+
+  status ServerSessionStatus
+  logs   ProcessLog[]
 }
 
 model ProcessLog {
