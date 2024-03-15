@@ -1,16 +1,15 @@
-import { IsNested, IsString } from 'nestjs-swagger-dto';
-import { IsEnum, IsNumber } from 'class-validator';
+import { IsEnum, IsNested, IsString } from 'nestjs-swagger-dto';
 import { CommandType } from '@prisma/client';
 
 export class ServerCommandDto {
   @IsString()
   commandName: string;
 
-  @IsEnum(CommandType)
+  @IsEnum({ enum: { CommandType } })
   commandType: CommandType;
 
   @IsString()
-  commandCategory: string;
+  category: string;
 }
 
 export class RegisterServerCommandsDto {

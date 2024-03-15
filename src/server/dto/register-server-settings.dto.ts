@@ -1,11 +1,18 @@
-import { IsNested, IsString } from 'nestjs-swagger-dto';
+import { SettingType } from '@prisma/client';
+import { IsEnum, IsNested, IsString } from 'nestjs-swagger-dto';
 
 export class ServerSettingsDto {
   @IsString()
   settingName: string;
 
   @IsString()
-  settingCategory: string;
+  settingValue: string;
+
+  @IsEnum({ enum: { SettingType } })
+  settingType: SettingType;
+
+  @IsString()
+  category: string;
 }
 
 export class RegisterServerSettingsDto {
@@ -13,5 +20,5 @@ export class RegisterServerSettingsDto {
   serverName: string;
 
   @IsNested({ type: ServerSettingsDto, isArray: true })
-  commands: ServerSettingsDto[];
+  settings: ServerSettingsDto[];
 }

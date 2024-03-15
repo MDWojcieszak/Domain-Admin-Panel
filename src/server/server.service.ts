@@ -17,8 +17,10 @@ import {
   RegisterServerSettingsDto,
   ServerCommandDto,
   ServerPropertiesDto,
+  ServerSettingsDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { SetSettingEvent } from './events';
 
 @Injectable()
 export class ServerService {
@@ -124,7 +126,9 @@ export class ServerService {
   async handleRegisterCommands(dto: RegisterServerCommandsDto) {
     try {
       const server = await this.find(dto.serverName);
-      const categories = this.groupCommandsByCategory(dto.commands);
+      const categories = this.groupCommandsByCategory<ServerCommandDto>(
+        dto.commands,
+      );
       for (const category in categories) {
         if (Object.prototype.hasOwnProperty.call(categories, category)) {
           let existingCategory = await this.prisma.serverCategory.findFirst({
@@ -168,22 +172,77 @@ export class ServerService {
     }
   }
 
-  async handleRegisterSettings(dto: RegisterServerSettingsDto) {}
-
-  groupCommandsByCategory(
-    commands: ServerCommandDto[],
-  ): Record<string, ServerCommandDto[]> {
-    return commands.reduce(
-      (acc: Record<string, ServerCommandDto[]>, command: ServerCommandDto) => {
-        const { commandCategory } = command;
-        if (!acc[commandCategory]) {
-          acc[commandCategory] = [];
+  async handleRegisterSettings(dto: RegisterServerSettingsDto) {
+    try {
+      const server = await this.find(dto.serverName);
+      const categories = this.groupCommandsByCategory<ServerSettingsDto>(
+        dto.settings,
+      );
+      for (const category in categories) {
+        if (Object.prototype.hasOwnProperty.call(categories, category)) {
+          let existingCategory = await this.prisma.serverCategory.findFirst({
+            where: { serverId: server.id, value: category },
+          });
+          if (!existingCategory) {
+            existingCategory = await this.prisma.serverCategory.create({
+              data: {
+                value: category,
+                server: { connect: { id: server.id } },
+              },
+            });
+          }
+          const settingsInCategory = categories[category];
+          await Promise.all(
+            settingsInCategory.map(async (setting) => {
+              const existingSetting =
+                await this.prisma.serverSettings.findFirst({
+                  where: {
+                    serverCategoryId: existingCategory.id,
+                    serverName: setting.settingName,
+                  },
+                });
+              if (!existingSetting) {
+                await this.prisma.serverSettings.create({
+                  data: {
+                    serverName: setting.settingName,
+                    type: setting.settingType,
+                    value: setting.settingValue,
+                    serverCategory: { connect: { id: existingCategory.id } },
+                  },
+                });
+              } else {
+                if (existingSetting.value !== setting.settingValue)
+                  this.multiVerseClient.emit(
+                    'set_setting',
+                    new SetSettingEvent(
+                      server.name,
+                      existingSetting.serverName,
+                      existingSetting.value,
+                      category,
+                    ),
+                  );
+              }
+            }),
+          );
         }
-        acc[commandCategory].push(command);
-        return acc;
-      },
-      {},
-    );
+      }
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to register server settings: ${error.message}`);
+    }
+  }
+
+  groupCommandsByCategory<T extends ServerCommandDto | ServerSettingsDto>(
+    commands: T[],
+  ): Record<string, T[]> {
+    return commands.reduce((acc: Record<string, T[]>, command: T) => {
+      const { category } = command;
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(command);
+      return acc;
+    }, {});
   }
 
   async find(serverName: string) {

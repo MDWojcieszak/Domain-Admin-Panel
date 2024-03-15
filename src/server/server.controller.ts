@@ -65,7 +65,7 @@ export class ServerController {
   }
 
   @Public()
-  @MessagePattern('register-config')
+  @MessagePattern('register-settings')
   async registerServerConfig(dto: RegisterServerSettingsDto) {
     return this.serverService.handleRegisterSettings(dto);
   }
