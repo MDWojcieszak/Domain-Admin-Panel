@@ -61,6 +61,11 @@ enum CommandType {
   EVENT
 }
 
+enum SettingType {
+  STRING
+  NUMBER
+}
+
 model User {
   id           String  @id @default(uuid())
   role         Role    @default(USER)
@@ -184,7 +189,9 @@ model ServerSettings {
   serverCategory   ServerCategory @relation(fields: [serverCategoryId], references: [id], onDelete: Cascade)
   serverCategoryId String
   name             String?
+  serverName       String
   value            String
+  type             SettingType
 }
 
 model ServerProperties {
