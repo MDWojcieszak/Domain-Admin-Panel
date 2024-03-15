@@ -14,11 +14,13 @@ import { FileModule } from './file/file.module';
 import { ServerModule } from './server/server.module';
 import { config } from './config/config';
 import { MultiVerseModule } from './multi-verse/multi-verse.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 
 @Module({
   imports: [
     JwtModule.register({ global: true }),
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
