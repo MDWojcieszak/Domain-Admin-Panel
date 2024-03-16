@@ -1,26 +1,10 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
+import { BadRequestException, Controller, Post } from '@nestjs/common';
 import { ServerService } from './server.service';
 import { Public, Roles } from '../common/decorators';
 import { EventPattern, MessagePattern } from '@nestjs/microservices';
 import { validate } from 'class-validator';
 import { ProcessMessageDto } from './dto/process-message.dto';
-import {
-  RegisterServerCommandsDto,
-  RegisterServerDto,
-  RegisterServerSettingsDto,
-  ServerPropertiesDto,
-} from './dto';
+import { RegisterServerDto, ServerPropertiesDto } from './dto';
 import { ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Server')
@@ -56,18 +40,6 @@ export class ServerController {
   @MessagePattern('register-server')
   async registerServer(dto: RegisterServerDto) {
     return this.serverService.handleRegisterServer(dto);
-  }
-
-  @Public()
-  @MessagePattern('register-commands')
-  async registerServerCommands(dto: RegisterServerCommandsDto) {
-    return this.serverService.handleRegisterCommands(dto);
-  }
-
-  @Public()
-  @MessagePattern('register-settings')
-  async registerServerConfig(dto: RegisterServerSettingsDto) {
-    return this.serverService.handleRegisterSettings(dto);
   }
 
   @Public()

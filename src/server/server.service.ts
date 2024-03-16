@@ -1,26 +1,14 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { validate } from 'class-validator';
 import {
   DiskInfoDto,
   LoadDto,
   MemoryDto,
-  RegisterServerCommandsDto,
   RegisterServerDto,
-  RegisterServerSettingsDto,
-  ServerCommandDto,
   ServerPropertiesDto,
-  ServerSettingsDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { SetSettingEvent } from './events';
 
 @Injectable()
 export class ServerService {
@@ -121,128 +109,6 @@ export class ServerService {
     } catch (error) {
       throw new Error(`Failed to register server: ${error.message}`);
     }
-  }
-
-  async handleRegisterCommands(dto: RegisterServerCommandsDto) {
-    try {
-      const server = await this.find(dto.serverName);
-      const categories = this.groupCommandsByCategory<ServerCommandDto>(
-        dto.commands,
-      );
-      for (const category in categories) {
-        if (Object.prototype.hasOwnProperty.call(categories, category)) {
-          let existingCategory = await this.prisma.serverCategory.findFirst({
-            where: { serverId: server.id, value: category },
-          });
-          if (!existingCategory) {
-            existingCategory = await this.prisma.serverCategory.create({
-              data: {
-                value: category,
-                server: { connect: { id: server.id } },
-              },
-            });
-          }
-          const commandsInCategory = categories[category];
-          await Promise.all(
-            commandsInCategory.map(async (command) => {
-              const existingCommand = await this.prisma.serverCommand.findFirst(
-                {
-                  where: {
-                    serverCategoryId: existingCategory.id,
-                    value: command.commandName,
-                  },
-                },
-              );
-              if (!existingCommand) {
-                await this.prisma.serverCommand.create({
-                  data: {
-                    type: command.commandType,
-                    value: command.commandName,
-                    serverCategory: { connect: { id: existingCategory.id } },
-                  },
-                });
-              }
-            }),
-          );
-        }
-      }
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to register server commands: ${error.message}`);
-    }
-  }
-
-  async handleRegisterSettings(dto: RegisterServerSettingsDto) {
-    try {
-      const server = await this.find(dto.serverName);
-      const categories = this.groupCommandsByCategory<ServerSettingsDto>(
-        dto.settings,
-      );
-      for (const category in categories) {
-        if (Object.prototype.hasOwnProperty.call(categories, category)) {
-          let existingCategory = await this.prisma.serverCategory.findFirst({
-            where: { serverId: server.id, value: category },
-          });
-          if (!existingCategory) {
-            existingCategory = await this.prisma.serverCategory.create({
-              data: {
-                value: category,
-                server: { connect: { id: server.id } },
-              },
-            });
-          }
-          const settingsInCategory = categories[category];
-          await Promise.all(
-            settingsInCategory.map(async (setting) => {
-              const existingSetting =
-                await this.prisma.serverSettings.findFirst({
-                  where: {
-                    serverCategoryId: existingCategory.id,
-                    serverName: setting.settingName,
-                  },
-                });
-              if (!existingSetting) {
-                await this.prisma.serverSettings.create({
-                  data: {
-                    serverName: setting.settingName,
-                    type: setting.settingType,
-                    value: setting.settingValue,
-                    serverCategory: { connect: { id: existingCategory.id } },
-                  },
-                });
-              } else {
-                if (existingSetting.value !== setting.settingValue)
-                  this.multiVerseClient.emit(
-                    'set_setting',
-                    new SetSettingEvent(
-                      server.name,
-                      existingSetting.serverName,
-                      existingSetting.value,
-                      category,
-                    ),
-                  );
-              }
-            }),
-          );
-        }
-      }
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to register server settings: ${error.message}`);
-    }
-  }
-
-  groupCommandsByCategory<T extends ServerCommandDto | ServerSettingsDto>(
-    commands: T[],
-  ): Record<string, T[]> {
-    return commands.reduce((acc: Record<string, T[]>, command: T) => {
-      const { category } = command;
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(command);
-      return acc;
-    }, {});
   }
 
   async find(serverName: string) {
