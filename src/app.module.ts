@@ -16,6 +16,8 @@ import { config } from './config/config';
 import { MultiVerseModule } from './multi-verse/multi-verse.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
+import { ServerCommandsModule } from './server-commands/server-commands.module';
+import { ServerSettingsModule } from './server-settings/server-settings.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { CronJobsModule } from './cron-jobs/cron-jobs.module';
     ServerModule,
     MultiVerseModule,
     CronJobsModule,
+    ServerCommandsModule,
+    ServerSettingsModule,
   ],
   controllers: [],
   providers: [
