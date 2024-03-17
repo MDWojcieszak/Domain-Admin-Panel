@@ -2,6 +2,7 @@ import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   GetServerSettingsDto,
+  PatchServerSettingDto,
   RegisterServerSettingsDto,
   ServerSettingsDto,
 } from './dto';
@@ -16,19 +17,31 @@ export class ServerSettingsService {
   ) {}
 
   async handleGet(dto: GetServerSettingsDto) {
-    const settingsInCategories = await this.prisma.server.findMany({
+    const settingsInCategories = await this.prisma.server.findUnique({
       where: {
         id: dto.serverId,
       },
       select: {
         categories: {
-          where: { id: dto.categoryId },
+          where: { id: dto.categoryId || undefined },
           select: { settings: true, name: true, value: true },
         },
       },
     });
     if (!settingsInCategories) throw new ForbiddenException();
-    return settingsInCategories;
+    return settingsInCategories.categories;
+  }
+
+  async handlePatch(id: string, dto: PatchServerSettingDto) {
+    const setting = await this.prisma.serverSettings.findUnique({
+      where: { id },
+    });
+    if (!setting) throw new ForbiddenException();
+    const updatedSetting = await this.prisma.serverSettings.update({
+      where: { id },
+      data: { name: dto.name },
+    });
+    return updatedSetting;
   }
 
   async handleRegisterSettings(dto: RegisterServerSettingsDto) {

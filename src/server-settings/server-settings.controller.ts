@@ -1,8 +1,12 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { ServerSettingsService } from './server-settings.service';
 import { Public } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
-import { GetServerSettingsDto, RegisterServerSettingsDto } from './dto';
+import {
+  GetServerSettingsDto,
+  PatchServerSettingDto,
+  RegisterServerSettingsDto,
+} from './dto';
 import { ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Server')
@@ -14,6 +18,15 @@ export class ServerSettingsController {
   @Get()
   async getSettings(@Query() dto: GetServerSettingsDto) {
     return this.serverSettingsService.handleGet(dto);
+  }
+
+  @Public()
+  @Patch(':id')
+  async putCommand(
+    @Param('id') id: string,
+    @Body() dto: PatchServerSettingDto,
+  ) {
+    return this.serverSettingsService.handlePatch(id, dto);
   }
 
   @Public()
