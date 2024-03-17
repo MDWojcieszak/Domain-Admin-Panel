@@ -160,13 +160,13 @@ model Server {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
   properties ServerProperties?
-  categories ServerCategory?
+  categories ServerCategory[]
 }
 
 model ServerCategory {
   id       String @id @default(uuid())
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serverId String @unique
+  serverId String
 
   name      String?
   value     String
