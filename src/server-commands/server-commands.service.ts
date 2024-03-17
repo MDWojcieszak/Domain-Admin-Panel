@@ -1,17 +1,25 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import {
   GetServerCommandsDto,
+  PatchServerCommandDto,
   RegisterServerCommandsDto,
+  SendCommandDto,
   ServerCommandDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { ClientProxy } from '@nestjs/microservices';
+import { SendCommandEvent } from './events';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class ServerCommandsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject('MULTIVERSE_SERVICE') private multiVerseClient: ClientProxy,
+  ) {}
 
   async handleGet(dto: GetServerCommandsDto) {
-    const commandsInCategories = await this.prisma.server.findMany({
+    const commandsInCategories = await this.prisma.server.findUnique({
       where: {
         id: dto.serverId,
       },
@@ -23,7 +31,46 @@ export class ServerCommandsService {
       },
     });
     if (!commandsInCategories) throw new ForbiddenException();
-    return commandsInCategories;
+    return commandsInCategories.categories;
+  }
+
+  async handlePatch(id: string, dto: PatchServerCommandDto) {
+    const command = await this.get(id);
+    const updatedCommand = await this.prisma.serverCommand.update({
+      where: { id: command.id },
+      data: { name: dto.name },
+    });
+    return updatedCommand;
+  }
+
+  async handleSend(id: string, dto: SendCommandDto) {
+    const command = await this.get(id);
+    const server = await this.getServer(id);
+    try {
+      switch (command.type) {
+        case 'EVENT':
+          this.multiVerseClient.emit(
+            command.value,
+            new SendCommandEvent(server.id),
+          );
+          return {
+            sent: true,
+          };
+        case 'MESSAGE':
+          const sendRes = await firstValueFrom(
+            this.multiVerseClient.send(
+              command.value,
+              new SendCommandEvent(server.id),
+            ),
+          );
+          return {
+            executed: sendRes,
+          };
+      }
+    } catch (error) {
+      Logger.error('COMMAND_FAILED', command.value);
+      throw new ForbiddenException('COMMAND_FAILED');
+    }
   }
 
   async handleRegisterCommands(dto: RegisterServerCommandsDto) {
@@ -76,6 +123,23 @@ export class ServerCommandsService {
     } catch (error) {
       throw new Error(`Failed to register server commands: ${error.message}`);
     }
+  }
+
+  async get(id: string) {
+    const command = await this.prisma.serverCommand.findUnique({
+      where: { id },
+    });
+
+    if (!command) throw new ForbiddenException();
+    return command;
+  }
+
+  async getServer(id: string) {
+    const server = await this.prisma.server.findFirst({
+      where: { categories: { some: { commands: { some: { id } } } } },
+    });
+    if (!server) throw new ForbiddenException();
+    return server;
   }
 
   groupCommandsByCategory(
