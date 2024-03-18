@@ -37,7 +37,7 @@ enum FileType {
   IMAGE
 }
 
-enum ServerSessionStatus {
+enum ServerProcessStatus {
   UNKNOWN
   STARTED
   ONGOING
@@ -256,7 +256,7 @@ model Process {
   category   ServerCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction)
   categoryId String?
 
-  status ServerSessionStatus
+  status ServerProcessStatus
   logs   ProcessLog[]
 }
 
@@ -265,6 +265,6 @@ model ProcessLog {
   message   String
   timestamp DateTime @default(now())
 
-  session   Process @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId String
+  process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+  processId String
 }
