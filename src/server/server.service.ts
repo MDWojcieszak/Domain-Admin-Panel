@@ -17,38 +17,17 @@ export class ServerService {
     private prisma: PrismaService,
   ) {}
 
-  async startServer() {
-    try {
-      return await firstValueFrom(
-        this.multiVerseClient.send('start_server', {
-          id: 'ASDF',
-          maxMemory: 1024,
-          minMemory: 1024,
-        }),
-      );
-    } catch (e) {
-      return e;
-    }
+  async handleGet(id: string) {
+    const server = this.prisma.server.findUnique({
+      where: { id },
+    });
+    if (!server) throw new ForbiddenException();
+    return server;
   }
 
-  async stopServer() {
-    try {
-      return await firstValueFrom(
-        this.multiVerseClient.send('stop_server', {}),
-      );
-    } catch (e) {
-      return e;
-    }
-  }
-
-  async getProperties() {
-    try {
-      return await firstValueFrom(
-        this.multiVerseClient.send('get_system_usage', {}),
-      );
-    } catch (e) {
-      return e;
-    }
+  async handleGetAll() {
+    const servers = this.prisma.server.findMany();
+    return servers;
   }
 
   async handleRegisterServer(dto: RegisterServerDto) {

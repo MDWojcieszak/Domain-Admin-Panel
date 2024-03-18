@@ -1,10 +1,17 @@
-import { BadRequestException, Controller, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ServerService } from './server.service';
 import { Public, Roles } from '../common/decorators';
 import { EventPattern, MessagePattern } from '@nestjs/microservices';
 import { validate } from 'class-validator';
 import { ProcessMessageDto } from './dto/process-message.dto';
-import { RegisterServerDto, ServerPropertiesDto } from './dto';
+import { GetServerDto, RegisterServerDto, ServerPropertiesDto } from './dto';
 import { ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Server')
@@ -12,28 +19,16 @@ import { ApiTags } from '@nestjs/swagger';
 export class ServerController {
   constructor(private serverService: ServerService) {}
 
-  @Public()
-  @Post('start')
-  startServer() {
-    return this.serverService.startServer();
+  @Roles('ADMIN', 'OWNER')
+  @Get('')
+  async get(@Query() dto: GetServerDto) {
+    return this.serverService.handleGet(dto.id);
   }
 
-  @Roles('OWNER', 'ADMIN')
-  @Post('stop')
-  stopServer() {
-    return this.serverService.stopServer();
-  }
-
-  @Public()
-  @Post('properties')
-  getProperties() {
-    return this.serverService.getProperties();
-  }
-
-  @Public()
-  @MessagePattern('raport-server-usage')
-  async raportServerUsage(dto: ServerPropertiesDto) {
-    return this.serverService.updateServerProperties(dto);
+  @Roles('ADMIN', 'OWNER')
+  @Get('all')
+  async getAll() {
+    return this.serverService.handleGetAll();
   }
 
   @Public()
@@ -43,19 +38,8 @@ export class ServerController {
   }
 
   @Public()
-  @EventPattern('process-message')
-  async registerMessage(dto: ProcessMessageDto) {
-    const errors = await validate(dto);
-    if (errors.length > 0) {
-      console.log(errors);
-      return new BadRequestException(errors);
-    }
-    console.log(dto.message);
-  }
-
-  @Public()
-  @EventPattern('server-status')
-  setStatus(data: any) {
-    console.warn(data);
+  @MessagePattern('raport-server-usage')
+  async raportServerUsage(dto: ServerPropertiesDto) {
+    return this.serverService.updateServerProperties(dto);
   }
 }
