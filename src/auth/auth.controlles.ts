@@ -74,7 +74,6 @@ export class AuthController {
 
   @OnEvent('user.created')
   handleUserCreatedEvent(payload: UserCreatedEvent) {
-    console.log('handling-register');
     this.authService.initiateRegister(payload);
   }
 
