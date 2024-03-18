@@ -3,13 +3,13 @@ import {
   GetServerCommandsDto,
   PatchServerCommandDto,
   RegisterServerCommandsDto,
-  SendCommandDto,
   ServerCommandDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClientProxy } from '@nestjs/microservices';
 import { SendCommandEvent } from './events';
 import { firstValueFrom } from 'rxjs';
+import { CommandContext } from '../common/types';
 
 @Injectable()
 export class ServerCommandsService {
@@ -43,15 +43,20 @@ export class ServerCommandsService {
     return updatedCommand;
   }
 
-  async handleSend(id: string, dto: SendCommandDto) {
+  async handleSend(id: string, userId: string) {
     const command = await this.get(id);
     const server = await this.getServer(id);
+    const context: CommandContext = {
+      categoryId: command.serverCategoryId,
+      serverId: server.id,
+      userId,
+    };
     try {
       switch (command.type) {
         case 'EVENT':
           this.multiVerseClient.emit(
             command.value,
-            new SendCommandEvent(server.id),
+            new SendCommandEvent(context),
           );
           return {
             sent: true,
@@ -60,7 +65,7 @@ export class ServerCommandsService {
           const sendRes = await firstValueFrom(
             this.multiVerseClient.send(
               command.value,
-              new SendCommandEvent(server.id),
+              new SendCommandEvent(context),
             ),
           );
           return {

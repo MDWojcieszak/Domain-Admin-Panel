@@ -10,13 +10,12 @@ import {
 } from '@nestjs/common';
 import { ServerCommandsService } from './server-commands.service';
 import { ApiTags } from '@nestjs/swagger';
-import { Public } from '../common/decorators';
+import { GetCurrentUser, Public, Roles } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
 import {
   GetServerCommandsDto,
   PatchServerCommandDto,
   RegisterServerCommandsDto,
-  SendCommandDto,
 } from './dto';
 
 @ApiTags('Server')
@@ -24,13 +23,13 @@ import {
 export class ServerCommandsController {
   constructor(private serverCommandsService: ServerCommandsService) {}
 
-  @Public()
+  @Roles('ADMIN', 'OWNER')
   @Get()
   async getCommands(@Query() dto: GetServerCommandsDto) {
     return this.serverCommandsService.handleGet(dto);
   }
 
-  @Public()
+  @Roles('ADMIN', 'OWNER')
   @Patch(':id')
   async putCommand(
     @Param('id') id: string,
@@ -39,17 +38,11 @@ export class ServerCommandsController {
     return this.serverCommandsService.handlePatch(id, dto);
   }
 
-  @Public()
+  @Roles('ADMIN', 'OWNER')
   @Post('send/:id')
-  startServer(@Param('id') id: string, dto: SendCommandDto) {
-    return this.serverCommandsService.handleSend(id, dto);
+  startServer(@Param('id') id: string, @GetCurrentUser('sub') userId: string) {
+    return this.serverCommandsService.handleSend(id, userId);
   }
-
-  // @Roles('OWNER', 'ADMIN')
-  // @Post('stop')
-  // stopServer() {
-  //   return this.serverService.stopServer();
-  // }
 
   @Public()
   @MessagePattern('register-commands')

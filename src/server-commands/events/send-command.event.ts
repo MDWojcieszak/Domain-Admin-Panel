@@ -1,3 +1,5 @@
+import { CommandContext } from '../../common/types';
+
 export class SendCommandEvent {
-  constructor(public readonly serverName: string) {}
+  constructor(public readonly context: CommandContext) {}
 }
