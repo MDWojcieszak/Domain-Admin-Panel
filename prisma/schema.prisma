@@ -66,6 +66,12 @@ enum SettingType {
   NUMBER
 }
 
+enum DiskType {
+  HDD
+  SSD
+  NVME
+}
+
 model User {
   id           String  @id @default(uuid())
   role         Role    @default(USER)
@@ -240,6 +246,8 @@ model DiskInfo {
   type               String?
   used               BigInt?
   available          BigInt?
+  name               String?
+  mediaType          DiskType?
   ServerProperties   ServerProperties @relation(fields: [serverPropertiesId], references: [id], onDelete: Cascade)
   serverPropertiesId String
 }
