@@ -3,8 +3,10 @@ import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import {
   DiskInfoDto,
+  GetServerDto,
   LoadDto,
   MemoryDto,
+  PatchDiskDto,
   RegisterServerDto,
   ServerPropertiesDto,
 } from './dto';
@@ -26,8 +28,52 @@ export class ServerService {
   }
 
   async handleGetAll() {
-    const servers = this.prisma.server.findMany();
-    return servers;
+    const total = await this.prisma.server.count();
+
+    const servers = await this.prisma.server.findMany({
+      include: {
+        properties: {
+          select: {
+            createdAt: true,
+            status: true,
+            uptime: true,
+            diskInfo: true,
+            cpuInfo: true,
+            memoryInfo: true,
+          },
+        },
+      },
+    });
+    return { total, servers };
+  }
+
+  async handleGetCategories(dto: GetServerDto) {
+    const categories = await this.prisma.serverCategory.findMany({
+      where: { serverId: dto.id },
+    });
+    if (!categories) throw new ForbiddenException();
+    return categories;
+  }
+
+  async handleGetDisks(dto: GetServerDto) {
+    const disks = await this.prisma.diskInfo.findMany({
+      where: { ServerProperties: { server: { id: dto.id } } },
+    });
+    return disks;
+  }
+
+  async handlePatchDisk(id: string, dto: PatchDiskDto) {
+    const disk = await this.prisma.diskInfo.findUnique({ where: { id } });
+    if (!disk) throw new ForbiddenException();
+
+    const updatedDisk = await this.prisma.diskInfo.update({
+      where: { id: disk.id },
+      data: {
+        mediaType: dto.mediaType,
+        name: dto.name,
+      },
+    });
+    return updatedDisk;
   }
 
   async handleRegisterServer(dto: RegisterServerDto) {
