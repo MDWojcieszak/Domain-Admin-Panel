@@ -19,19 +19,14 @@ export class ServerCommandsService {
   ) {}
 
   async handleGet(dto: GetServerCommandsDto) {
-    const commandsInCategories = await this.prisma.server.findUnique({
+    const commandsInCategories = await this.prisma.serverCategory.findUnique({
       where: {
-        id: dto.serverId,
+        id: dto.categoryId,
       },
-      select: {
-        categories: {
-          where: { id: dto.categoryId },
-          select: { commands: true, name: true, value: true },
-        },
-      },
+      select: { commands: true, name: true, value: true },
     });
     if (!commandsInCategories) throw new ForbiddenException();
-    return commandsInCategories.categories;
+    return commandsInCategories.commands;
   }
 
   async handlePatch(id: string, dto: PatchServerCommandDto) {
