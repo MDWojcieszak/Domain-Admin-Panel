@@ -73,6 +73,7 @@ async function bootstrap() {
     { inheritAppConfig: true },
   );
   app.startAllMicroservices();
+  app.enableCors();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document, { customCss: darkStyle });
   await app.listen(3000);

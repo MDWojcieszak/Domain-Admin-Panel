@@ -19,6 +19,7 @@ import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 import { ServerCommandsModule } from './server-commands/server-commands.module';
 import { ServerSettingsModule } from './server-settings/server-settings.module';
 import { ServerProcessModule } from './server-process/server-process.module';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ServerProcessModule } from './server-process/server-process.module';
     ServerCommandsModule,
     ServerSettingsModule,
     ServerProcessModule,
+    WebsocketModule,
   ],
   controllers: [],
   providers: [
