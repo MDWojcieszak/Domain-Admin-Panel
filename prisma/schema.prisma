@@ -61,6 +61,12 @@ enum CommandType {
   EVENT
 }
 
+enum CommandStatus {
+  ENABLED
+  DISABLED
+  RUNNING
+}
+
 enum SettingType {
   STRING
   NUMBER
@@ -187,6 +193,8 @@ model ServerCommand {
   serverCategoryId String
   name             String?
   value            String
+  status           CommandStatus  @default(DISABLED)
+  runningProgress  Int?
   type             CommandType
 }
 
