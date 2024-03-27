@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^1.11.2",
-    "@nestjs/common": "^10.0.0",
+    "@nestjs/common": "^10.3.6",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/event-emitter": "^2.0.4",
@@ -29,8 +29,10 @@
     "@nestjs/microservices": "^10.3.3",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-socket.io": "^10.3.6",
     "@nestjs/schedule": "^4.0.1",
     "@nestjs/swagger": "^7.2.0",
+    "@nestjs/websockets": "^10.3.6",
     "@prisma/client": "^5.9.1",
     "amqp-connection-manager": "^4.1.14",
     "amqplib": "^0.10.3",
@@ -46,7 +48,7 @@
     "path": "^0.12.7",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "sharp": "^0.33.2",
+    "sharp": "^0.33.3",
     "swagger-themes": "^1.4.2",
     "uuid": "^9.0.1"
   },
