@@ -10,13 +10,19 @@ import { ClientProxy } from '@nestjs/microservices';
 import { SendCommandEvent } from './events';
 import { firstValueFrom } from 'rxjs';
 import { CommandContext } from '../common/types';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class ServerCommandsService {
   constructor(
     private prisma: PrismaService,
     @Inject('MULTIVERSE_SERVICE') private multiVerseClient: ClientProxy,
+    private readonly websocketGateway: WebsocketGateway,
   ) {}
+
+  async test() {
+    this.websocketGateway.sendToAll('test');
+  }
 
   async handleGet(dto: GetServerCommandsDto) {
     const commandsInCategories = await this.prisma.serverCategory.findUnique({

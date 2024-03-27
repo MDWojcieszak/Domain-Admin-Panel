@@ -24,9 +24,15 @@ export class ServerCommandsController {
   constructor(private serverCommandsService: ServerCommandsService) {}
 
   @Roles('ADMIN', 'OWNER')
-  @Get()
+  @Get('all')
   async getCommands(@Query() dto: GetServerCommandsDto) {
     return this.serverCommandsService.handleGet(dto);
+  }
+
+  @Public()
+  @Post('test')
+  async test() {
+    return this.serverCommandsService.test();
   }
 
   @Roles('ADMIN', 'OWNER')
