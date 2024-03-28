@@ -17,6 +17,7 @@ import {
   PatchServerCommandDto,
   RegisterServerCommandsDto,
 } from './dto';
+import { UpdateServerCommandDto } from './dto/update-server-command.dto';
 
 @ApiTags('Server')
 @Controller('server/commands')
@@ -51,8 +52,14 @@ export class ServerCommandsController {
   }
 
   @Public()
-  @MessagePattern('register-commands')
+  @MessagePattern('commands.register')
   async registerServerCommands(dto: RegisterServerCommandsDto) {
     return this.serverCommandsService.handleRegisterCommands(dto);
+  }
+
+  @Public()
+  @MessagePattern('commands.update')
+  async updateServerCommand(dto: UpdateServerCommandDto) {
+    return this.serverCommandsService.handleUpdateCommand(dto);
   }
 }

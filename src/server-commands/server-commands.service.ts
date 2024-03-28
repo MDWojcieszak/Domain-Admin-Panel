@@ -11,6 +11,7 @@ import { SendCommandEvent } from './events';
 import { firstValueFrom } from 'rxjs';
 import { CommandContext } from '../common/types';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { UpdateServerCommandDto } from './dto/update-server-command.dto';
 
 @Injectable()
 export class ServerCommandsService {
@@ -129,6 +130,24 @@ export class ServerCommandsService {
     } catch (error) {
       throw new Error(`Failed to register server commands: ${error.message}`);
     }
+  }
+
+  async handleUpdateCommand(dto: UpdateServerCommandDto) {
+    const command = await this.prisma.serverCommand.findFirst({
+      where: {
+        value: dto.commandName,
+        serverCategory: {
+          value: dto.category,
+          server: { name: dto.serverName },
+        },
+      },
+    });
+    if (!command)
+      throw new Error(`Failed to update server command: ${dto.commandName}`);
+    await this.prisma.serverCommand.update({
+      where: { id: command.id },
+      data: { runningProgress: dto.runningProgress, status: dto.status },
+    });
   }
 
   async get(id: string) {
