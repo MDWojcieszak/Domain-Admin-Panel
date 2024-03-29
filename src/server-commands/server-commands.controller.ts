@@ -5,7 +5,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
 } from '@nestjs/common';
 import { ServerCommandsService } from './server-commands.service';
@@ -28,12 +27,6 @@ export class ServerCommandsController {
   @Get('all')
   async getCommands(@Query() dto: GetServerCommandsDto) {
     return this.serverCommandsService.handleGet(dto);
-  }
-
-  @Public()
-  @Post('test')
-  async test() {
-    return this.serverCommandsService.test();
   }
 
   @Roles('ADMIN', 'OWNER')

@@ -21,10 +21,6 @@ export class ServerCommandsService {
     private readonly websocketGateway: WebsocketGateway,
   ) {}
 
-  async test() {
-    this.websocketGateway.sendToAll('test');
-  }
-
   async handleGet(dto: GetServerCommandsDto) {
     const commandsInCategories = await this.prisma.serverCategory.findUnique({
       where: {
@@ -148,6 +144,7 @@ export class ServerCommandsService {
       where: { id: command.id },
       data: { runningProgress: dto.runningProgress, status: dto.status },
     });
+    this.websocketGateway.sendToAll('server-command.update', command.id);
   }
 
   async get(id: string) {
