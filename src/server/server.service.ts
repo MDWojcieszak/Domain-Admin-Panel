@@ -11,12 +11,14 @@ import {
   ServerPropertiesDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class ServerService {
   constructor(
     @Inject('MULTIVERSE_SERVICE') private multiVerseClient: ClientProxy,
     private prisma: PrismaService,
+    private readonly websocketGateway: WebsocketGateway,
   ) {}
 
   async handleGet(id: string) {
@@ -200,7 +202,7 @@ export class ServerService {
           diskInfo: true,
         },
       });
-
+      this.websocketGateway.sendToAll('server.update', server.id);
       return true;
     } catch (error) {
       throw new Error(`Failed to update server properties: ${error.message}`);
