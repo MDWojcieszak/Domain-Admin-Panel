@@ -67,6 +67,13 @@ enum CommandStatus {
   RUNNING
 }
 
+enum ProcessLogLevel {
+  LOG
+  SUCCESS
+  WARNING
+  ERROR
+}
+
 enum SettingType {
   STRING
   NUMBER
@@ -277,10 +284,10 @@ model Process {
 }
 
 model ProcessLog {
-  id        String   @id @default(uuid())
+  id        String           @id @default(uuid())
   message   String
-  timestamp DateTime @default(now())
-
-  process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+  timestamp DateTime         @default(now())
+  level     ProcessLogLevel? @default(LOG)
+  process   Process          @relation(fields: [processId], references: [id], onDelete: Cascade)
   processId String
 }
