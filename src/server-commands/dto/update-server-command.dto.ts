@@ -14,6 +14,6 @@ export class UpdateServerCommandDto {
   @IsNumber({ optional: true })
   runningProgress: number;
 
-  @IsEnum({ enum: { CommandStatus } })
+  @IsEnum({ enum: { CommandStatus }, optional: true })
   status: CommandStatus;
 }

@@ -47,6 +47,7 @@ export class ServerProcessService {
         data: {
           message: dto.message,
           process: { connect: { id: dto.processId } },
+          level: dto.level,
         },
       });
     } catch (e) {
