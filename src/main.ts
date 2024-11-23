@@ -65,6 +65,7 @@ const swaggerConfig = new DocumentBuilder()
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.setGlobalPrefix('api/v1');
   app.connectMicroservice(
     {
       transport: Transport.RMQ,
@@ -75,7 +76,7 @@ async function bootstrap() {
   app.startAllMicroservices();
   app.enableCors();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api', app, document, { customCss: darkStyle });
+  SwaggerModule.setup('docs', app, document, { customCss: darkStyle });
   await app.listen(3000);
 }
 bootstrap();
