@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import * as sharp from 'sharp';
 import * as path from 'path';
-import { unlink, writeFileSync } from 'fs';
+import { mkdirSync, unlink, writeFileSync } from 'fs';
 import { v4 as uuid } from 'uuid';
 import { ImageService } from '../image/image.service';
 
@@ -18,6 +18,35 @@ const IMAGE_TYPE = 'image';
 @Injectable()
 export class FileService {
   constructor(private prisma: PrismaService) {}
+
+  onModuleInit() {
+    this.createDirectories();
+  }
+
+  private createDirectories() {
+    const baseDir = '/app/public/image';
+    const dirs = [COVER_PATH, ORIGINAL_PATH, LOW_RES_PATH];
+
+    dirs.forEach((dir) => {
+      const dirPath = path.join(baseDir, dir);
+      if (!this.directoryExists(dirPath)) {
+        try {
+          mkdirSync(dirPath, { recursive: true });
+          Logger.log(`Created directory: ${dirPath}`);
+        } catch (error) {
+          Logger.error(`Error creating directory: ${dirPath}`, error.stack);
+        }
+      }
+    });
+  }
+
+  private directoryExists(directoryPath: string): boolean {
+    try {
+      return require('fs').existsSync(directoryPath);
+    } catch (error) {
+      return false;
+    }
+  }
 
   async uploadImage(image: Express.Multer.File) {
     const imageId = uuid();
@@ -64,7 +93,11 @@ export class FileService {
   }
 
   unlinkFile(path: string) {
-    unlink(path, (f) => f.message && Logger.log(f.message));
+    try {
+      unlink(path, (f) => f.message && Logger.log(f.message));
+    } catch (e) {
+      console.error('Unlink file', e);
+    }
   }
 
   createPath(
@@ -73,10 +106,9 @@ export class FileService {
     fileExtension: string,
     category?: string,
   ) {
+    const baseDir = '/app/public';
     return path.join(
-      __dirname,
-      '../../',
-      'public',
+      baseDir,
       fileType,
       category,
       `${fileName}.${fileExtension}`,
