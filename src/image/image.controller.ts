@@ -3,7 +3,9 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Post,
+  Put,
   Query,
   Res,
 } from '@nestjs/common';
@@ -25,6 +27,12 @@ export class ImageController {
     return await this.imageService.getMultiple(dto);
   }
 
+  @Public()
+  @Get()
+  async get(@Query() dto: ImageDto) {
+    return await this.imageService.getSingle(dto);
+  }
+
   @ApiBearerAuth()
   @Post('create')
   async create(
@@ -32,6 +40,12 @@ export class ImageController {
     @Body() dto: ImageDataDto,
   ) {
     return this.imageService.createData(dto, userId);
+  }
+
+  @ApiBearerAuth()
+  @Put()
+  async update(@Query() dto: ImageDto, @Body() data: Partial<ImageDataDto>) {
+    return this.imageService.updateData(dto, data);
   }
 
   @Public()
@@ -61,8 +75,10 @@ export class ImageController {
     file.pipe(res);
   }
 
-  @Delete()
-  delete(@Body() dto: ImageDto) {
+  @ApiBearerAuth()
+  @Roles('MODERATOR', 'ADMIN', 'OWNER')
+  @Delete('/')
+  async delete(@Query() dto: ImageDto) {
     return this.imageService.delete(dto);
   }
 }

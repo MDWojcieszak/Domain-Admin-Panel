@@ -3,11 +3,12 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ImageDataDto, ImageDto, ImageSizeType } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { ReadStream, createReadStream } from 'fs';
+import { ReadStream, createReadStream, existsSync } from 'fs';
 import { FileService } from '../file/file.service';
 import { PaginationDto } from '../common/dto';
 
@@ -33,6 +34,22 @@ export class ImageService {
     return image;
   }
 
+  async getSingle(dto: ImageDto) {
+    const data = await this.prisma.imageData.findFirst({
+      where: { imageId: dto.id },
+      select: {
+        id: true,
+        author: { select: { firstName: true, lastName: true } },
+        dateTaken: true,
+        imageId: true,
+        localization: true,
+        description: true,
+        title: true,
+      },
+    });
+    return data;
+  }
+
   async getMultiple(dto: PaginationDto) {
     const total = await this.prisma.imageData.count();
     const images = await this.prisma.imageData.findMany({
@@ -55,29 +72,32 @@ export class ImageService {
   async readImage(id: string, type: ImageSizeType): Promise<ReadStream> {
     try {
       const image = await this.prisma.image.findUnique({ where: { id } });
+      let filePath: string;
       switch (type) {
         case ImageSizeType.ORIGINAL:
-          return createReadStream(image.originalUrl);
+          filePath = image.originalUrl;
+          break;
         case ImageSizeType.COVER:
-          return createReadStream(image.coverUrl);
+          filePath = image.coverUrl;
+          break;
         case ImageSizeType.LOW_RES:
-          return createReadStream(image.lowResUrl);
+          filePath = image.lowResUrl;
+          break;
+        default:
+          throw new ForbiddenException('Invalid image type');
       }
+
+      if (!existsSync(filePath)) {
+        throw new ForbiddenException('File not found');
+      }
+      return createReadStream(filePath);
     } catch (_) {
-      throw new ForbiddenException();
+      throw new ForbiddenException('Error reading the image');
     }
   }
 
   async delete(dto: ImageDto) {
     const image = await this.get(dto);
-    try {
-      this.fileService.unlinkFile(image.originalUrl);
-      this.fileService.unlinkFile(image.coverUrl);
-      this.fileService.unlinkFile(image.lowResUrl);
-    } catch (e) {
-      Logger.log(e);
-      throw new InternalServerErrorException('Error deleting files');
-    }
     try {
       await this.prisma.image.delete({
         where: {
@@ -85,7 +105,16 @@ export class ImageService {
         },
       });
     } catch (e) {
-      throw new ForbiddenException();
+      Logger.error(e);
+      throw new NotFoundException();
+    }
+    try {
+      this.fileService.unlinkFile(image.originalUrl);
+      this.fileService.unlinkFile(image.coverUrl);
+      this.fileService.unlinkFile(image.lowResUrl);
+    } catch (e) {
+      Logger.log(e);
+      throw new InternalServerErrorException('Error deleting files');
     }
   }
 
@@ -109,6 +138,19 @@ export class ImageService {
     } catch (e) {
       Logger.error(e);
       throw new InternalServerErrorException();
+    }
+  }
+
+  async updateData(dto: ImageDto, data: Partial<ImageDataDto>) {
+    const image = await this.get({ id: dto.id });
+    try {
+      await this.prisma.imageData.update({
+        where: { id: image.data.id },
+        data,
+      });
+    } catch (e) {
+      Logger.error(e);
+      throw new UnprocessableEntityException();
     }
   }
 }
