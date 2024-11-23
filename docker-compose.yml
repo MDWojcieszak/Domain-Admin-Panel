@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  nestjs-app:
+    env_file:
+      - D:\PROGRAMMING\photo-gallery-backend\.env
+    build:
+      context: ${APP_CONTEXT}
+      dockerfile: Dockerfile
+    container_name: ${APP_NAME:-nestjs-app}
+    ports:
+      - '${APP_PORT:-3000}:${CONTAINER_PORT:-3000}'
+    environment:
+      DATABASE_URL: 'postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}'
+      RABBITMQ_URL: 'amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}'
+      INTERFACE_URL: ${APP_URL}
+
+      SUPERUSER_FIRSTNAME: ${SUPERUSER_FIRSTNAME}
+      SUPERUSER_LASTNAME: ${SUPERUSER_LASTNAME}
+      SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
+      SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_RESET_PASSWORD_SECRET: ${JWT_RESET_PASSWORD_SECRET}
+      JWT_REGISTER_SECRET: ${JWT_REGISTER_SECRET}
+
+      MAIN_QUEUE: ${MAIN_QUEUE}
+      MULTIVERSE_QUEUE: ${MULTIVERSE_QUEUE}
+
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASS: ${MAIL_PASS}
+    volumes:
+      - ${APP_DATA}:/app/public
+    depends_on:
+      - postgresql
+      - rabbitmq
+    restart: always
+
+  postgresql:
+    env_file:
+      - D:\PROGRAMMING\photo-gallery-backend\.env
+    image: postgres:15-alpine
+    container_name: ${DB_CONTAINER_NAME:-postgresql}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin_password}
+      POSTGRES_DB: ${DB_NAME:-admin_db}
+    volumes:
+      - ${POSTGRES_DATA_PATH:-/mnt/VAULT/APPS/panel/data}:/var/lib/postgresql/data
+    restart: always
+
+  rabbitmq:
+    env_file:
+      - D:\PROGRAMMING\photo-gallery-backend\.env
+    image: rabbitmq:3-management-alpine
+    container_name: ${RABBITMQ_CONTAINER_NAME:-rabbitmq}
+    ports:
+      - '${RABBITMQ_PORT:-5672}:5672'
+      - '${RABBITMQ_MANAGEMENT_PORT:-15672}:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: always
+
+volumes:
+  pg_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
