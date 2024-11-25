@@ -65,7 +65,6 @@ const swaggerConfig = new DocumentBuilder()
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  app.setGlobalPrefix('api/v1');
   app.connectMicroservice(
     {
       transport: Transport.RMQ,

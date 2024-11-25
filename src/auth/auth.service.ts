@@ -136,7 +136,7 @@ export class AuthService {
       await this.mailService.sendUserResetPassword({
         email: user.email,
         firstName: user.firstName,
-        resetLink: `${this.config.get<string>('APP_URL')}/reset-password?token=${resetPasswordToken}`,
+        resetLink: `${this.config.get<string>('INTERFACE_URL')}/reset-password?token=${resetPasswordToken}`,
       });
     } catch (e) {
       throw new ForbiddenException();
@@ -146,6 +146,11 @@ export class AuthService {
   async resetPassword(userId: string, dto: ResetPasswordDto) {
     try {
       const user = await this.userService.get(userId);
+      const hashPassword = await hash(dto.newPassword);
+
+      await this.userService.update(user.id, {
+        hashPassword,
+      });
     } catch (e) {
       throw new ForbiddenException();
     }
