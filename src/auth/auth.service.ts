@@ -139,7 +139,7 @@ export class AuthService {
         resetLink: `${this.config.get<string>('INTERFACE_URL')}/reset-password?token=${resetPasswordToken}`,
       });
     } catch (e) {
-      throw new ForbiddenException();
+      Logger.error('Request password reset', dto, e);
     }
   }
 
