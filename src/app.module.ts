@@ -20,6 +20,7 @@ import { ServerCommandsModule } from './server-commands/server-commands.module';
 import { ServerSettingsModule } from './server-settings/server-settings.module';
 import { ServerProcessModule } from './server-process/server-process.module';
 import { WebsocketModule } from './websocket/websocket.module';
+import { GalleryModule } from './gallery/gallery.module';
 
 @Module({
   imports: [
@@ -43,8 +44,8 @@ import { WebsocketModule } from './websocket/websocket.module';
     ServerSettingsModule,
     ServerProcessModule,
     WebsocketModule,
+    GalleryModule,
   ],
-  controllers: [],
   providers: [
     {
       provide: APP_GUARD,
