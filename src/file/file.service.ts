@@ -64,12 +64,23 @@ export class FileService {
       'webp',
       LOW_RES_PATH,
     );
-    try {
-      await this.resizeCompressAndSaveImage(image.buffer, coverPath, 1920, 80);
 
+    try {
+      const { width, height } = await this.getImageSize(image.buffer);
+
+      await this.resizeCompressAndSaveImage(image.buffer, coverPath, 1920, 80);
       await this.resizeCompressAndSaveImage(image.buffer, lowResPath, 80, 100);
 
       writeFileSync(originalPath, image.buffer);
+
+      const dimensions = await this.prisma.dimensions.create({
+        data: {
+          id: uuid(),
+          width: width.toString(),
+          height: height.toString(),
+        },
+        select: { id: true },
+      });
 
       const savedImage = await this.prisma.image.create({
         data: {
@@ -77,6 +88,7 @@ export class FileService {
           originalUrl: originalPath,
           coverUrl: coverPath,
           lowResUrl: lowResPath,
+          dimensionsId: dimensions.id,
         },
         select: { id: true },
       });
