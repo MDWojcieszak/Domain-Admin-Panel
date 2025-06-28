@@ -124,7 +124,7 @@ export class ImageService {
       throw new UnprocessableEntityException('Image Data already exists');
 
     try {
-      await this.prisma.imageData.create({
+      return this.prisma.imageData.create({
         data: {
           dateTaken: dto.dateTaken,
           localization: dto.localization,
@@ -133,6 +133,15 @@ export class ImageService {
           image: { connect: { id: image.id } },
           description: dto.description,
           title: dto.title,
+        },
+        select: {
+          id: true,
+          author: { select: { firstName: true, lastName: true } },
+          dateTaken: true,
+          imageId: true,
+          localization: true,
+          description: true,
+          title: true,
         },
       });
     } catch (e) {
@@ -144,9 +153,18 @@ export class ImageService {
   async updateData(dto: ImageDto, data: Partial<ImageDataDto>) {
     const image = await this.get({ id: dto.id });
     try {
-      await this.prisma.imageData.update({
+      return this.prisma.imageData.update({
         where: { id: image.data.id },
         data,
+        select: {
+          id: true,
+          author: { select: { firstName: true, lastName: true } },
+          dateTaken: true,
+          imageId: true,
+          localization: true,
+          description: true,
+          title: true,
+        },
       });
     } catch (e) {
       Logger.error(e);
