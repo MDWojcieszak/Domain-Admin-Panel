@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
 import { UserDto } from './dto';
 import { UserService } from 'src/user/user.service';
 import { Roles } from '../common/decorators';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../common/dto';
+import { User } from '@prisma/client';
+import { UserListResponseDto, UserResponseDto } from './responses';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -13,13 +15,23 @@ export class UserController {
 
   @Post('create')
   @Roles('OWNER')
-  create(@Body() dto: UserDto) {
+  @ApiOkResponse({ description: 'User created', type: UserResponseDto })
+  create(@Body() dto: UserDto): Promise<UserResponseDto> {
     return this.userService.create(dto);
   }
 
   @Roles('OWNER', 'ADMIN')
   @Get('list')
-  async getList(@Query() dto: PaginationDto) {
-    return await this.userService.getMultiple(dto);
+  @ApiOkResponse({
+    description: 'List of users with pagination',
+    type: UserListResponseDto,
+  })
+  async getList(@Query() dto: PaginationDto): Promise<UserListResponseDto> {
+    return this.userService.getMultiple(dto);
+  }
+  @Patch()
+  @Roles('OWNER')
+  update(@Query('id') userId: string, @Body() data: Partial<UserDto>) {
+    return this.userService.update(userId, data);
   }
 }
