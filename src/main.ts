@@ -6,6 +6,8 @@ import { SwaggerTheme } from 'swagger-themes';
 import { SwaggerThemeNameEnum } from 'swagger-themes/build/enums/swagger-theme-name';
 import { Transport } from '@nestjs/microservices';
 import { config } from './config/config';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 
 const theme = new SwaggerTheme();
 const darkStyle = theme.getBuffer(SwaggerThemeNameEnum.DARK);
@@ -74,7 +76,13 @@ async function bootstrap() {
   );
   app.startAllMicroservices();
   app.enableCors();
+
   const document = SwaggerModule.createDocument(app, swaggerConfig);
+
+  const yaml = require('js-yaml');
+  const yamlContent = yaml.dump(document);
+  writeFileSync(join(__dirname, '../src/api/api.yaml'), yamlContent, 'utf8');
+
   SwaggerModule.setup('docs', app, document, { customCss: darkStyle });
   await app.listen(3000);
 }
