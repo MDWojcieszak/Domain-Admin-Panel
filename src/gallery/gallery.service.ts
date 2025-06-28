@@ -9,11 +9,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PHOTO_SIZE } from './dto';
 import { createReadStream, existsSync, ReadStream } from 'fs';
+import { GalleryResponseDto } from './responses';
 
 @Injectable()
 export class GalleryService {
   constructor(private readonly prisma: PrismaService) {}
-  async getAll() {
+  async getAll(): Promise<GalleryResponseDto> {
     try {
       const images = await this.prisma.image.findMany({
         select: {
