@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
@@ -12,6 +13,7 @@ import {
   RegisterDto,
   RequestResetPasswordDto,
   ResetPasswordDto,
+  SignInDto,
 } from './dto';
 import { TokensDto } from './responses';
 import { GetCurrentUser, Public } from '../common/decorators';
@@ -35,8 +37,8 @@ export class AuthController {
   @Post('local/signin')
   @ApiOperation({ summary: 'Sign in using email and password' })
   @ApiOkResponse({ description: 'Successfully logged in', type: TokensDto })
-  signIn(@Body() dto: AuthDto): Promise<TokensDto> {
-    return this.authService.signIn(dto);
+  signIn(@Body() dto: SignInDto, @Req() req: Request): Promise<TokensDto> {
+    return this.authService.signIn(dto, req);
   }
 
   @ApiBearerAuth()

@@ -4,6 +4,7 @@ import {
   RegisterDto,
   RequestResetPasswordDto,
   ResetPasswordDto,
+  SignInDto,
 } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { hash, verify } from 'argon2';
@@ -16,6 +17,7 @@ import { SessionService } from '../session/session.service';
 import { v4 as uuid } from 'uuid';
 import { MailService } from '../mail/mail.service';
 import { UserCreatedEvent } from '../user/events';
+import { UAParser } from 'ua-parser-js';
 
 @Injectable()
 export class AuthService {
@@ -28,7 +30,7 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  async signIn(dto: AuthDto): Promise<TokensDto> {
+  async signIn(dto: SignInDto, req: Request): Promise<TokensDto> {
     const user = await this.prisma.user.findUnique({
       where: {
         email: dto.email,
@@ -37,14 +39,22 @@ export class AuthService {
 
     if (!user || !user.hashPassword)
       throw new ForbiddenException('Credentials incorrect');
+
+    const ua = req.headers['user-agent'] || '';
+    const parser = new UAParser(ua);
+    const uaResult = parser.getResult();
+
     const pwMatches = await verify(user.hashPassword, dto.password);
     if (!pwMatches) throw new ForbiddenException('Credentials incorrect');
 
     const matchingSession = await this.sessionService.findMatching({
       userId: user.id,
-      browser: dto.browser,
-      platform: dto.platform,
-      os: dto.os,
+      browser: uaResult.browser.name,
+      platform:
+        uaResult.device.model && uaResult.device.type
+          ? uaResult.device.model + ' - (' + uaResult.device.type + ')'
+          : uaResult.device.type,
+      os: uaResult.os.name,
     });
     const userSessionId = uuid();
     const tokens = await this.getTokens(
@@ -61,9 +71,12 @@ export class AuthService {
       });
     } else {
       this.sessionService.create({
-        browser: dto.browser,
-        platform: dto.platform,
-        os: dto.os,
+        browser: uaResult.browser.name,
+        platform:
+          uaResult.device.model && uaResult.device.type
+            ? uaResult.device.model + ' - (' + uaResult.device.type + ')'
+            : uaResult.device.type,
+        os: uaResult.os.name,
         id: userSessionId,
         refreshToken: tokens.refresh_token,
         userId: user.id,
