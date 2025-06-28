@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Session } from './types';
 import { omitObj } from '../common/helpers';
 import { SessionDto } from './dto';
+import { PaginationDto } from '../common/dto';
 
 @Injectable()
 export class SessionService {
@@ -20,8 +21,28 @@ export class SessionService {
     return session;
   }
 
-  async getAllForUser(userId: string) {
-    return this.prisma.session.findMany({
+  async getAll(dto: PaginationDto) {
+    const total = await this.prisma.user.count();
+    const sessions = await this.prisma.session.findMany({
+      take: dto.take,
+      skip: dto.skip,
+      select: {
+        browser: true,
+        os: true,
+        platform: true,
+        updatedAt: true,
+        id: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return { sessions, total, params: { ...dto } };
+  }
+
+  async getAllForUser(dto: PaginationDto, userId: string) {
+    const total = await this.prisma.session.count({
+      where: { userId },
+    });
+    const sessions = await this.prisma.session.findMany({
       where: { userId },
       select: {
         browser: true,
@@ -31,6 +52,7 @@ export class SessionService {
         id: true,
       },
     });
+    return { sessions, total, params: { ...dto } };
   }
 
   async get(sessionId: string) {
