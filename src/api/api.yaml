@@ -1,0 +1,827 @@
+openapi: 3.0.0
+paths:
+  /auth/local/signin:
+    post:
+      operationId: AuthController_signIn
+      summary: Sign in using email and password
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthDto'
+      responses:
+        '200':
+          description: Successfully logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokensDto'
+      tags: &ref_0
+        - Auth
+  /auth/logout:
+    post:
+      operationId: AuthController_logout
+      summary: Log out user and invalidate session
+      parameters: []
+      responses:
+        '200':
+          description: User successfully logged out
+      tags: *ref_0
+      security:
+        - bearer: []
+  /auth/reset-password-request:
+    post:
+      operationId: AuthController_resetPasswordRequest
+      summary: Initiate password reset request
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestResetPasswordDto'
+      responses:
+        '200':
+          description: Reset password email sent (if user exists)
+      tags: *ref_0
+  /auth/reset-password:
+    post:
+      operationId: AuthController_resetPassword
+      summary: Reset password using reset token
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordDto'
+      responses:
+        '200':
+          description: Password reset successful
+      tags: *ref_0
+      security:
+        - JWT-reset-password: []
+  /auth/refresh:
+    post:
+      operationId: AuthController_refreshToken
+      summary: Refresh access and refresh tokens
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokensDto'
+      tags: *ref_0
+      security:
+        - JWT-refresh: []
+  /auth/register:
+    post:
+      operationId: AuthController_register
+      summary: Finish registration by setting password
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+      responses:
+        '200':
+          description: User registered successfully
+      tags: *ref_0
+      security:
+        - JWT-register-user: []
+  /auth/check-register:
+    post:
+      operationId: AuthController_handleUserCreatedEvent
+      summary: Check if registration token is valid
+      parameters: []
+      responses:
+        '200':
+          description: Returns email and first name if valid token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  firstName:
+                    type: string
+      tags: *ref_0
+      security:
+        - JWT-register-user: []
+  /user/create:
+    post:
+      operationId: UserController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserDto'
+      responses:
+        '201':
+          description: ''
+      tags: &ref_1
+        - User
+      security: &ref_2
+        - bearer: []
+  /user/list:
+    get:
+      operationId: UserController_getList
+      parameters:
+        - name: take
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags: *ref_1
+      security: *ref_2
+  /image/list:
+    get:
+      operationId: ImageController_getList
+      parameters:
+        - name: take
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: List of image data with pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageListResponseDto'
+      tags: &ref_3
+        - Image
+  /image:
+    get:
+      operationId: ImageController_get
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get single image metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageDataResponseDto'
+      tags: *ref_3
+    put:
+      operationId: ImageController_update
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Update image metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageDataResponseDto'
+      tags: *ref_3
+      security:
+        - bearer: []
+    delete:
+      operationId: ImageController_delete
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Delete image
+      tags: *ref_3
+      security:
+        - bearer: []
+  /image/create:
+    post:
+      operationId: ImageController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageDataDto'
+      responses:
+        '200':
+          description: Create image metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageDataResponseDto'
+      tags: *ref_3
+      security:
+        - bearer: []
+  /image/cover:
+    get:
+      operationId: ImageController_getCoverImage
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get image cover file stream
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+      tags: *ref_3
+  /image/low-res:
+    get:
+      operationId: ImageController_getLowResImage
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get low resolution image stream
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+      tags: *ref_3
+  /image/original:
+    get:
+      operationId: ImageController_getOriginalImage
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get original image file stream
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+      tags: *ref_3
+  /session/all:
+    get:
+      operationId: SessionController_getAllForUser
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: &ref_4
+        - Session
+      security: &ref_5
+        - bearer: []
+  /session/current:
+    get:
+      operationId: SessionController_getCurrent
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_4
+      security: *ref_5
+  /session/logout:
+    post:
+      operationId: SessionController_removeSession
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionDto'
+      responses:
+        '201':
+          description: ''
+      tags: *ref_4
+      security: *ref_5
+  /file/upload/image:
+    post:
+      operationId: FileController_uploadImage
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileDto'
+      responses:
+        '201':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponseDto'
+        '500':
+          description: Error converting or saving file
+      tags:
+        - File
+      security:
+        - bearer: []
+  /server:
+    get:
+      operationId: ServerController_get
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: &ref_6
+        - Server
+  /server/all:
+    get:
+      operationId: ServerController_getAll
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_6
+  /server/categories:
+    get:
+      operationId: ServerController_getCategories
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_6
+  /server/disks:
+    get:
+      operationId: ServerController_getDisks
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_6
+  /server/{id}:
+    patch:
+      operationId: ServerController_patchDisk
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchDiskDto'
+      responses:
+        '200':
+          description: ''
+      tags: *ref_6
+  /server/commands/all:
+    get:
+      operationId: ServerCommandsController_getCommands
+      parameters:
+        - name: categoryId
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: &ref_7
+        - Server
+  /server/commands/{id}:
+    patch:
+      operationId: ServerCommandsController_putCommand
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchServerCommandDto'
+      responses:
+        '200':
+          description: ''
+      tags: *ref_7
+  /server/commands/send/{id}:
+    post:
+      operationId: ServerCommandsController_startServer
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_7
+  /server/settings:
+    get:
+      operationId: ServerSettingsController_getSettings
+      parameters:
+        - name: serverId
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: &ref_8
+        - Server
+  /server/settings/{id}:
+    patch:
+      operationId: ServerSettingsController_putCommand
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchServerSettingDto'
+      responses:
+        '200':
+          description: ''
+      tags: *ref_8
+  /gallery/all:
+    get:
+      operationId: GalleryController_getAll
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryResponseDto'
+      tags: &ref_9
+        - Gallery
+  /gallery/cover:
+    get:
+      operationId: GalleryController_getCoverImage
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_9
+  /gallery/low-res:
+    get:
+      operationId: GalleryController_getLowResImage
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_9
+info:
+  title: WHCP Backend
+  description: XD
+  version: '1.0'
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+      name: JWT
+      description: Enter JWT token
+      in: header
+    JWT-refresh:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+      name: JWT refresh
+      description: Enter JWT refresh token
+      in: header
+    JWT-reset-password:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+      name: JWT reset password
+      description: Enter JWT reset password token
+      in: header
+    JWT-register-user:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+      name: JWT register user
+      description: Enter JWT register user
+      in: header
+  schemas:
+    AuthDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        platform:
+          type: string
+        browser:
+          type: string
+        os:
+          type: string
+      required:
+        - email
+        - password
+        - platform
+    TokensDto:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+      required:
+        - access_token
+        - refresh_token
+    RequestResetPasswordDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+        - email
+    ResetPasswordDto:
+      type: object
+      properties:
+        newPassword:
+          type: string
+        deleteSessions:
+          type: boolean
+      required:
+        - newPassword
+        - deleteSessions
+    RegisterDto:
+      type: object
+      properties:
+        password:
+          type: string
+      required:
+        - password
+    Role:
+      type: string
+      enum:
+        - USER
+        - MODERATOR
+        - ADMIN
+        - OWNER
+    UserDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/Role'
+        firstName:
+          type: string
+        lastName:
+          type: string
+      required:
+        - email
+        - role
+    AuthorDto:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+    ImageDataResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        author:
+          $ref: '#/components/schemas/AuthorDto'
+        dateTaken:
+          type: string
+          format: date-time
+        imageId:
+          type: string
+        localization:
+          type: string
+        description:
+          type: string
+        title:
+          type: string
+      required:
+        - id
+        - author
+        - dateTaken
+        - imageId
+    PaginationDto:
+      type: object
+      properties:
+        take:
+          type: number
+          minimum: 1
+          maximum: 20
+        skip:
+          type: number
+          minimum: 0
+          default: 0
+      required:
+        - take
+    ImageListResponseDto:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageDataResponseDto'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - images
+        - total
+    ImageDataDto:
+      type: object
+      properties:
+        localization:
+          type: string
+        dateTaken:
+          type: string
+          format: date-time
+        title:
+          type: string
+        description:
+          type: string
+        authorId:
+          type: string
+        imageId:
+          type: string
+      required:
+        - localization
+        - dateTaken
+        - imageId
+    SessionDto:
+      type: object
+      properties:
+        sessionId:
+          type: string
+    FileDto:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+    UploadResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Uploaded image ID
+        coverUrl:
+          type: string
+          description: URL to the cover image
+        lowResUrl:
+          type: string
+          description: URL to the low-res image
+      required:
+        - id
+    DiskType:
+      type: string
+      enum:
+        - HDD
+        - SSD
+        - NVME
+    PatchDiskDto:
+      type: object
+      properties:
+        name:
+          type: string
+        mediaType:
+          $ref: '#/components/schemas/DiskType'
+    PatchServerCommandDto:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    PatchServerSettingDto:
+      type: object
+      properties: {}
+    DimensionsDto:
+      type: object
+      properties:
+        width:
+          type: string
+        height:
+          type: string
+      required:
+        - width
+        - height
+    ImageDto:
+      type: object
+      properties:
+        id:
+          type: string
+        data:
+          $ref: '#/components/schemas/ImageDataDto'
+        dimensions:
+          $ref: '#/components/schemas/DimensionsDto'
+      required:
+        - id
+    GalleryResponseDto:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageDto'
+        count:
+          type: number
+      required:
+        - images
+        - count
