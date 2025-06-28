@@ -13,12 +13,17 @@ import {
   RequestResetPasswordDto,
   ResetPasswordDto,
 } from './dto';
-import { Tokens } from './types';
+import { TokensDto } from './responses';
 import { GetCurrentUser, Public } from '../common/decorators';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { OnEvent } from '@nestjs/event-emitter';
 import { UserCreatedEvent } from '../user/events';
-import { RptGuard, RtGuard, UrtGuard } from '../common/guards';
+import { RptGuard, RtGuard, UrtGuard } from './guards';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -28,13 +33,17 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('local/signin')
-  signIn(@Body() dto: AuthDto): Promise<Tokens> {
+  @ApiOperation({ summary: 'Sign in using email and password' })
+  @ApiOkResponse({ description: 'Successfully logged in', type: TokensDto })
+  signIn(@Body() dto: AuthDto): Promise<TokensDto> {
     return this.authService.signIn(dto);
   }
 
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @Post('logout')
+  @ApiOperation({ summary: 'Log out user and invalidate session' })
+  @ApiOkResponse({ description: 'User successfully logged out' })
   logout(@GetCurrentUser('sessionId') sessionId: string) {
     return this.authService.logout(sessionId);
   }
@@ -42,6 +51,8 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('reset-password-request')
+  @ApiOperation({ summary: 'Initiate password reset request' })
+  @ApiOkResponse({ description: 'Reset password email sent (if user exists)' })
   async resetPasswordRequest(@Body() dto: RequestResetPasswordDto) {
     return this.authService.initiatePasswordReset(dto);
   }
@@ -51,6 +62,8 @@ export class AuthController {
   @UseGuards(RptGuard)
   @HttpCode(HttpStatus.OK)
   @Post('reset-password')
+  @ApiOperation({ summary: 'Reset password using reset token' })
+  @ApiOkResponse({ description: 'Password reset successful' })
   async resetPassword(
     @GetCurrentUser('sub') userId: string,
     @Body() dto: ResetPasswordDto,
@@ -64,17 +77,14 @@ export class AuthController {
   @UseGuards(RtGuard)
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
-  refteshToken(
+  @ApiOperation({ summary: 'Refresh access and refresh tokens' })
+  @ApiOkResponse({ type: TokensDto })
+  refreshToken(
     @GetCurrentUser('sub') userId: string,
     @GetCurrentUser('sessionId') sessionId: string,
     @GetCurrentUser('refreshToken') refreshToken: string,
-  ): Promise<Tokens> {
+  ): Promise<TokensDto> {
     return this.authService.refteshTokens(userId, sessionId, refreshToken);
-  }
-
-  @OnEvent('user.created')
-  handleUserCreatedEvent(payload: UserCreatedEvent) {
-    this.authService.initiateRegister(payload);
   }
 
   @Public()
@@ -82,6 +92,8 @@ export class AuthController {
   @UseGuards(UrtGuard)
   @HttpCode(HttpStatus.OK)
   @Post('register')
+  @ApiOperation({ summary: 'Finish registration by setting password' })
+  @ApiOkResponse({ description: 'User registered successfully' })
   register(@GetCurrentUser('sub') userId: string, @Body() dto: RegisterDto) {
     return this.authService.register(userId, dto);
   }
@@ -91,7 +103,19 @@ export class AuthController {
   @UseGuards(UrtGuard)
   @HttpCode(HttpStatus.OK)
   @Post('check-register')
-  checkRegisterToken(@GetCurrentUser('sub') userId: string) {
-    return this.authService.checkRegisterToken(userId);
+  @ApiOperation({ summary: 'Check if registration token is valid' })
+  @ApiOkResponse({
+    description: 'Returns email and first name if valid token',
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string' },
+        firstName: { type: 'string' },
+      },
+    },
+  })
+  @OnEvent('user.created')
+  handleUserCreatedEvent(payload: UserCreatedEvent) {
+    this.authService.initiateRegister(payload);
   }
 }

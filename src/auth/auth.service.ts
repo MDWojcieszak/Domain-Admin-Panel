@@ -7,7 +7,7 @@ import {
 } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { hash, verify } from 'argon2';
-import { Tokens } from './types';
+import { TokensDto } from './responses';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from '../user/user.service';
 import { Role } from '@prisma/client';
@@ -28,7 +28,7 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  async signIn(dto: AuthDto): Promise<Tokens> {
+  async signIn(dto: AuthDto): Promise<TokensDto> {
     const user = await this.prisma.user.findUnique({
       where: {
         email: dto.email,
@@ -160,7 +160,7 @@ export class AuthService {
     userId: string,
     sessionId: string,
     refreshToken: string,
-  ): Promise<Tokens> {
+  ): Promise<TokensDto> {
     const user = await this.userService.get(userId);
     const session = await this.sessionService.get(sessionId);
     const rtMatches = refreshToken === session.refreshToken;
@@ -185,7 +185,7 @@ export class AuthService {
     email: string,
     role: Role,
     sessionId: string,
-  ): Promise<Tokens> {
+  ): Promise<TokensDto> {
     const [accessToken, refreshToken] = await Promise.all([
       this.createToken(
         {
