@@ -29,7 +29,10 @@ export class ServerCommandsService {
       select: { commands: true, name: true, value: true },
     });
     if (!commandsInCategories) throw new ForbiddenException();
-    return commandsInCategories.commands;
+    return {
+      commands: commandsInCategories.commands,
+      total: commandsInCategories.commands.length,
+    };
   }
 
   async handlePatch(id: string, dto: PatchServerCommandDto) {

@@ -8,7 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ServerCommandsService } from './server-commands.service';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { GetCurrentUser, Public, Roles } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
 import {
@@ -17,6 +17,7 @@ import {
   RegisterServerCommandsDto,
 } from './dto';
 import { UpdateServerCommandDto } from './dto/update-server-command.dto';
+import { CommandListResponseDto } from './responses';
 
 @ApiTags('Server')
 @Controller('server/commands')
@@ -25,7 +26,10 @@ export class ServerCommandsController {
 
   @Roles('ADMIN', 'OWNER')
   @Get('all')
-  async getCommands(@Query() dto: GetServerCommandsDto) {
+  @ApiOkResponse({ type: CommandListResponseDto })
+  async getCommands(
+    @Query() dto: GetServerCommandsDto,
+  ): Promise<CommandListResponseDto> {
     return this.serverCommandsService.handleGet(dto);
   }
 
