@@ -8,7 +8,6 @@ import * as sharp from 'sharp';
 import * as path from 'path';
 import { mkdirSync, unlink, writeFileSync } from 'fs';
 import { v4 as uuid } from 'uuid';
-import { ImageService } from '../image/image.service';
 
 const COVER_PATH = 'cover';
 const ORIGINAL_PATH = 'original';

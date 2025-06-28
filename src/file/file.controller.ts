@@ -1,18 +1,22 @@
 import {
-  Body,
   Controller,
-  Get,
   Post,
-  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileService } from './file.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ImageValidationPipe } from '../common/pipes/image-validation.pipe';
-import { Response } from 'express';
+import { Express } from 'express';
 import { FileDto } from './dto';
+import { UploadResponseDto } from './responses';
 
 @ApiTags('File')
 @ApiBearerAuth()
@@ -22,10 +26,18 @@ export class FileController {
 
   @Post('upload/image')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: FileDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Image uploaded successfully',
+    type: UploadResponseDto,
+  })
+  @ApiResponse({ status: 500, description: 'Error converting or saving file' })
   uploadImage(
     @UploadedFile(new ImageValidationPipe())
     file: Express.Multer.File,
-  ) {
+  ): Promise<UploadResponseDto> {
     return this.fileService.uploadImage(file);
   }
 }
