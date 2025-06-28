@@ -1,17 +1,17 @@
 import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
 import {
   DiskInfoDto,
   GetServerDto,
-  LoadDto,
+  CpuDto,
   MemoryDto,
   PatchDiskDto,
   RegisterServerDto,
-  ServerPropertiesDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { PaginationDto } from '../common/dto';
+import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
 
 @Injectable()
 export class ServerService {
@@ -29,24 +29,67 @@ export class ServerService {
     return server;
   }
 
-  async handleGetAll() {
+  async handleGetAll(dto: PaginationDto) {
     const total = await this.prisma.server.count();
 
     const servers = await this.prisma.server.findMany({
-      include: {
+      take: dto.take,
+      skip: dto.skip,
+    });
+    return { total, servers, params: dto };
+  }
+
+  async handleGetDetails(id: string) {
+    const server = this.prisma.server.findUnique({
+      where: { id },
+
+      select: {
+        createdAt: true,
+        categories: { select: { id: true, name: true, value: true } },
+        id: true,
+        ipAddress: true,
+        location: true,
+        name: true,
+        updatedAt: true,
         properties: {
           select: {
-            createdAt: true,
-            status: true,
+            startedBy: {
+              select: {
+                firstName: true,
+                lastName: true,
+                role: true,
+                email: true,
+              },
+            },
+            cpuInfo: {
+              select: {
+                cores: true,
+                physicalCores: true,
+                currentLoad: true,
+                currentLoadSystem: true,
+                currentLoadUser: true,
+              },
+            },
+            diskInfo: {
+              select: {
+                available: true,
+                fs: true,
+                id: true,
+                mediaType: true,
+                name: true,
+                type: true,
+                used: true,
+              },
+            },
+            memoryInfo: { select: { free: true, id: true, total: true } },
             uptime: true,
-            diskInfo: true,
-            cpuInfo: true,
-            memoryInfo: true,
+            status: true,
           },
         },
       },
     });
-    return { total, servers };
+    if (!server) throw new ForbiddenException();
+    return server;
   }
 
   async handleGetCategories(dto: GetServerDto) {
@@ -76,6 +119,21 @@ export class ServerService {
       },
     });
     return updatedDisk;
+  }
+
+  async handlePatchCategory(id: string, dto: PatchDiskDto) {
+    const category = await this.prisma.serverCategory.findUnique({
+      where: { id },
+    });
+    if (!category) throw new ForbiddenException();
+
+    const updatedCategory = await this.prisma.serverCategory.update({
+      where: { id: id },
+      data: {
+        name: dto.name,
+      },
+    });
+    return updatedCategory;
   }
 
   async handleRegisterServer(dto: RegisterServerDto) {
@@ -154,7 +212,7 @@ export class ServerService {
     });
   }
 
-  async updateServerProperties(dto: ServerPropertiesDto) {
+  async updateServerProperties(dto: UpdateServerPropertiesDto) {
     try {
       const server = await this.prisma.server.findFirst({
         where: { name: dto.name },
@@ -172,18 +230,21 @@ export class ServerService {
       if (!server) {
         throw new Error('Server not found');
       }
-      if (dto.cpu) {
-        await this.updateCpuInfo(server.properties.cpuInfo.id, dto.cpu);
-      }
-      if (dto.memory) {
-        await this.updateMemoryInfo(
-          server.properties.memoryInfo.id,
-          dto.memory,
+      if (dto.properties.cpuInfo) {
+        await this.updateCpuInfo(
+          server.properties.cpuInfo.id,
+          dto.properties.cpuInfo,
         );
       }
-      if (dto.disk) {
+      if (dto.properties.memoryInfo) {
+        await this.updateMemoryInfo(
+          server.properties.memoryInfo.id,
+          dto.properties.memoryInfo,
+        );
+      }
+      if (dto.properties.disk) {
         await Promise.all(
-          dto.disk.map(async (disk, index) => {
+          dto.properties.disk.map(async (disk, index) => {
             if (!server.properties.diskInfo[index])
               throw new Error('Incorrect number of disks');
             return await this.updateDiskInfo(
@@ -195,7 +256,7 @@ export class ServerService {
       }
       await this.prisma.serverProperties.update({
         where: { id: server.properties.id },
-        data: { status: 'ONLINE', uptime: dto.uptime },
+        data: { status: 'ONLINE', uptime: dto.properties.uptime },
         include: {
           cpuInfo: true,
           memoryInfo: true,
@@ -209,7 +270,7 @@ export class ServerService {
     }
   }
 
-  async updateCpuInfo(id: string, cpuInfo: LoadDto) {
+  async updateCpuInfo(id: string, cpuInfo: CpuDto) {
     await this.prisma.cPUInfo.update({
       where: { id },
       data: cpuInfo,

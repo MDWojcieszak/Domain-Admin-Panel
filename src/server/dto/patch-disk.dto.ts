@@ -3,8 +3,8 @@ import { IsEnum, IsString } from 'nestjs-swagger-dto';
 
 export class PatchDiskDto {
   @IsString({ optional: true })
-  name: string;
+  name?: string;
 
   @IsEnum({ enum: { DiskType }, optional: true })
-  mediaType: DiskType;
+  mediaType?: DiskType;
 }

@@ -1,5 +1,4 @@
 import { IsNested, IsString } from 'nestjs-swagger-dto';
-import { DiskInfoDto } from './server-properties.dto';
 import { IsNumber } from 'class-validator';
 
 class CpuDto {

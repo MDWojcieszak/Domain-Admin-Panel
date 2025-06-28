@@ -1,8 +1,14 @@
-import { ServerStatus } from '@prisma/client';
-
+import { DiskType, ServerStatus } from '@prisma/client';
 import { IsEnum, IsNested, IsNumber, IsString } from 'nestjs-swagger-dto';
+import { UserDto } from '../../user/dto';
 
-export class LoadDto {
+export class CpuDto {
+  @IsNumber({ optional: true })
+  cores?: number;
+
+  @IsNumber({ optional: true })
+  physicalCores?: number;
+
   @IsNumber()
   currentLoad: number;
 
@@ -14,39 +20,48 @@ export class LoadDto {
 }
 
 export class MemoryDto {
-  @IsNumber()
-  total: number;
+  @IsNumber({ optional: true })
+  total?: bigint;
 
-  @IsNumber()
-  free: number;
+  @IsNumber({ optional: true })
+  free?: bigint;
 }
 
 export class DiskInfoDto {
-  @IsString()
-  fs: string;
+  @IsString({ optional: true })
+  fs?: string;
 
-  @IsString()
-  type: string;
+  @IsString({ optional: true })
+  type?: string;
 
-  @IsNumber()
-  used: number;
+  @IsNumber({ optional: true })
+  used?: number;
 
-  @IsNumber()
-  available: number;
+  @IsNumber({ optional: true })
+  available?: number;
+
+  @IsString({ optional: true })
+  name?: string;
+
+  @IsEnum({ enum: { DiskType }, optional: true })
+  mediaType?: DiskType;
 }
 
 export class ServerPropertiesDto {
-  @IsString()
-  name: string;
-
   @IsNumber({ optional: true })
-  uptime: number;
+  uptime?: bigint;
 
-  @IsNested({ type: LoadDto, optional: true })
-  cpu?: LoadDto;
+  @IsEnum({ enum: { ServerStatus }, optional: true })
+  status?: ServerStatus;
+
+  @IsNested({ type: UserDto, optional: true })
+  startedBy?: UserDto;
+
+  @IsNested({ type: CpuDto, optional: true })
+  cpuInfo?: CpuDto;
 
   @IsNested({ type: MemoryDto, optional: true })
-  memory?: MemoryDto;
+  memoryInfo?: MemoryDto;
 
   @IsNested({ type: DiskInfoDto, isArray: true, optional: true })
   disk?: DiskInfoDto[];

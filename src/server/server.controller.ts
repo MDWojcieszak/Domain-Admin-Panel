@@ -1,25 +1,17 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { ServerService } from './server.service';
 import { Public, Roles } from '../common/decorators';
-import { EventPattern, MessagePattern } from '@nestjs/microservices';
-import { validate } from 'class-validator';
-import { ProcessMessageDto } from './dto/process-message.dto';
+import { MessagePattern } from '@nestjs/microservices';
+import { PatchDiskDto, RegisterServerDto } from './dto';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
-  GetServerDto,
-  PatchDiskDto,
-  RegisterServerDto,
-  ServerPropertiesDto,
-} from './dto';
-import { ApiTags } from '@nestjs/swagger';
+  ServerDetailsResponseDto,
+  ServerListResponseDto,
+  ServerResponseDto,
+} from './responses';
+import { PaginationDto } from '../common/dto';
+import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
+import { PatchCategorykDto } from './dto/patch-category.dto';
 
 @ApiTags('Server')
 @Controller('server')
@@ -27,44 +19,51 @@ export class ServerController {
   constructor(private serverService: ServerService) {}
 
   @Roles('ADMIN', 'OWNER')
-  @Get('')
-  async get(@Query() dto: GetServerDto) {
-    return this.serverService.handleGet(dto.id);
+  @Get(':serverId')
+  @ApiOkResponse({ type: ServerResponseDto })
+  async get(@Param('serverId') serverId: string): Promise<ServerResponseDto> {
+    return this.serverService.handleGet(serverId);
   }
 
   @Roles('ADMIN', 'OWNER')
   @Get('all')
-  async getAll() {
-    return this.serverService.handleGetAll();
+  @ApiOkResponse({ type: ServerListResponseDto })
+  async getAll(@Query() dto: PaginationDto): Promise<ServerListResponseDto> {
+    return this.serverService.handleGetAll(dto);
   }
 
   @Roles('ADMIN', 'OWNER')
-  @Get('categories')
-  async getCategories(@Query() dto: GetServerDto) {
-    return this.serverService.handleGetCategories(dto);
+  @Get('details/:serverId')
+  @ApiOkResponse({ type: ServerDetailsResponseDto })
+  async getDetails(
+    @Param('serverId') serverId: string,
+  ): Promise<ServerDetailsResponseDto> {
+    return this.serverService.handleGetDetails(serverId);
   }
 
-  @Roles('ADMIN', 'OWNER')
-  @Get('disks')
-  async getDisks(@Query() dto: GetServerDto) {
-    return this.serverService.handleGetDisks(dto);
-  }
-
-  @Roles('ADMIN', 'OWNER')
-  @Patch(':id')
+  @Roles('OWNER')
+  @Patch('disk/:id')
+  @ApiOkResponse({ description: 'Changed correctly' })
   async patchDisk(@Param('id') id: string, @Body() dto: PatchDiskDto) {
     return this.serverService.handlePatchDisk(id, dto);
   }
 
+  @Roles('OWNER')
+  @Patch('catgory/:id')
+  @ApiOkResponse({ description: 'Changed correctly' })
+  async patchCategory(@Param('id') id: string, @Body() dto: PatchCategorykDto) {
+    return this.serverService.handlePatchCategory(id, dto);
+  }
+
   @Public()
-  @MessagePattern('register-server')
+  @MessagePattern('server.register')
   async registerServer(dto: RegisterServerDto) {
     return this.serverService.handleRegisterServer(dto);
   }
 
   @Public()
-  @MessagePattern('raport-server-usage')
-  async raportServerUsage(dto: ServerPropertiesDto) {
+  @MessagePattern('server.raport-usage')
+  async raportServerUsage(dto: UpdateServerPropertiesDto) {
     return this.serverService.updateServerProperties(dto);
   }
 }
