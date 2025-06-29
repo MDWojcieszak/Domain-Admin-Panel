@@ -17,7 +17,11 @@ import {
   RegisterServerCommandsDto,
 } from './dto';
 import { UpdateServerCommandDto } from './dto/update-server-command.dto';
-import { CommandListResponseDto } from './responses';
+import {
+  CommandExecuteResponseDto,
+  CommandListResponseDto,
+  CommandResponseDto,
+} from './responses';
 
 @ApiTags('Server')
 @Controller('server/commands')
@@ -26,7 +30,9 @@ export class ServerCommandsController {
 
   @Roles('ADMIN', 'OWNER')
   @Get('all')
-  @ApiOkResponse({ type: CommandListResponseDto })
+  @ApiOkResponse({
+    type: CommandListResponseDto,
+  })
   async getCommands(
     @Query() dto: GetServerCommandsDto,
   ): Promise<CommandListResponseDto> {
@@ -35,16 +41,25 @@ export class ServerCommandsController {
 
   @Roles('ADMIN', 'OWNER')
   @Patch(':id')
+  @ApiOkResponse({
+    type: CommandResponseDto,
+  })
   async putCommand(
     @Param('id') id: string,
     @Body() dto: PatchServerCommandDto,
-  ) {
+  ): Promise<CommandResponseDto> {
     return this.serverCommandsService.handlePatch(id, dto);
   }
 
   @Roles('ADMIN', 'OWNER')
   @Post('send/:id')
-  startServer(@Param('id') id: string, @GetCurrentUser('sub') userId: string) {
+  @ApiOkResponse({
+    type: CommandExecuteResponseDto,
+  })
+  startServer(
+    @Param('id') id: string,
+    @GetCurrentUser('sub') userId: string,
+  ): Promise<CommandExecuteResponseDto> {
     return this.serverCommandsService.handleSend(id, userId);
   }
 

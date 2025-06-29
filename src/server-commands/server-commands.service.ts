@@ -60,7 +60,7 @@ export class ServerCommandsService {
             new SendCommandEvent(context),
           );
           return {
-            sent: true,
+            success: true,
           };
         case 'MESSAGE':
           const sendRes = await firstValueFrom(
@@ -70,7 +70,7 @@ export class ServerCommandsService {
             ),
           );
           return {
-            executed: sendRes,
+            success: !!sendRes,
           };
       }
     } catch (error) {
