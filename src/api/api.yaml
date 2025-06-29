@@ -10,7 +10,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AuthDto'
+              $ref: '#/components/schemas/SignInDto'
       responses:
         '200':
           description: Successfully logged in
@@ -126,8 +126,12 @@ paths:
             schema:
               $ref: '#/components/schemas/UserDto'
       responses:
-        '201':
-          description: ''
+        '200':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseDto'
       tags: &ref_1
         - User
       security: &ref_2
@@ -150,6 +154,24 @@ paths:
             minimum: 0
             default: 0
             type: number
+      responses:
+        '200':
+          description: List of users with pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponseDto'
+      tags: *ref_1
+      security: *ref_2
+  /user:
+    patch:
+      operationId: UserController_update
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
       responses:
         '200':
           description: ''
@@ -305,24 +327,105 @@ paths:
                 type: string
                 format: binary
       tags: *ref_3
-  /session/all:
+  /session/my:
     get:
       operationId: SessionController_getAllForUser
-      parameters: []
+      parameters:
+        - name: take
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
       responses:
         '200':
-          description: ''
+          description: List of all sessions for the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponseDto'
       tags: &ref_4
         - Session
       security: &ref_5
         - bearer: []
+  /session/user/{userId}:
+    get:
+      operationId: SessionController_getAllForUserByAdmin
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: take
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: List of all sessions for a specific user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponseDto'
+      tags: *ref_4
+      security: *ref_5
+  /session/all:
+    get:
+      operationId: SessionController_getAll
+      parameters:
+        - name: take
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: List of all sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponseDto'
+      tags: *ref_4
+      security: *ref_5
   /session/current:
     get:
       operationId: SessionController_getCurrent
       parameters: []
       responses:
         '200':
-          description: ''
+          description: Get current session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponseDto'
       tags: *ref_4
       security: *ref_5
   /session/logout:
@@ -336,8 +439,8 @@ paths:
             schema:
               $ref: '#/components/schemas/SessionDto'
       responses:
-        '201':
-          description: ''
+        '200':
+          description: Session deleted
       tags: *ref_4
       security: *ref_5
   /file/upload/image:
@@ -363,55 +466,68 @@ paths:
         - File
       security:
         - bearer: []
-  /server:
+  /server/{serverId}:
     get:
       operationId: ServerController_get
       parameters:
-        - name: id
+        - name: serverId
           required: true
-          in: query
+          in: path
           schema:
             type: string
       responses:
         '200':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerResponseDto'
       tags: &ref_6
         - Server
   /server/all:
     get:
       operationId: ServerController_getAll
-      parameters: []
+      parameters:
+        - name: take
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
       responses:
         '200':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerListResponseDto'
       tags: *ref_6
-  /server/categories:
+  /server/details/{serverId}:
     get:
-      operationId: ServerController_getCategories
+      operationId: ServerController_getDetails
       parameters:
-        - name: id
+        - name: serverId
           required: true
-          in: query
+          in: path
           schema:
             type: string
       responses:
         '200':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerDetailsResponseDto'
       tags: *ref_6
-  /server/disks:
-    get:
-      operationId: ServerController_getDisks
-      parameters:
-        - name: id
-          required: true
-          in: query
-          schema:
-            type: string
-      responses:
-        '200':
-          description: ''
-      tags: *ref_6
-  /server/{id}:
+  /server/disk/{id}:
     patch:
       operationId: ServerController_patchDisk
       parameters:
@@ -428,7 +544,26 @@ paths:
               $ref: '#/components/schemas/PatchDiskDto'
       responses:
         '200':
-          description: ''
+          description: Changed correctly
+      tags: *ref_6
+  /server/catgory/{id}:
+    patch:
+      operationId: ServerController_patchCategory
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchCategorykDto'
+      responses:
+        '200':
+          description: Changed correctly
       tags: *ref_6
   /server/commands/all:
     get:
@@ -442,6 +577,10 @@ paths:
       responses:
         '200':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandListResponseDto'
       tags: &ref_7
         - Server
   /server/commands/{id}:
@@ -462,6 +601,10 @@ paths:
       responses:
         '200':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponseDto'
       tags: *ref_7
   /server/commands/send/{id}:
     post:
@@ -473,8 +616,12 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandExecuteResponseDto'
       tags: *ref_7
   /server/settings:
     get:
@@ -493,6 +640,10 @@ paths:
       responses:
         '200':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerSettingsListResponseDto'
       tags: &ref_8
         - Server
   /server/settings/{id}:
@@ -513,7 +664,86 @@ paths:
       responses:
         '200':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerSettingsResponseDto'
       tags: *ref_8
+  /server/process/list:
+    get:
+      operationId: ServerProcessController_getAll
+      parameters:
+        - name: take
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessListResponseDto'
+      tags: &ref_9
+        - Server
+  /server/process/{id}:
+    get:
+      operationId: ServerProcessController_getOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessResponseDto'
+      tags: *ref_9
+  /server/process/{id}/logs:
+    get:
+      operationId: ServerProcessController_getAllLogs
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: take
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessLogListResponseDto'
+      tags: *ref_9
   /gallery/all:
     get:
       operationId: GalleryController_getAll
@@ -525,7 +755,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryResponseDto'
-      tags: &ref_9
+      tags: &ref_10
         - Gallery
   /gallery/cover:
     get:
@@ -539,7 +769,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_9
+      tags: *ref_10
   /gallery/low-res:
     get:
       operationId: GalleryController_getLowResImage
@@ -552,7 +782,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_9
+      tags: *ref_10
 info:
   title: WHCP Backend
   description: XD
@@ -591,7 +821,7 @@ components:
       description: Enter JWT register user
       in: header
   schemas:
-    AuthDto:
+    SignInDto:
       type: object
       properties:
         email:
@@ -599,16 +829,9 @@ components:
           format: email
         password:
           type: string
-        platform:
-          type: string
-        browser:
-          type: string
-        os:
-          type: string
       required:
         - email
         - password
-        - platform
     TokensDto:
       type: object
       properties:
@@ -666,6 +889,52 @@ components:
       required:
         - email
         - role
+    UserResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - role
+        - createdAt
+    PaginationDto:
+      type: object
+      properties:
+        take:
+          type: number
+          minimum: 1
+          maximum: 20
+        skip:
+          type: number
+          minimum: 0
+          default: 0
+      required:
+        - take
+    UserListResponseDto:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponseDto'
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - users
     AuthorDto:
       type: object
       properties:
@@ -696,19 +965,6 @@ components:
         - author
         - dateTaken
         - imageId
-    PaginationDto:
-      type: object
-      properties:
-        take:
-          type: number
-          minimum: 1
-          maximum: 20
-        skip:
-          type: number
-          minimum: 0
-          default: 0
-      required:
-        - take
     ImageListResponseDto:
       type: object
       properties:
@@ -743,6 +999,37 @@ components:
         - localization
         - dateTaken
         - imageId
+    SessionResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        browser:
+          type: string
+        os:
+          type: string
+        platform:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - browser
+        - os
+        - platform
+        - updatedAt
+    SessionListResponseDto:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionResponseDto'
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - sessions
     SessionDto:
       type: object
       properties:
@@ -769,12 +1056,152 @@ components:
           description: URL to the low-res image
       required:
         - id
+    ServerResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ipAddress:
+          type: string
+        location:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - ipAddress
+        - createdAt
+        - updatedAt
+    ServerListResponseDto:
+      type: object
+      properties:
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerResponseDto'
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - servers
+    ServerStatus:
+      type: string
+      enum:
+        - UNKNOWN
+        - OFFLINE
+        - ONLINE
+        - ERROR
+        - MAINTENANCE
+        - WAKE_IN_PROGRESS
+        - SHUTDOWN_IN_PROGRESS
+    CpuDto:
+      type: object
+      properties:
+        cores:
+          type: number
+        physicalCores:
+          type: number
+        currentLoad:
+          type: number
+        currentLoadUser:
+          type: number
+        currentLoadSystem:
+          type: number
+      required:
+        - currentLoad
+        - currentLoadUser
+        - currentLoadSystem
+    MemoryDto:
+      type: object
+      properties:
+        total:
+          type: number
+        free:
+          type: number
     DiskType:
       type: string
       enum:
         - HDD
         - SSD
         - NVME
+    DiskInfoDto:
+      type: object
+      properties:
+        fs:
+          type: string
+        type:
+          type: string
+        used:
+          type: number
+        available:
+          type: number
+        name:
+          type: string
+        mediaType:
+          $ref: '#/components/schemas/DiskType'
+    ServerPropertiesDto:
+      type: object
+      properties:
+        uptime:
+          type: number
+        status:
+          $ref: '#/components/schemas/ServerStatus'
+        startedBy:
+          $ref: '#/components/schemas/UserDto'
+        cpuInfo:
+          $ref: '#/components/schemas/CpuDto'
+        memoryInfo:
+          $ref: '#/components/schemas/MemoryDto'
+        disk:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiskInfoDto'
+    ServerCategoriesDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+      required:
+        - id
+        - value
+    ServerDetailsResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ipAddress:
+          type: string
+        location:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        properties:
+          $ref: '#/components/schemas/ServerPropertiesDto'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerCategoriesDto'
+      required:
+        - id
+        - name
+        - ipAddress
+        - createdAt
     PatchDiskDto:
       type: object
       properties:
@@ -782,6 +1209,54 @@ components:
           type: string
         mediaType:
           $ref: '#/components/schemas/DiskType'
+    PatchCategorykDto:
+      type: object
+      properties:
+        name:
+          type: string
+    CommandStatus:
+      type: string
+      enum:
+        - ENABLED
+        - DISABLED
+        - RUNNING
+    CommandType:
+      type: string
+      enum:
+        - MESSAGE
+        - EVENT
+    CommandResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        status:
+          $ref: '#/components/schemas/CommandStatus'
+        runningProgress:
+          type: number
+        type:
+          $ref: '#/components/schemas/CommandType'
+      required:
+        - id
+        - value
+        - status
+        - type
+    CommandListResponseDto:
+      type: object
+      properties:
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommandResponseDto'
+        total:
+          type: number
+      required:
+        - commands
+        - total
     PatchServerCommandDto:
       type: object
       properties:
@@ -789,9 +1264,174 @@ components:
           type: string
       required:
         - name
+    CommandExecuteResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+    ServerCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+    SettingType:
+      type: string
+      enum:
+        - STRING
+        - NUMBER
+    ServerSettingsResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        serverCategory:
+          $ref: '#/components/schemas/ServerCategory'
+        name:
+          type: string
+        serverName:
+          type: string
+        value:
+          type: string
+        type:
+          $ref: '#/components/schemas/SettingType'
+      required:
+        - id
+        - serverCategory
+        - serverName
+        - value
+        - type
+    ServerSettingsListResponseDto:
+      type: object
+      properties:
+        settings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerSettingsResponseDto'
+        total:
+          type: number
+      required:
+        - settings
+        - total
     PatchServerSettingDto:
       type: object
-      properties: {}
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      required:
+        - name
+    ServerProcessStatus:
+      type: string
+      enum:
+        - UNKNOWN
+        - STARTED
+        - ONGOING
+        - CLOSED
+        - ENDED
+        - FAILED
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+      required:
+        - id
+        - email
+    Category:
+      type: object
+      properties:
+        name:
+          type: string
+    ProcessResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerProcessStatus'
+        name:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        stoppedAt:
+          type: string
+          format: date-time
+        startedBy:
+          $ref: '#/components/schemas/User'
+        category:
+          $ref: '#/components/schemas/Category'
+      required:
+        - id
+        - status
+        - startedAt
+    ProcessListResponseDto:
+      type: object
+      properties:
+        processes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessResponseDto'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - processes
+        - total
+    ProcessLogLevel:
+      type: string
+      enum:
+        - LOG
+        - SUCCESS
+        - WARNING
+        - ERROR
+    ProcessLog:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+      required:
+        - id
+        - message
+        - timestamp
+        - level
+    ProcessLogListResponseDto:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessLog'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - logs
+        - total
     DimensionsDto:
       type: object
       properties:
