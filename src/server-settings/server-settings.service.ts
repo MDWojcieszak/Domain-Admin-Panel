@@ -8,6 +8,7 @@ import {
 } from './dto';
 import { ClientProxy } from '@nestjs/microservices';
 import { SetSettingEvent } from './events';
+import { SettingType } from '@prisma/client';
 
 @Injectable()
 export class ServerSettingsService {
@@ -17,31 +18,79 @@ export class ServerSettingsService {
   ) {}
 
   async handleGet(dto: GetServerSettingsDto) {
-    const settingsInCategories = await this.prisma.server.findUnique({
+    const count = await this.prisma.serverSettings.count({
       where: {
-        id: dto.serverId,
+        serverCategory: {
+          serverId: dto.serverId,
+          id: dto.categoryId || undefined,
+        },
+      },
+    });
+    const settingsInCategories = await this.prisma.serverCategory.findUnique({
+      where: {
+        id: dto.categoryId || undefined,
+        serverId: dto.serverId,
       },
       select: {
-        categories: {
-          where: { id: dto.categoryId || undefined },
-          select: { settings: true, name: true, value: true },
+        settings: {
+          select: {
+            id: true,
+            serverName: true,
+            type: true,
+            value: true,
+            serverCategory: { select: { id: true, name: true } },
+          },
         },
       },
     });
     if (!settingsInCategories) throw new ForbiddenException();
-    return settingsInCategories.categories;
+    return {
+      settings: settingsInCategories.settings,
+      total: count,
+    };
   }
 
   async handlePatch(id: string, dto: PatchServerSettingDto) {
-    const setting = await this.prisma.serverSettings.findUnique({
-      where: { id },
-    });
-    if (!setting) throw new ForbiddenException();
-    const updatedSetting = await this.prisma.serverSettings.update({
-      where: { id },
-      data: { name: dto.name },
-    });
-    return updatedSetting;
+    try {
+      const server = await this.prisma.server.findFirst({
+        where: { categories: { some: { settings: { some: { id } } } } },
+      });
+      const setting = await this.prisma.serverSettings.findUnique({
+        where: { id },
+      });
+      if (!setting || !server) throw new ForbiddenException();
+      if (
+        dto.value &&
+        setting.type === SettingType.NUMBER &&
+        isNaN(Number(dto.value))
+      ) {
+        throw new ForbiddenException('Value must be a number');
+      }
+      const updatedSetting = await this.prisma.serverSettings.update({
+        where: { id },
+        data: { name: dto.name, value: dto.value },
+        select: {
+          id: true,
+          serverName: true,
+          type: true,
+          value: true,
+          serverCategory: { select: { id: true, name: true, value: true } },
+        },
+      });
+
+      this.multiVerseClient.emit(
+        'setting.set',
+        new SetSettingEvent(
+          server.name,
+          updatedSetting.serverName,
+          updatedSetting.value,
+          updatedSetting.serverCategory.value,
+        ),
+      );
+      return updatedSetting;
+    } catch (error) {
+      throw new Error(`Failed to update server setting: ${error.message}`);
+    }
   }
 
   async handleRegisterSettings(dto: RegisterServerSettingsDto) {
@@ -86,7 +135,7 @@ export class ServerSettingsService {
               } else {
                 if (existingSetting.value !== setting.settingValue)
                   this.multiVerseClient.emit(
-                    'set_setting',
+                    'setting.set',
                     new SetSettingEvent(
                       server.name,
                       existingSetting.serverName,
