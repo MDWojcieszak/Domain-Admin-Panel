@@ -9,10 +9,10 @@ export class UserResponseDto {
   email: string;
 
   @IsString({ optional: true })
-  firstName: string;
+  firstName?: string;
 
   @IsString({ optional: true })
-  lastName: string;
+  lastName?: string;
 
   @IsEnum({ enum: { Role } })
   role: Role;
