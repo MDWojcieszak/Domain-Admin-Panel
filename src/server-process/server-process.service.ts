@@ -6,10 +6,89 @@ import {
   RegisterProcessLogDto,
 } from './dto';
 import { ServerProcessStatus } from '@prisma/client';
+import { PaginationDto } from '../common/dto';
 
 @Injectable()
 export class ServerProcessService {
   constructor(private prisma: PrismaService) {}
+
+  async handleGetAll(dto: PaginationDto) {
+    const total = await this.prisma.process.count();
+    const processes = await this.prisma.process.findMany({
+      take: dto.take,
+      skip: dto.skip,
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startedBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        startedAt: true,
+        stoppedAt: true,
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+    return { processes, total, params: dto };
+  }
+
+  async handleGetOne(processId: string) {
+    const process = await this.prisma.process.findUnique({
+      where: { id: processId },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startedBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        startedAt: true,
+        stoppedAt: true,
+      },
+    });
+    return process;
+  }
+
+  async handleGetAllLogs(processId: string, dto: PaginationDto) {
+    const total = await this.prisma.processLog.count({
+      where: { processId },
+    });
+    const logs = await this.prisma.processLog.findMany({
+      where: { processId },
+      select: {
+        id: true,
+        message: true,
+        level: true,
+        timestamp: true,
+      },
+      take: dto.take,
+      skip: dto.skip,
+      orderBy: { timestamp: 'desc' },
+    });
+    return { logs, total, params: dto };
+  }
 
   async handleRegister(dto: RegisterProcessDto) {
     try {
