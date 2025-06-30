@@ -7,6 +7,7 @@ import {
   MemoryDto,
   PatchDiskDto,
   RegisterServerDto,
+  HeartbeatDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';

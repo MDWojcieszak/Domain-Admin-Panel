@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { ServerService } from './server.service';
 import { Public, Roles } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
-import { PatchDiskDto, RegisterServerDto } from './dto';
+import { HeartbeatDto, PatchDiskDto, RegisterServerDto } from './dto';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
   ServerDetailsResponseDto,
@@ -12,11 +12,15 @@ import {
 import { PaginationDto } from '../common/dto';
 import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
 import { PatchCategorykDto } from './dto/patch-category.dto';
+import { ServerPowerService } from './server-power.service';
 
 @ApiTags('Server')
 @Controller('server')
 export class ServerController {
-  constructor(private serverService: ServerService) {}
+  constructor(
+    private serverService: ServerService,
+    private serverPower: ServerPowerService,
+  ) {}
 
   @Roles('ADMIN', 'OWNER')
   @Get(':serverId')
@@ -65,5 +69,11 @@ export class ServerController {
   @MessagePattern('server.raport-usage')
   async raportServerUsage(dto: UpdateServerPropertiesDto) {
     return this.serverService.updateServerProperties(dto);
+  }
+
+  @Public()
+  @MessagePattern('server.heartbeat')
+  async raportHeartbeat(dto: HeartbeatDto) {
+    return this.serverPower.handleHeartbeat(dto);
   }
 }
