@@ -163,18 +163,41 @@ paths:
                 $ref: '#/components/schemas/UserListResponseDto'
       tags: *ref_1
       security: *ref_2
-  /user:
+  /user/me:
     patch:
       operationId: UserController_update
+      parameters: []
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseDto'
+      tags: *ref_1
+      security: *ref_2
+  /user/role:
+    patch:
+      operationId: UserController_updateAdmin
       parameters:
         - name: id
           required: true
           in: query
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchUserAdminDto'
       responses:
         '200':
-          description: ''
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseDto'
       tags: *ref_1
       security: *ref_2
   /image/list:
@@ -880,12 +903,12 @@ components:
         email:
           type: string
           format: email
-        role:
-          $ref: '#/components/schemas/Role'
         firstName:
           type: string
         lastName:
           type: string
+        role:
+          $ref: '#/components/schemas/Role'
       required:
         - email
         - role
@@ -935,6 +958,14 @@ components:
           $ref: '#/components/schemas/PaginationDto'
       required:
         - users
+    PatchUserAdminDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/Role'
     AuthorDto:
       type: object
       properties:
