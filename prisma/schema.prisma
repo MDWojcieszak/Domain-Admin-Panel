@@ -106,6 +106,19 @@ model User {
   avatarId         String?            @unique
   serverSessions   Process[]
   serverProperties ServerProperties[]
+  userSettings     UserSettings?
+}
+
+model UserSettings {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  serverStatusEmailNotifications Boolean @default(true)
+  serverIdleEmailNotifications   Boolean @default(false)
+  serverPushNotifications        Boolean @default(false)
+  processEmailNotifications      Boolean @default(true)
+  processPushNotifications       Boolean @default(false)
 }
 
 model SocialMedia {
@@ -220,9 +233,14 @@ model ServerProperties {
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
   serverId String @unique
 
-  status      ServerStatus?
-  startedBy   User?         @relation(fields: [startedById], references: [id], onDelete: NoAction)
+  status     ServerStatus?
+  lastSeenAt DateTime?
+  isOnline   Boolean       @default(false)
+
+  startedBy   User?     @relation(fields: [startedById], references: [id], onDelete: NoAction)
   startedById String?
+  startedAt   DateTime?
+  stoppedAt   DateTime?
 
   cpuInfo    CPUInfo?
   memoryInfo MemoryInfo?
