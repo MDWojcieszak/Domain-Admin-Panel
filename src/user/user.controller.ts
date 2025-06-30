@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
-import { UserDto } from './dto';
 import { UserService } from 'src/user/user.service';
-import { Roles } from '../common/decorators';
+import { GetCurrentUser, Roles } from '../common/decorators';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../common/dto';
 import { User } from '@prisma/client';
 import { UserListResponseDto, UserResponseDto } from './responses';
+import { PatchUserAdminDto, PatchUserDto, UserDto } from './dto';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -29,9 +29,23 @@ export class UserController {
   async getList(@Query() dto: PaginationDto): Promise<UserListResponseDto> {
     return this.userService.getMultiple(dto);
   }
-  @Patch()
+
+  @Patch('me')
+  @ApiOkResponse({ description: 'User updated', type: UserResponseDto })
+  update(
+    @GetCurrentUser('sub') userId: string,
+    @Body() data: Partial<PatchUserDto>,
+  ): Promise<UserResponseDto> {
+    return this.userService.update(userId, data);
+  }
+
+  @Patch('role')
   @Roles('OWNER')
-  update(@Query('id') userId: string, @Body() data: Partial<UserDto>) {
+  @ApiOkResponse({ description: 'User updated', type: UserResponseDto })
+  updateAdmin(
+    @Query('id') userId: string,
+    @Body() data: PatchUserAdminDto,
+  ): Promise<UserResponseDto> {
     return this.userService.update(userId, data);
   }
 }
