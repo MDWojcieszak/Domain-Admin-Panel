@@ -100,6 +100,7 @@ export class ImageController {
     file.pipe(res);
   }
 
+  @ApiBearerAuth()
   @Roles('USER', 'MODERATOR', 'ADMIN', 'OWNER')
   @Get('original')
   @ApiProduces('image/jpeg', 'image/png', 'image/webp')

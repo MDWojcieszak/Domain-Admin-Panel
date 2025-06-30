@@ -3,7 +3,7 @@ import { ServerService } from './server.service';
 import { Public, Roles } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
 import { HeartbeatDto, PatchDiskDto, RegisterServerDto } from './dto';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
   ServerDetailsResponseDto,
   ServerListResponseDto,
@@ -22,6 +22,7 @@ export class ServerController {
     private serverPower: ServerPowerService,
   ) {}
 
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Get(':serverId')
   @ApiOkResponse({ type: ServerResponseDto })
@@ -29,6 +30,7 @@ export class ServerController {
     return this.serverService.handleGet(serverId);
   }
 
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Get('all')
   @ApiOkResponse({ type: ServerListResponseDto })
@@ -36,6 +38,7 @@ export class ServerController {
     return this.serverService.handleGetAll(dto);
   }
 
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Get('details/:serverId')
   @ApiOkResponse({ type: ServerDetailsResponseDto })
@@ -45,6 +48,7 @@ export class ServerController {
     return this.serverService.handleGetDetails(serverId);
   }
 
+  @ApiBearerAuth()
   @Roles('OWNER')
   @Patch('disk/:id')
   @ApiOkResponse({ description: 'Changed correctly' })
@@ -52,6 +56,7 @@ export class ServerController {
     return this.serverService.handlePatchDisk(id, dto);
   }
 
+  @ApiBearerAuth()
   @Roles('OWNER')
   @Patch('catgory/:id')
   @ApiOkResponse({ description: 'Changed correctly' })

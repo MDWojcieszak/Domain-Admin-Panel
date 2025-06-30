@@ -7,9 +7,9 @@ import { PaginationDto } from '../common/dto';
 import { SessionListResponseDto, SessionResponseDto } from './responses';
 import { Session } from 'inspector';
 
-@ApiBearerAuth()
 @ApiTags('Session')
 @Controller('session')
+@ApiBearerAuth()
 export class SessionController {
   constructor(private sessionService: SessionService) {}
 

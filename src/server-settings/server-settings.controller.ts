@@ -7,7 +7,7 @@ import {
   PatchServerSettingDto,
   RegisterServerSettingsDto,
 } from './dto';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
   ServerSettingsListResponseDto,
   ServerSettingsResponseDto,
@@ -18,6 +18,7 @@ import {
 export class ServerSettingsController {
   constructor(private serverSettingsService: ServerSettingsService) {}
 
+  @ApiBearerAuth()
   @Public()
   @Get()
   @ApiOkResponse({ type: ServerSettingsListResponseDto })
@@ -27,6 +28,7 @@ export class ServerSettingsController {
     return this.serverSettingsService.handleGet(dto);
   }
 
+  @ApiBearerAuth()
   @Public()
   @Patch(':id')
   @ApiOkResponse({ type: ServerSettingsResponseDto })

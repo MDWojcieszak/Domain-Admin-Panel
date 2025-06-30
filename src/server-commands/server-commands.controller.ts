@@ -8,7 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ServerCommandsService } from './server-commands.service';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { GetCurrentUser, Public, Roles } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
 import {
@@ -28,6 +28,7 @@ import {
 export class ServerCommandsController {
   constructor(private serverCommandsService: ServerCommandsService) {}
 
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Get('all')
   @ApiOkResponse({
@@ -38,7 +39,7 @@ export class ServerCommandsController {
   ): Promise<CommandListResponseDto> {
     return this.serverCommandsService.handleGet(dto);
   }
-
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Patch(':id')
   @ApiOkResponse({
@@ -51,6 +52,7 @@ export class ServerCommandsController {
     return this.serverCommandsService.handlePatch(id, dto);
   }
 
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Post('send/:id')
   @ApiOkResponse({

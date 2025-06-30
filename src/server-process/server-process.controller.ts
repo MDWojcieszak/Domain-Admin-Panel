@@ -7,7 +7,7 @@ import {
   RegisterProcessDto,
   RegisterProcessLogDto,
 } from './dto';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { ProcessListResponseDto, ProcessResponseDto } from './responses';
 import { PaginationDto } from '../common/dto';
 import { ProcessLogListResponseDto } from './responses/process-log-list-response.dto';
@@ -18,6 +18,7 @@ import { Role } from '@prisma/client';
 export class ServerProcessController {
   constructor(private serverProcessService: ServerProcessService) {}
 
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Get('list')
   @ApiOkResponse({
@@ -27,6 +28,7 @@ export class ServerProcessController {
     return this.serverProcessService.handleGetAll(dto);
   }
 
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Get(':id')
   @ApiOkResponse({
@@ -36,6 +38,7 @@ export class ServerProcessController {
     return this.serverProcessService.handleGetOne(id);
   }
 
+  @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Get(':id/logs')
   @ApiOkResponse({

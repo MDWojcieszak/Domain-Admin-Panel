@@ -8,8 +8,8 @@ import { UserListResponseDto, UserResponseDto } from './responses';
 import { PatchUserAdminDto, PatchUserDto, UserDto } from './dto';
 
 @ApiTags('User')
-@ApiBearerAuth()
 @Controller('user')
+@ApiBearerAuth()
 export class UserController {
   constructor(private userService: UserService) {}
 
