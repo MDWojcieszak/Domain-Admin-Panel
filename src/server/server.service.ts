@@ -243,9 +243,9 @@ export class ServerService {
           dto.properties.memoryInfo,
         );
       }
-      if (dto.properties.disk) {
+      if (dto.properties.diskInfo) {
         await Promise.all(
-          dto.properties.disk.map(async (disk, index) => {
+          dto.properties.diskInfo.map(async (disk, index) => {
             if (!server.properties.diskInfo[index])
               throw new Error('Incorrect number of disks');
             return await this.updateDiskInfo(

@@ -35,10 +35,10 @@ export class DiskInfoDto {
   type?: string;
 
   @IsNumber({ optional: true })
-  used?: number;
+  used?: bigint;
 
   @IsNumber({ optional: true })
-  available?: number;
+  available?: bigint;
 
   @IsString({ optional: true })
   name?: string;
@@ -64,5 +64,5 @@ export class ServerPropertiesDto {
   memoryInfo?: MemoryDto;
 
   @IsNested({ type: DiskInfoDto, isArray: true, optional: true })
-  disk?: DiskInfoDto[];
+  diskInfo?: DiskInfoDto[];
 }
