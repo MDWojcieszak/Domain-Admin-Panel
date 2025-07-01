@@ -141,7 +141,7 @@ paths:
       operationId: UserController_getList
       parameters:
         - name: take
-          required: true
+          required: false
           in: query
           schema:
             minimum: 1
@@ -205,7 +205,7 @@ paths:
       operationId: ImageController_getList
       parameters:
         - name: take
-          required: true
+          required: false
           in: query
           schema:
             minimum: 1
@@ -350,12 +350,14 @@ paths:
                 type: string
                 format: binary
       tags: *ref_3
+      security:
+        - bearer: []
   /session/my:
     get:
       operationId: SessionController_getAllForUser
       parameters:
         - name: take
-          required: true
+          required: false
           in: query
           schema:
             minimum: 1
@@ -389,7 +391,7 @@ paths:
           schema:
             type: string
         - name: take
-          required: true
+          required: false
           in: query
           schema:
             minimum: 1
@@ -416,7 +418,7 @@ paths:
       operationId: SessionController_getAll
       parameters:
         - name: take
-          required: true
+          required: false
           in: query
           schema:
             minimum: 1
@@ -489,30 +491,12 @@ paths:
         - File
       security:
         - bearer: []
-  /server/{serverId}:
-    get:
-      operationId: ServerController_get
-      parameters:
-        - name: serverId
-          required: true
-          in: path
-          schema:
-            type: string
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ServerResponseDto'
-      tags: &ref_6
-        - Server
   /server/all:
     get:
       operationId: ServerController_getAll
       parameters:
         - name: take
-          required: true
+          required: false
           in: query
           schema:
             minimum: 1
@@ -532,7 +516,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerListResponseDto'
+      tags: &ref_6
+        - Server
+      security:
+        - bearer: []
+  /server/{serverId}:
+    get:
+      operationId: ServerController_get
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerResponseDto'
       tags: *ref_6
+      security:
+        - bearer: []
   /server/details/{serverId}:
     get:
       operationId: ServerController_getDetails
@@ -550,6 +556,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ServerDetailsResponseDto'
       tags: *ref_6
+      security:
+        - bearer: []
   /server/disk/{id}:
     patch:
       operationId: ServerController_patchDisk
@@ -569,6 +577,8 @@ paths:
         '200':
           description: Changed correctly
       tags: *ref_6
+      security:
+        - bearer: []
   /server/catgory/{id}:
     patch:
       operationId: ServerController_patchCategory
@@ -588,6 +598,8 @@ paths:
         '200':
           description: Changed correctly
       tags: *ref_6
+      security:
+        - bearer: []
   /server/commands/all:
     get:
       operationId: ServerCommandsController_getCommands
@@ -606,6 +618,8 @@ paths:
                 $ref: '#/components/schemas/CommandListResponseDto'
       tags: &ref_7
         - Server
+      security:
+        - bearer: []
   /server/commands/{id}:
     patch:
       operationId: ServerCommandsController_putCommand
@@ -629,6 +643,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/CommandResponseDto'
       tags: *ref_7
+      security:
+        - bearer: []
   /server/commands/send/{id}:
     post:
       operationId: ServerCommandsController_startServer
@@ -646,6 +662,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/CommandExecuteResponseDto'
       tags: *ref_7
+      security:
+        - bearer: []
   /server/settings:
     get:
       operationId: ServerSettingsController_getSettings
@@ -669,6 +687,8 @@ paths:
                 $ref: '#/components/schemas/ServerSettingsListResponseDto'
       tags: &ref_8
         - Server
+      security:
+        - bearer: []
   /server/settings/{id}:
     patch:
       operationId: ServerSettingsController_putCommand
@@ -692,12 +712,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/ServerSettingsResponseDto'
       tags: *ref_8
-  /server/process/list:
+      security:
+        - bearer: []
+  /server/process/all:
     get:
       operationId: ServerProcessController_getAll
       parameters:
         - name: take
-          required: true
+          required: false
           in: query
           schema:
             minimum: 1
@@ -719,6 +741,8 @@ paths:
                 $ref: '#/components/schemas/ProcessListResponseDto'
       tags: &ref_9
         - Server
+      security:
+        - bearer: []
   /server/process/{id}:
     get:
       operationId: ServerProcessController_getOne
@@ -736,6 +760,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProcessResponseDto'
       tags: *ref_9
+      security:
+        - bearer: []
   /server/process/{id}/logs:
     get:
       operationId: ServerProcessController_getAllLogs
@@ -746,7 +772,7 @@ paths:
           schema:
             type: string
         - name: take
-          required: true
+          required: false
           in: query
           schema:
             minimum: 1
@@ -767,6 +793,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProcessLogListResponseDto'
       tags: *ref_9
+      security:
+        - bearer: []
   /gallery/all:
     get:
       operationId: GalleryController_getAll
@@ -945,8 +973,6 @@ components:
           type: number
           minimum: 0
           default: 0
-      required:
-        - take
     UserListResponseDto:
       type: object
       properties:
