@@ -980,10 +980,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserResponseDto'
+        total:
+          type: number
         params:
           $ref: '#/components/schemas/PaginationDto'
       required:
         - users
+        - total
     PatchUserAdminDto:
       type: object
       properties:
@@ -1083,10 +1086,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SessionResponseDto'
+        total:
+          type: number
         params:
           $ref: '#/components/schemas/PaginationDto'
       required:
         - sessions
+        - total
     SessionDto:
       type: object
       properties:
