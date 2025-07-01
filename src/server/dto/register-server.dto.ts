@@ -1,5 +1,4 @@
-import { IsNested, IsString } from 'nestjs-swagger-dto';
-import { IsNumber } from 'class-validator';
+import { IsNested, IsNumber, IsString } from 'nestjs-swagger-dto';
 
 class CpuDto {
   @IsNumber()

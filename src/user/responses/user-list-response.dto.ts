@@ -1,5 +1,4 @@
-import { IsNumber } from 'class-validator';
-import { IsNested } from 'nestjs-swagger-dto';
+import { IsNested, IsNumber } from 'nestjs-swagger-dto';
 import { UserResponseDto } from './user-response.dto';
 import { PaginationDto } from '../../common/dto';
 

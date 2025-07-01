@@ -1143,10 +1143,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ServerResponseDto'
+        total:
+          type: number
         params:
           $ref: '#/components/schemas/PaginationDto'
       required:
         - servers
+        - total
     ServerStatus:
       type: string
       enum:
