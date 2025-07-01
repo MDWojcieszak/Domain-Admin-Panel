@@ -20,7 +20,7 @@ export class ServerProcessController {
 
   @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
-  @Get('list')
+  @Get('all')
   @ApiOkResponse({
     type: ProcessListResponseDto,
   })

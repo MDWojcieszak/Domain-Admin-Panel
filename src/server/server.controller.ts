@@ -24,18 +24,18 @@ export class ServerController {
 
   @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
-  @Get(':serverId')
-  @ApiOkResponse({ type: ServerResponseDto })
-  async get(@Param('serverId') serverId: string): Promise<ServerResponseDto> {
-    return this.serverService.handleGet(serverId);
-  }
-
-  @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
   @Get('all')
   @ApiOkResponse({ type: ServerListResponseDto })
   async getAll(@Query() dto: PaginationDto): Promise<ServerListResponseDto> {
     return this.serverService.handleGetAll(dto);
+  }
+
+  @ApiBearerAuth()
+  @Roles('ADMIN', 'OWNER')
+  @Get(':serverId')
+  @ApiOkResponse({ type: ServerResponseDto })
+  async get(@Param('serverId') serverId: string): Promise<ServerResponseDto> {
+    return this.serverService.handleGet(serverId);
   }
 
   @ApiBearerAuth()
