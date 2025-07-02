@@ -1,4 +1,4 @@
-import { IsDate, IsNested, IsString } from 'nestjs-swagger-dto';
+import { IsBoolean, IsDate, IsNested, IsString } from 'nestjs-swagger-dto';
 import { ServerPropertiesDto } from '../dto';
 import { ServerCategoriesDto } from '../dto/server-categories.dto';
 

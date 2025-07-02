@@ -85,6 +85,8 @@ export class ServerService {
             memoryInfo: { select: { free: true, id: true, total: true } },
             uptime: true,
             status: true,
+            isOnline: true,
+            lastSeenAt: true,
           },
         },
       },

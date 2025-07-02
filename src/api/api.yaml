@@ -1218,13 +1218,18 @@ components:
           type: number
         status:
           $ref: '#/components/schemas/ServerStatus'
+        lastSeenAt:
+          type: string
+          format: date-time
+        isOnline:
+          type: boolean
         startedBy:
           $ref: '#/components/schemas/UserDto'
         cpuInfo:
           $ref: '#/components/schemas/CpuDto'
         memoryInfo:
           $ref: '#/components/schemas/MemoryDto'
-        disk:
+        diskInfo:
           type: array
           items:
             $ref: '#/components/schemas/DiskInfoDto'

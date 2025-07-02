@@ -1,5 +1,12 @@
 import { DiskType, ServerStatus } from '@prisma/client';
-import { IsEnum, IsNested, IsNumber, IsString } from 'nestjs-swagger-dto';
+import {
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsNested,
+  IsNumber,
+  IsString,
+} from 'nestjs-swagger-dto';
 import { UserDto } from '../../user/dto';
 
 export class CpuDto {
@@ -53,6 +60,12 @@ export class ServerPropertiesDto {
 
   @IsEnum({ enum: { ServerStatus }, optional: true })
   status?: ServerStatus;
+
+  @IsDate({ format: 'date-time', optional: true })
+  lastSeenAt?: Date;
+
+  @IsBoolean({ optional: true })
+  isOnline?: boolean;
 
   @IsNested({ type: UserDto, optional: true })
   startedBy?: UserDto;
