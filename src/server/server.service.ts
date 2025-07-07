@@ -151,6 +151,14 @@ export class ServerService {
         existingServer &&
         existingServer.properties.diskInfo.length === dto.diskCount
       ) {
+        await this.prisma.server.update({
+          where: { id: existingServer.id },
+          data: {
+            ipAddress: dto.ipAddress,
+            macAddress: dto.macAddress,
+            isDeleted: false,
+          },
+        });
         Logger.log(`Server ${dto.name} already registered`);
         return true;
       }
@@ -165,6 +173,7 @@ export class ServerService {
         data: {
           name: dto.name,
           ipAddress: dto.ipAddress,
+          macAddress: dto.macAddress,
         },
       });
 

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { ServerService } from './server.service';
-import { Public, Roles } from '../common/decorators';
+import { GetCurrentUser, Public, Roles } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
 import { HeartbeatDto, PatchDiskDto, RegisterServerDto } from './dto';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
@@ -8,6 +8,8 @@ import {
   ServerDetailsResponseDto,
   ServerListResponseDto,
   ServerResponseDto,
+  StartServerResponseDto,
+  StopServerResponseDto,
 } from './responses';
 import { PaginationDto } from '../common/dto';
 import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
@@ -46,6 +48,28 @@ export class ServerController {
     @Param('serverId') serverId: string,
   ): Promise<ServerDetailsResponseDto> {
     return this.serverService.handleGetDetails(serverId);
+  }
+
+  @ApiBearerAuth()
+  @Roles('ADMIN', 'OWNER')
+  @Patch(':serverId/start')
+  @ApiOkResponse({ type: ServerDetailsResponseDto })
+  async start(
+    @Param('serverId') serverId: string,
+    @GetCurrentUser('sub') userId: string,
+  ): Promise<StartServerResponseDto> {
+    return this.serverPower.handleStartServer(serverId, userId);
+  }
+
+  @ApiBearerAuth()
+  @Roles('ADMIN', 'OWNER')
+  @Patch(':serverId/stop')
+  @ApiOkResponse({ type: StopServerResponseDto })
+  async stop(
+    @Param('serverId') serverId: string,
+    @GetCurrentUser('sub') userId: string,
+  ): Promise<StopServerResponseDto> {
+    return this.serverPower.handleStopServer(serverId, userId);
   }
 
   @ApiBearerAuth()

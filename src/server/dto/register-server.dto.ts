@@ -15,6 +15,9 @@ export class RegisterServerDto {
   @IsString()
   ipAddress: string;
 
+  @IsString()
+  macAddress: string;
+
   @IsNumber()
   diskCount: number;
 
