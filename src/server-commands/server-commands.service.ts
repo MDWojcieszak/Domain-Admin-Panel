@@ -1,4 +1,10 @@
-import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   GetServerCommandsDto,
   PatchServerCommandDto,
@@ -12,6 +18,7 @@ import { firstValueFrom } from 'rxjs';
 import { CommandContext } from '../common/types';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { UpdateServerCommandDto } from './dto/update-server-command.dto';
+import { CommandType } from '@prisma/client';
 
 @Injectable()
 export class ServerCommandsService {
@@ -54,7 +61,7 @@ export class ServerCommandsService {
     };
     try {
       switch (command.type) {
-        case 'EVENT':
+        case CommandType.EVENT:
           this.multiVerseClient.emit(
             command.value,
             new SendCommandEvent(context),
@@ -62,7 +69,7 @@ export class ServerCommandsService {
           return {
             success: true,
           };
-        case 'MESSAGE':
+        case CommandType.MESSAGE:
           const sendRes = await firstValueFrom(
             this.multiVerseClient.send(
               command.value,
@@ -155,7 +162,7 @@ export class ServerCommandsService {
       where: { id },
     });
 
-    if (!command) throw new ForbiddenException();
+    if (!command) throw new NotFoundException();
     return command;
   }
 
@@ -163,7 +170,7 @@ export class ServerCommandsService {
     const server = await this.prisma.server.findFirst({
       where: { categories: { some: { commands: { some: { id } } } } },
     });
-    if (!server) throw new ForbiddenException();
+    if (!server) throw new NotFoundException();
     return server;
   }
 
