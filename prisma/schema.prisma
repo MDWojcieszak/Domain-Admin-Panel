@@ -102,11 +102,12 @@ model User {
   creatorOfImages ImageData[]   @relation("creator")
   socialMedia     SocialMedia[]
 
-  avatar           Image?             @relation(fields: [avatarId], references: [id])
-  avatarId         String?            @unique
-  serverSessions   Process[]
-  serverProperties ServerProperties[]
-  userSettings     UserSettings?
+  avatar         Image?             @relation(fields: [avatarId], references: [id])
+  avatarId       String?            @unique
+  serverSessions Process[]
+  startedServers ServerProperties[] @relation("StartedBy")
+  stoppedServers ServerProperties[] @relation("StoppedBy")
+  userSettings   UserSettings?
 }
 
 model UserSettings {
@@ -186,8 +187,10 @@ model Server {
   id   String @id @default(uuid())
   name String @unique
 
-  ipAddress String
-  location  String?
+  ipAddress  String
+  macAddress String?
+  location   String?
+  isDeleted  Boolean @default(false)
 
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
@@ -237,9 +240,12 @@ model ServerProperties {
   lastSeenAt DateTime?
   isOnline   Boolean       @default(false)
 
-  startedBy   User?     @relation(fields: [startedById], references: [id], onDelete: NoAction)
+  startedBy   User?     @relation("StartedBy", fields: [startedById], references: [id], onDelete: NoAction)
   startedById String?
   startedAt   DateTime?
+
+  stoppedBy   User?     @relation("StoppedBy", fields: [stoppedById], references: [id], onDelete: NoAction)
+  stoppedById String?
   stoppedAt   DateTime?
 
   cpuInfo    CPUInfo?
