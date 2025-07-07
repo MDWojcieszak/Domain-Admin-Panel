@@ -1650,6 +1650,13 @@
   resolved "https://registry.npmjs.org/@types/validator/-/validator-13.11.9.tgz"
   integrity sha512-FCTsikRozryfayPuiI46QzH3fnrOoctTjvOYZkho9BTFLCOZ2rgZJHMOVgCOfttjPJcgOx52EpkY0CMfy87MIw==
 
+"@types/wol@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@types/wol/-/wol-1.0.4.tgz#9f268e616255c2666255c84e8e45fb0c3428d700"
+  integrity sha512-PFjSDRzpC9q7M3kJ9MhVa5yOI3b3vK1bRt6PNkreSXZkcFBJn12zdKJ5rm0dqdy3oe/NXBhePF+d0Qbv1GGqcg==
+  dependencies:
+    "@types/node" "*"
+
 "@types/yargs-parser@*":
   version "21.0.3"
   resolved "https://registry.npmjs.org/@types/yargs-parser/-/yargs-parser-21.0.3.tgz"
@@ -7433,6 +7440,11 @@ with@^7.0.0:
     "@babel/types" "^7.9.6"
     assert-never "^1.2.1"
     babel-walk "3.0.0-canary-5"
+
+wol@^1.0.7:
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/wol/-/wol-1.0.7.tgz#a2e70efca2a28324a744a5d12331d359da470ff7"
+  integrity sha512-kg7ETY8g3V5+3GVhUfWCVjeXuCmfrX6xfw4cw4c88+MtoxkbFmcs9Y5yhT1wwOL8inogFUQZ8JMzH9OekaaawQ==
 
 wordwrap@^1.0.0:
   version "1.0.0"
