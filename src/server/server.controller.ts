@@ -5,11 +5,10 @@ import { MessagePattern } from '@nestjs/microservices';
 import { HeartbeatDto, PatchDiskDto, RegisterServerDto } from './dto';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
+  PowerServerResponseDto,
   ServerDetailsResponseDto,
   ServerListResponseDto,
   ServerResponseDto,
-  StartServerResponseDto,
-  StopServerResponseDto,
 } from './responses';
 import { PaginationDto } from '../common/dto';
 import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
@@ -53,23 +52,34 @@ export class ServerController {
   @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Patch(':serverId/start')
-  @ApiOkResponse({ type: ServerDetailsResponseDto })
+  @ApiOkResponse({ type: PowerServerResponseDto })
   async start(
     @Param('serverId') serverId: string,
     @GetCurrentUser('sub') userId: string,
-  ): Promise<StartServerResponseDto> {
+  ): Promise<PowerServerResponseDto> {
     return this.serverPower.handleStartServer(serverId, userId);
   }
 
   @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
   @Patch(':serverId/stop')
-  @ApiOkResponse({ type: StopServerResponseDto })
+  @ApiOkResponse({ type: PowerServerResponseDto })
   async stop(
     @Param('serverId') serverId: string,
     @GetCurrentUser('sub') userId: string,
-  ): Promise<StopServerResponseDto> {
+  ): Promise<PowerServerResponseDto> {
     return this.serverPower.handleStopServer(serverId, userId);
+  }
+
+  @ApiBearerAuth()
+  @Roles('ADMIN', 'OWNER')
+  @Patch(':serverId/reboot')
+  @ApiOkResponse({ type: PowerServerResponseDto })
+  async reboot(
+    @Param('serverId') serverId: string,
+    @GetCurrentUser('sub') userId: string,
+  ): Promise<PowerServerResponseDto> {
+    return this.serverPower.handleRebootServer(serverId, userId);
   }
 
   @ApiBearerAuth()

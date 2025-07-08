@@ -11,6 +11,9 @@ export class ServerResponseDto {
   ipAddress: string;
 
   @IsString({ optional: true })
+  macAddress?: string;
+
+  @IsString({ optional: true })
   location: string;
 
   @IsDate({ format: 'date-time' })

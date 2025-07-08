@@ -1,7 +1,7 @@
 import { ServerStatus } from '@prisma/client';
 import { IsBoolean, IsEnum, IsString } from 'nestjs-swagger-dto';
 
-export class StartServerResponseDto {
+export class PowerServerResponseDto {
   @IsBoolean()
   success: boolean;
 

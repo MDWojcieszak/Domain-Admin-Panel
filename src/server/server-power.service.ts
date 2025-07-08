@@ -15,7 +15,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { wake } from 'wol';
 import { ServerStatus } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import { StopServerEvent } from './events';
+import { PowerServerEvent } from './events';
 
 @Injectable()
 export class ServerPowerService {
@@ -137,7 +137,49 @@ export class ServerPowerService {
       await firstValueFrom(
         this.multiVerseClient.send(
           'server.shutdown',
-          new StopServerEvent({ serverId }),
+          new PowerServerEvent({ serverId }),
+        ),
+      );
+
+      await this.prisma.serverProperties.update({
+        where: { serverId },
+        data: {
+          stoppedBy: { connect: { id: userId } },
+          status: ServerStatus.SHUTDOWN_IN_PROGRESS,
+        },
+      });
+
+      return {
+        success: true,
+        serverId,
+        newStatus: ServerStatus.SHUTDOWN_IN_PROGRESS,
+        message: 'Shutdown command issued successfully.',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        serverId,
+        newStatus: server.properties?.status ?? ServerStatus.UNKNOWN,
+        message: 'Failed to issue shutdown command.',
+      };
+    }
+  }
+
+  async handleRebootServer(serverId: string, userId: string) {
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
+      include: { properties: true },
+    });
+
+    if (!server) {
+      throw new NotFoundException('Server not found');
+    }
+
+    try {
+      await firstValueFrom(
+        this.multiVerseClient.send(
+          'server.reboot',
+          new PowerServerEvent({ serverId }),
         ),
       );
 

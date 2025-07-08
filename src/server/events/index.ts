@@ -1,1 +1,1 @@
-export * from './stop-server.event';
+export * from './power-server.event';
