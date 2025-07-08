@@ -558,6 +558,63 @@ paths:
       tags: *ref_6
       security:
         - bearer: []
+  /server/{serverId}/start:
+    patch:
+      operationId: ServerController_start
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerServerResponseDto'
+      tags: *ref_6
+      security:
+        - bearer: []
+  /server/{serverId}/stop:
+    patch:
+      operationId: ServerController_stop
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerServerResponseDto'
+      tags: *ref_6
+      security:
+        - bearer: []
+  /server/{serverId}/reboot:
+    patch:
+      operationId: ServerController_reboot
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerServerResponseDto'
+      tags: *ref_6
+      security:
+        - bearer: []
   /server/disk/{id}:
     patch:
       operationId: ServerController_patchDisk
@@ -1128,6 +1185,8 @@ components:
           type: string
         ipAddress:
           type: string
+        macAddress:
+          type: string
         location:
           type: string
         createdAt:
@@ -1273,6 +1332,21 @@ components:
         - name
         - ipAddress
         - createdAt
+    PowerServerResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        serverId:
+          type: string
+        newStatus:
+          $ref: '#/components/schemas/ServerStatus'
+        message:
+          type: string
+      required:
+        - success
+        - serverId
+        - newStatus
     PatchDiskDto:
       type: object
       properties:
