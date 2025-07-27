@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -35,6 +32,10 @@ enum SocialMediaType {
 
 enum FileType {
   IMAGE
+  PDF
+  AUDIO
+  VIDEO
+  OTHER
 }
 
 enum ServerProcessStatus {
@@ -85,6 +86,84 @@ enum DiskType {
   NVME
 }
 
+enum TaskType {
+  TODO
+  TAKE_ITEM
+  CONVERSATION
+  NOTE
+  EVENT
+  HABIT
+  REMINDER
+  AUTOMATION
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DEFERRED
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum RepeatType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+enum CollaboratorRole {
+  OWNER
+  COLLABORATOR
+  OBSERVER
+}
+
+enum ConnectedServiceType {
+  GOOGLE
+  TODOIST
+  NOTION
+  TELEGRAM
+  N8N
+  OPENAI
+  OTHER
+}
+
+enum LocationType {
+  HOME
+  WORK
+  TRAVEL
+  CUSTOM
+}
+
+enum PlaceType {
+  HOME
+  WORK
+  SHOP
+  OTHER
+}
+
+enum PersonRelation {
+  FAMILY
+  FRIEND
+  WORK
+  OTHER
+}
+
+enum ApiKeyType {
+  AI
+  INTERNAL
+  EXTERNAL
+}
+
 model User {
   id           String  @id @default(uuid())
   role         Role    @default(USER)
@@ -108,6 +187,384 @@ model User {
   startedServers ServerProperties[] @relation("StartedBy")
   stoppedServers ServerProperties[] @relation("StoppedBy")
   userSettings   UserSettings?
+
+  locationId String?
+  location   Location? @relation("UserLocation", fields: [locationId], references: [id])
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
+
+  // Assistant relations
+  personalTasks     Task[]
+  persons           Person[]
+  places            Place[]
+  tags              Tag[]
+  taskCustomFields  TaskCustomField[]
+  taskComments      TaskComment[]
+  taskActivities    TaskActivity[]
+  achievements      Achievement[]
+  taskCollaborators TaskCollaborator[]
+  notifications     NotificationLog[]
+  attachments       Attachment[]
+
+  // API keys & integrations
+  apiKeys           ApiKey[]
+  connectedServices ConnectedService[]
+}
+
+model Person {
+  id          String          @id @default(uuid())
+  name        String
+  nickname    String?
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  postalCode  String?
+  country     String?
+  notes       String?
+  birthday    DateTime?
+  socialMedia SocialMedia[]
+  avatarUrl   String?
+  relation    PersonRelation?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+
+  tasks Task[] @relation("PersonTasks")
+}
+
+model Location {
+  id          String        @id @default(uuid())
+  name        String?
+  address     String?
+  city        String?
+  postalCode  String?
+  country     String?
+  latitude    Float?
+  longitude   Float?
+  radius      Int?
+  description String?
+  mapUrl      String?
+  type        LocationType?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
+
+  users   User[]   @relation("UserLocation")
+  persons Person[]
+  places  Place[]
+  tasks   Task[]
+}
+
+model Task {
+  id              String       @id @default(uuid())
+  description     String
+  type            TaskType     @default(TODO)
+  status          TaskStatus   @default(TODO)
+  priority        TaskPriority @default(MEDIUM)
+  dueDate         DateTime?
+  repeat          RepeatType   @default(NONE)
+  repeatCustom    String?
+  estimatedTime   Int?
+  actualTime      Int?
+  energyLevel     String?
+  moodRequired    String?
+  calendarEventId String?
+  notes           String?
+  isTemplate      Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  completedAt     DateTime?
+  archived        Boolean      @default(false)
+  score           Int          @default(0)
+  reward          String?
+  reminderAt      DateTime?
+  isPrivate       Boolean      @default(false)
+
+  aiSuggestions   Json?
+  aiSummary       String?
+  integrationMeta Json?
+  syncStatus      String?
+  externalSyncId  String?
+  requiresApiKey  Boolean               @default(false)
+  requiredService ConnectedServiceType?
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  placeId String?
+  place   Place?  @relation(fields: [placeId], references: [id])
+
+  personId String?
+  person   Person? @relation("PersonTasks", fields: [personId], references: [id])
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+
+  // Self-relations (subtasks)
+  parentTaskId String?
+  parentTask   Task?   @relation("Subtasks", fields: [parentTaskId], references: [id], map: "fk_task_parentTaskId")
+  subtasks     Task[]  @relation("Subtasks")
+
+  // Self-relations (blocking)
+  blocks    TaskBlock[] @relation("Blocks")
+  blockedBy TaskBlock[] @relation("BlockedBy")
+
+  attachments   Attachment[]
+  comments      TaskComment[]
+  tags          TaskTag[]
+  activities    TaskActivity[]
+  checklist     TaskChecklistItem[]
+  collaborators TaskCollaborator[]
+  customFields  TaskCustomField[]
+  achievements  Achievement[]
+  notifications NotificationLog[]
+}
+
+model TaskBlock {
+  blockerId String
+  blockedId String
+
+  blocker Task @relation("Blocks", fields: [blockerId], references: [id])
+  blocked Task @relation("BlockedBy", fields: [blockedId], references: [id])
+
+  @@id([blockerId, blockedId])
+}
+
+model Place {
+  id          String     @id @default(uuid())
+  name        String
+  address     String?
+  description String?
+  type        PlaceType?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+
+  tasks Task[]
+}
+
+model TaskChecklistItem {
+  id        String   @id @default(uuid())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  content   String
+  done      Boolean  @default(false)
+  order     Int?
+  createdAt DateTime @default(now())
+}
+
+model TaskCustomField {
+  id        String   @id @default(uuid())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  name      String
+  value     String
+  type      String?
+  order     Int?
+  createdAt DateTime @default(now())
+  User      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+}
+
+model Tag {
+  id     String    @id @default(uuid())
+  name   String
+  color  String?
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  tasks  TaskTag[]
+}
+
+model TaskTag {
+  id     String @id @default(uuid())
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId  String
+}
+
+model TaskActivity {
+  id        String   @id @default(uuid())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  type      String
+  timestamp DateTime @default(now())
+  details   String?
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model Attachment {
+  id           String   @id @default(uuid())
+  fileUrl      String
+  fileType     FileType
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId       String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  name        String
+  description String?
+  achievedAt  DateTime @default(now())
+  taskId      String?
+  task        Task?    @relation(fields: [taskId], references: [id])
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
+}
+
+model TaskCollaborator {
+  id        String           @id @default(uuid())
+  task      Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  role      CollaboratorRole @default(COLLABORATOR)
+  createdAt DateTime         @default(now())
+}
+
+model NotificationLog {
+  id     String    @id @default(uuid())
+  task   Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String?
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  type   String
+  status String
+  sentAt DateTime  @default(now())
+  meta   Json?
+  readAt DateTime?
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
+}
+
+model ApiKey {
+  id        String     @id @default(uuid())
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  name      String
+  value     String
+  type      ApiKeyType
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  expiresAt DateTime?
+  meta      Json?
+
+  @@index([type])
+}
+
+model ConnectedService {
+  id           String               @id @default(uuid())
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  type         ConnectedServiceType
+  displayName  String?
+  accessToken  String?
+  refreshToken String?
+  meta         Json?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  // AI context fields
+  summary      String?
+  keywords     Json?
+  context      String?
+  aiMeta       Json?
+  aiConfidence Float?
+  aiSource     String?
+  aiHistory    Json?
 }
 
 model UserSettings {
@@ -127,8 +584,10 @@ model SocialMedia {
   username String
   link     String
   type     SocialMediaType
-  author   User            @relation(fields: [authorId], references: [id])
-  authorId String
+  user     User?           @relation(fields: [userId], references: [id])
+  userId   String?
+  person   Person?         @relation(fields: [personId], references: [id])
+  personId String?
 }
 
 model Session {
