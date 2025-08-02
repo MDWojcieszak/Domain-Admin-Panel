@@ -1,8 +1,12 @@
-import { IsString } from 'nestjs-swagger-dto';
+import { ConnectedServiceType } from '@prisma/client';
+import { IsEnum, IsString } from 'nestjs-swagger-dto';
 
 export class SaveServiceTokenDto {
-  @IsString({ maxLength: 64, example: 'telegram' })
-  service: string;
+  @IsEnum({
+    enum: { ConnectedServiceType },
+    example: ConnectedServiceType.TELEGRAM,
+  })
+  service: ConnectedServiceType;
 
   @IsString({
     minLength: 1,

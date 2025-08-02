@@ -1,4 +1,5 @@
-import { IsBoolean, IsDate, IsString } from 'nestjs-swagger-dto';
+import { ApiKeyType } from '@prisma/client';
+import { IsBoolean, IsDate, IsEnum, IsString } from 'nestjs-swagger-dto';
 
 export class GenerateTokenDto {
   @IsString({ maxLength: 64, example: 'Integration with ...' })
@@ -18,6 +19,6 @@ export class GenerateTokenDto {
   })
   expiresAt?: Date;
 
-  //   @IsEnum({ enum: {} })
-  //   type: TokenType;
+  @IsEnum({ enum: { ApiKeyType } })
+  type: ApiKeyType;
 }
