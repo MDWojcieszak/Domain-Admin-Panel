@@ -191,14 +191,8 @@ model User {
   locationId String?
   location   Location? @relation("UserLocation", fields: [locationId], references: [id])
 
-  // AI context fields
-  summary      String?
-  keywords     Json?
-  context      String?
-  aiMeta       Json?
-  aiConfidence Float?
-  aiSource     String?
-  aiHistory    Json?
+  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
+  aiContextId String?
 
   // Assistant relations
   personalTasks     Task[]
@@ -224,10 +218,6 @@ model Person {
   nickname    String?
   email       String?
   phone       String?
-  address     String?
-  city        String?
-  postalCode  String?
-  country     String?
   notes       String?
   birthday    DateTime?
   socialMedia SocialMedia[]
@@ -236,14 +226,8 @@ model Person {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  // AI context fields
-  summary      String?
-  keywords     Json?
-  context      String?
-  aiMeta       Json?
-  aiConfidence Float?
-  aiSource     String?
-  aiHistory    Json?
+  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
+  aiContextId String?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
@@ -270,14 +254,8 @@ model Location {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  // AI context fields
-  summary      String?
-  keywords     Json?
-  context      String?
-  aiMeta       Json?
-  aiConfidence Float?
-  aiSource     String?
-  aiHistory    Json?
+  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
+  aiContextId String?
 
   users   User[]   @relation("UserLocation")
   persons Person[]
@@ -318,16 +296,11 @@ model Task {
   requiresApiKey  Boolean               @default(false)
   requiredService ConnectedServiceType?
 
-  // AI context fields
-  summary      String?
-  keywords     Json?
-  context      String?
-  aiMeta       Json?
-  aiConfidence Float?
-  aiSource     String?
-  aiHistory    Json?
-
   // Relations
+
+  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
+  aiContextId String?
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
@@ -379,14 +352,8 @@ model Place {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  // AI context fields
-  summary      String?
-  keywords     Json?
-  context      String?
-  aiMeta       Json?
-  aiConfidence Float?
-  aiSource     String?
-  aiHistory    Json?
+  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
+  aiContextId String?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
@@ -468,14 +435,8 @@ model Attachment {
   uploadedById String
   createdAt    DateTime @default(now())
 
-  // AI context fields
-  summary      String?
-  keywords     Json?
-  context      String?
-  aiMeta       Json?
-  aiConfidence Float?
-  aiSource     String?
-  aiHistory    Json?
+  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
+  aiContextId String?
 }
 
 model Achievement {
@@ -488,14 +449,8 @@ model Achievement {
   taskId      String?
   task        Task?    @relation(fields: [taskId], references: [id])
 
-  // AI context fields
-  summary      String?
-  keywords     Json?
-  context      String?
-  aiMeta       Json?
-  aiConfidence Float?
-  aiSource     String?
-  aiHistory    Json?
+  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
+  aiContextId String?
 }
 
 model TaskCollaborator {
@@ -520,7 +475,29 @@ model NotificationLog {
   meta   Json?
   readAt DateTime?
 
-  // AI context fields
+  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
+  aiContextId String?
+}
+
+model ApiKey {
+  id        String               @id @default(uuid())
+  user      User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  name      String?
+  value     String
+  service   ConnectedServiceType
+  type      ApiKeyType
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  expiresAt DateTime?
+  meta      Json?
+
+  @@unique([userId, service, type])
+  @@index([type])
+}
+
+model AiContext {
+  id           String   @id @default(uuid())
   summary      String?
   keywords     Json?
   context      String?
@@ -528,21 +505,32 @@ model NotificationLog {
   aiConfidence Float?
   aiSource     String?
   aiHistory    Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  NotificationLog NotificationLog[]
+  Achievement     Achievement[]
+  Attachment      Attachment[]
+  Task            Task[]
+  Location        Location[]
+  Place           Place[]
+  Person          Person[]
+  User            User[]
+  AiHistory       AiHistory[]
 }
 
-model ApiKey {
-  id        String     @id @default(uuid())
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String?
-  name      String
-  value     String
-  type      ApiKeyType
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  expiresAt DateTime?
-  meta      Json?
+model AiHistory {
+  id          String    @id @default(uuid())
+  aiContext   AiContext @relation(fields: [aiContextId], references: [id], onDelete: Cascade)
+  aiContextId String
 
-  @@index([type])
+  timestamp  DateTime @default(now())
+  action     String
+  source     String?
+  userPrompt String?
+  aiResponse String?
+  text       String?
+  meta       Json?
 }
 
 model ConnectedService {
