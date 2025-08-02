@@ -9,6 +9,7 @@ import { PUBLIC_KEY } from '../decorators';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { TOKEN_KEY } from '../decorators';
 
 @Injectable()
 export class AutorizatonGuard implements CanActivate {
@@ -26,6 +27,13 @@ export class AutorizatonGuard implements CanActivate {
 
     if (isPublic) return true;
 
+    const requiredTokenTypes = this.reflector.getAllAndOverride(TOKEN_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (requiredTokenTypes) {
+      return true;
+    }
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
 
