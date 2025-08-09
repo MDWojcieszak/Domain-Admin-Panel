@@ -13,8 +13,12 @@ export class ImageValidationPipe implements PipeTransform {
       throw new BadRequestException('No file uploaded');
     }
 
-    if (image.mimetype !== 'image/jpeg') {
-      throw new BadRequestException('Only JPEG files are allowed');
+    const allowedMimeTypes = ['image/jpeg', 'image/png'];
+
+    if (!allowedMimeTypes.includes(image.mimetype)) {
+      throw new BadRequestException(
+        `Invalid file type. Allowed types: ${allowedMimeTypes.join(', ')}`,
+      );
     }
 
     if (image.size > 1024 * 1024 * 24) {
