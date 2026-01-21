@@ -95,7 +95,7 @@ export class ServerProcessService {
       const process = await this.prisma.process.create({
         data: {
           name: dto.name,
-          status: ServerProcessStatus.UNKNOWN,
+          status: dto.status || ServerProcessStatus.UNKNOWN,
           startedBy: { connect: { id: dto.userId } },
           category: { connect: { id: dto.categoryId } },
         },

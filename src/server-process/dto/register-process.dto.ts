@@ -1,4 +1,5 @@
-import { IsString } from 'nestjs-swagger-dto';
+import { ServerProcessStatus } from '@prisma/client';
+import { IsEnum, IsString } from 'nestjs-swagger-dto';
 
 export class RegisterProcessDto {
   @IsString()
@@ -9,4 +10,7 @@ export class RegisterProcessDto {
 
   @IsString()
   name: string;
+
+  @IsEnum({ enum: { ServerProcessStatus }, optional: true })
+  status: ServerProcessStatus;
 }
