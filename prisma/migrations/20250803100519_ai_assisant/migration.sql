@@ -23,10 +23,10 @@ CREATE TYPE "CollaboratorRole" AS ENUM ('OWNER', 'COLLABORATOR', 'OBSERVER');
 CREATE TYPE "ConnectedServiceType" AS ENUM ('GOOGLE', 'TODOIST', 'NOTION', 'TELEGRAM', 'N8N', 'OPENAI', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "LocationType" AS ENUM ('HOME', 'WORK', 'TRAVEL', 'CUSTOM');
+CREATE TYPE "PlaceType" AS ENUM ('HOME', 'WORK', 'FAMILY_HOME', 'FRIEND_HOME', 'RESTAURANT', 'SHOP', 'OFFICE', 'SCHOOL', 'GYM', 'HOSPITAL', 'HOTEL', 'HOSTEL', 'AIRPORT', 'TRAIN_STATION', 'BUS_STATION', 'PORT', 'PARK', 'BEACH', 'MOUNTAIN', 'CAMP', 'NATIONAL_PARK', 'MUSEUM', 'MONUMENT', 'ATTRACTION', 'TRAVEL_DESTINATION', 'SIGHTSEEING', 'EVENT', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "PlaceType" AS ENUM ('HOME', 'WORK', 'SHOP', 'OTHER');
+CREATE TYPE "PlaceMemberRole" AS ENUM ('OWNER', 'MEMBER', 'VIEWER');
 
 -- CreateEnum
 CREATE TYPE "PersonRelation" AS ENUM ('FAMILY', 'FRIEND', 'WORK', 'OTHER');
@@ -56,8 +56,7 @@ ADD COLUMN     "personId" TEXT,
 ADD COLUMN     "userId" TEXT;
 
 -- AlterTable
-ALTER TABLE "User" ADD COLUMN     "aiContextId" TEXT,
-ADD COLUMN     "locationId" TEXT;
+ALTER TABLE "User" ADD COLUMN     "aiContextId" TEXT;
 
 -- CreateTable
 CREATE TABLE "Person" (
@@ -74,30 +73,8 @@ CREATE TABLE "Person" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "aiContextId" TEXT,
     "userId" TEXT NOT NULL,
-    "locationId" TEXT,
 
     CONSTRAINT "Person_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Location" (
-    "id" TEXT NOT NULL,
-    "name" TEXT,
-    "address" TEXT,
-    "city" TEXT,
-    "postalCode" TEXT,
-    "country" TEXT,
-    "latitude" DOUBLE PRECISION,
-    "longitude" DOUBLE PRECISION,
-    "radius" INTEGER,
-    "description" TEXT,
-    "mapUrl" TEXT,
-    "type" "LocationType",
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "aiContextId" TEXT,
-
-    CONSTRAINT "Location_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -136,7 +113,6 @@ CREATE TABLE "Task" (
     "userId" TEXT NOT NULL,
     "placeId" TEXT,
     "personId" TEXT,
-    "locationId" TEXT,
     "parentTaskId" TEXT,
 
     CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
@@ -154,16 +130,45 @@ CREATE TABLE "TaskBlock" (
 CREATE TABLE "Place" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "address" TEXT,
     "description" TEXT,
     "type" "PlaceType",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "aiContextId" TEXT,
-    "userId" TEXT NOT NULL,
+    "ownerId" TEXT NOT NULL,
     "locationId" TEXT,
+    "aiContextId" TEXT,
 
     CONSTRAINT "Place_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PlaceMember" (
+    "id" TEXT NOT NULL,
+    "placeId" TEXT NOT NULL,
+    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "role" "PlaceMemberRole" DEFAULT 'MEMBER',
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "PlaceMember_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Location" (
+    "id" TEXT NOT NULL,
+    "name" TEXT,
+    "address" TEXT,
+    "city" TEXT,
+    "postalCode" TEXT,
+    "country" TEXT,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
+    "radius" INTEGER,
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdById" TEXT,
+
+    CONSTRAINT "Location_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -281,7 +286,6 @@ CREATE TABLE "NotificationLog" (
     "sentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "meta" JSONB,
     "readAt" TIMESTAMP(3),
-    "aiContextId" TEXT,
 
     CONSTRAINT "NotificationLog_pkey" PRIMARY KEY ("id")
 );
@@ -356,13 +360,19 @@ CREATE TABLE "ConnectedService" (
 );
 
 -- CreateIndex
+CREATE INDEX "Person_userId_idx" ON "Person"("userId");
+
+-- CreateIndex
+CREATE INDEX "Place_ownerId_idx" ON "Place"("ownerId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PlaceMember_placeId_userId_key" ON "PlaceMember"("placeId", "userId");
+
+-- CreateIndex
 CREATE INDEX "ApiKey_type_idx" ON "ApiKey"("type");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ApiKey_userId_service_type_key" ON "ApiKey"("userId", "service", "type");
-
--- AddForeignKey
-ALTER TABLE "User" ADD CONSTRAINT "User_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_aiContextId_fkey" FOREIGN KEY ("aiContextId") REFERENCES "AiContext"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -372,12 +382,6 @@ ALTER TABLE "Person" ADD CONSTRAINT "Person_aiContextId_fkey" FOREIGN KEY ("aiCo
 
 -- AddForeignKey
 ALTER TABLE "Person" ADD CONSTRAINT "Person_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Person" ADD CONSTRAINT "Person_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Location" ADD CONSTRAINT "Location_aiContextId_fkey" FOREIGN KEY ("aiContextId") REFERENCES "AiContext"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_aiContextId_fkey" FOREIGN KEY ("aiContextId") REFERENCES "AiContext"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -392,9 +396,6 @@ ALTER TABLE "Task" ADD CONSTRAINT "Task_placeId_fkey" FOREIGN KEY ("placeId") RE
 ALTER TABLE "Task" ADD CONSTRAINT "Task_personId_fkey" FOREIGN KEY ("personId") REFERENCES "Person"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Task" ADD CONSTRAINT "Task_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "fk_task_parentTaskId" FOREIGN KEY ("parentTaskId") REFERENCES "Task"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -404,13 +405,22 @@ ALTER TABLE "TaskBlock" ADD CONSTRAINT "TaskBlock_blockerId_fkey" FOREIGN KEY ("
 ALTER TABLE "TaskBlock" ADD CONSTRAINT "TaskBlock_blockedId_fkey" FOREIGN KEY ("blockedId") REFERENCES "Task"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Place" ADD CONSTRAINT "Place_aiContextId_fkey" FOREIGN KEY ("aiContextId") REFERENCES "AiContext"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Place" ADD CONSTRAINT "Place_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Place" ADD CONSTRAINT "Place_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Place" ADD CONSTRAINT "Place_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Place" ADD CONSTRAINT "Place_aiContextId_fkey" FOREIGN KEY ("aiContextId") REFERENCES "AiContext"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlaceMember" ADD CONSTRAINT "PlaceMember_placeId_fkey" FOREIGN KEY ("placeId") REFERENCES "Place"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlaceMember" ADD CONSTRAINT "PlaceMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Location" ADD CONSTRAINT "Location_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TaskChecklistItem" ADD CONSTRAINT "TaskChecklistItem_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -471,9 +481,6 @@ ALTER TABLE "NotificationLog" ADD CONSTRAINT "NotificationLog_taskId_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "NotificationLog" ADD CONSTRAINT "NotificationLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "NotificationLog" ADD CONSTRAINT "NotificationLog_aiContextId_fkey" FOREIGN KEY ("aiContextId") REFERENCES "AiContext"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ApiKey" ADD CONSTRAINT "ApiKey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

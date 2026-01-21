@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -137,18 +136,41 @@ enum ConnectedServiceType {
   OTHER
 }
 
-enum LocationType {
-  HOME
-  WORK
-  TRAVEL
-  CUSTOM
-}
-
 enum PlaceType {
   HOME
   WORK
+  FAMILY_HOME
+  FRIEND_HOME
+  RESTAURANT
   SHOP
+  OFFICE
+  SCHOOL
+  GYM
+  HOSPITAL
+  HOTEL
+  HOSTEL
+  AIRPORT
+  TRAIN_STATION
+  BUS_STATION
+  PORT
+  PARK
+  BEACH
+  MOUNTAIN
+  CAMP
+  NATIONAL_PARK
+  MUSEUM
+  MONUMENT
+  ATTRACTION
+  TRAVEL_DESTINATION
+  SIGHTSEEING
+  EVENT
   OTHER
+}
+
+enum PlaceMemberRole {
+  OWNER
+  MEMBER
+  VIEWER
 }
 
 enum PersonRelation {
@@ -162,6 +184,23 @@ enum ApiKeyType {
   AI
   INTERNAL
   EXTERNAL
+}
+
+enum ServerTransferMode {
+  MOVE
+  COPY
+}
+
+enum ServerTransferStatus {
+  IDLE
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum CategorySource {
+  AGENT
+  MAIN
 }
 
 model User {
@@ -188,9 +227,6 @@ model User {
   stoppedServers ServerProperties[] @relation("StoppedBy")
   userSettings   UserSettings?
 
-  locationId String?
-  location   Location? @relation("UserLocation", fields: [locationId], references: [id])
-
   aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
   aiContextId String?
 
@@ -207,9 +243,10 @@ model User {
   notifications     NotificationLog[]
   attachments       Attachment[]
 
-  // API keys & integrations
   apiKeys           ApiKey[]
   connectedServices ConnectedService[]
+  createdLocations  Location[]
+  placeMember       PlaceMember[]
 }
 
 model Person {
@@ -232,35 +269,9 @@ model Person {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  locationId String?
-  location   Location? @relation(fields: [locationId], references: [id])
-
   tasks Task[] @relation("PersonTasks")
-}
 
-model Location {
-  id          String        @id @default(uuid())
-  name        String?
-  address     String?
-  city        String?
-  postalCode  String?
-  country     String?
-  latitude    Float?
-  longitude   Float?
-  radius      Int?
-  description String?
-  mapUrl      String?
-  type        LocationType?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
-  aiContextId String?
-
-  users   User[]   @relation("UserLocation")
-  persons Person[]
-  places  Place[]
-  tasks   Task[]
+  @@index([userId])
 }
 
 model Task {
@@ -310,15 +321,10 @@ model Task {
   personId String?
   person   Person? @relation("PersonTasks", fields: [personId], references: [id])
 
-  locationId String?
-  location   Location? @relation(fields: [locationId], references: [id])
-
-  // Self-relations (subtasks)
   parentTaskId String?
   parentTask   Task?   @relation("Subtasks", fields: [parentTaskId], references: [id], map: "fk_task_parentTaskId")
   subtasks     Task[]  @relation("Subtasks")
 
-  // Self-relations (blocking)
   blocks    TaskBlock[] @relation("Blocks")
   blockedBy TaskBlock[] @relation("BlockedBy")
 
@@ -346,22 +352,59 @@ model TaskBlock {
 model Place {
   id          String     @id @default(uuid())
   name        String
-  address     String?
   description String?
   type        PlaceType?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  location   Location? @relation(fields: [locationId], references: [id])
+  locationId String?
+
+  tasks   Task[]
+  members PlaceMember[]
+
   aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
   aiContextId String?
+
+  @@index([ownerId])
+}
+
+model PlaceMember {
+  id String @id @default(uuid())
+
+  place   Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId String
+
+  joinedAt DateTime         @default(now())
+  role     PlaceMemberRole? @default(MEMBER)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  locationId String?
-  location   Location? @relation(fields: [locationId], references: [id])
+  @@unique([placeId, userId])
+}
 
-  tasks Task[]
+model Location {
+  id          String   @id @default(uuid())
+  name        String?
+  address     String?
+  city        String?
+  postalCode  String?
+  country     String?
+  latitude    Float?
+  longitude   Float?
+  radius      Int?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+  createdById String?
+
+  Place Place[]
 }
 
 model TaskChecklistItem {
@@ -474,9 +517,6 @@ model NotificationLog {
   sentAt DateTime  @default(now())
   meta   Json?
   readAt DateTime?
-
-  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
-  aiContextId String?
 }
 
 model ApiKey {
@@ -508,15 +548,13 @@ model AiContext {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  NotificationLog NotificationLog[]
-  Achievement     Achievement[]
-  Attachment      Attachment[]
-  Task            Task[]
-  Location        Location[]
-  Place           Place[]
-  Person          Person[]
-  User            User[]
-  AiHistory       AiHistory[]
+  achievement Achievement[]
+  attachment  Attachment[]
+  task        Task[]
+  place       Place[]
+  person      Person[]
+  user        User[]
+  history     AiHistory[]
 }
 
 model AiHistory {
@@ -650,11 +688,17 @@ model ServerCategory {
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
   serverId String
 
-  name      String?
-  value     String
-  commands  ServerCommand[]
-  settings  ServerSettings[]
-  processes Process[]
+  name  String?
+  value String
+
+  source CategorySource @default(AGENT)
+
+  commands        ServerCommand[]
+  settings        ServerSettings[]
+  processes       Process[]
+  serverTransfers ServerTransfer[]
+
+  @@unique([serverId, value])
 }
 
 model ServerCommand {
@@ -750,8 +794,9 @@ model Process {
   category   ServerCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction)
   categoryId String?
 
-  status ServerProcessStatus
-  logs   ProcessLog[]
+  status          ServerProcessStatus
+  logs            ProcessLog[]
+  serverTransfers ServerTransfer[]
 }
 
 model ProcessLog {
@@ -761,4 +806,46 @@ model ProcessLog {
   level     ProcessLogLevel? @default(LOG)
   process   Process          @relation(fields: [processId], references: [id], onDelete: Cascade)
   processId String
+}
+
+model ServerTransfer {
+  id String @id @default(uuid())
+
+  serverCategoryId String
+  serverCategory   ServerCategory @relation(fields: [serverCategoryId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+
+  originPath   String
+  targetPath   String
+  agentLogPath String?
+
+  enableMoveBackup Boolean @default(false)
+  moveBackupPath   String?
+
+  mode   ServerTransferMode   @default(COPY)
+  status ServerTransferStatus @default(IDLE)
+
+  bwLimitKbps  Int?
+  secondsStart Int
+  secondsStop  Int
+  isEnabled    Boolean @default(true)
+
+  queuedFiles BigInt @default(0)
+  queuedBytes BigInt @default(0)
+  sentFiles   BigInt @default(0)
+  sentBytes   BigInt @default(0)
+
+  lastRunAt     DateTime?
+  lastSuccessAt DateTime?
+  lastError     DateTime?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  currentProcess   Process? @relation(fields: [currentProcessId], references: [id])
+  currentProcessId String?
+
+  @@unique([serverCategoryId, name])
+  @@index([serverCategoryId])
 }
