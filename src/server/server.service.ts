@@ -8,11 +8,14 @@ import {
   PatchDiskDto,
   RegisterServerDto,
   HeartbeatDto,
+  CreateCategoryDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { PaginationDto } from '../common/dto';
 import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
+import { PatchCategoryDto } from './dto/patch-category.dto';
+import { CategorySource } from '@prisma/client';
 
 @Injectable()
 export class ServerService {
@@ -124,7 +127,7 @@ export class ServerService {
     return updatedDisk;
   }
 
-  async handlePatchCategory(id: string, dto: PatchDiskDto) {
+  async handlePatchCategory(id: string, dto: PatchCategoryDto) {
     const category = await this.prisma.serverCategory.findUnique({
       where: { id },
     });
@@ -137,6 +140,18 @@ export class ServerService {
       },
     });
     return updatedCategory;
+  }
+
+  async handleCreateCategory(serverId: string, dto: CreateCategoryDto) {
+    const category = await this.prisma.serverCategory.create({
+      data: {
+        name: dto.name,
+        value: dto.value,
+        source: CategorySource.MAIN,
+        server: { connect: { id: serverId } },
+      },
+    });
+    return category;
   }
 
   async handleRegisterServer(dto: RegisterServerDto) {

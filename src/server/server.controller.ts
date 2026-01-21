@@ -1,8 +1,21 @@
-import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ServerService } from './server.service';
 import { GetCurrentUser, Public, Roles } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
-import { HeartbeatDto, PatchDiskDto, RegisterServerDto } from './dto';
+import {
+  CreateCategoryDto,
+  HeartbeatDto,
+  PatchDiskDto,
+  RegisterServerDto,
+} from './dto';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
   PowerServerResponseDto,
@@ -12,7 +25,7 @@ import {
 } from './responses';
 import { PaginationDto } from '../common/dto';
 import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
-import { PatchCategorykDto } from './dto/patch-category.dto';
+import { PatchCategoryDto } from './dto/patch-category.dto';
 import { ServerPowerService } from './server-power.service';
 
 @ApiTags('Server')
@@ -92,9 +105,20 @@ export class ServerController {
 
   @ApiBearerAuth()
   @Roles('OWNER')
+  @Post('catgory')
+  @ApiOkResponse({ description: 'Changed correctly' })
+  async createCategory(
+    @Param('id') id: string,
+    @Body() dto: CreateCategoryDto,
+  ) {
+    return this.serverService.handleCreateCategory(id, dto);
+  }
+
+  @ApiBearerAuth()
+  @Roles('OWNER')
   @Patch('catgory/:id')
   @ApiOkResponse({ description: 'Changed correctly' })
-  async patchCategory(@Param('id') id: string, @Body() dto: PatchCategorykDto) {
+  async patchCategory(@Param('id') id: string, @Body() dto: PatchCategoryDto) {
     return this.serverService.handlePatchCategory(id, dto);
   }
 
