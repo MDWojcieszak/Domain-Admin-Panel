@@ -1,0 +1,71 @@
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse } from '@nestjs/swagger';
+import { EventPattern, MessagePattern } from '@nestjs/microservices';
+
+import { ServerTransferService } from './server-transfer.service';
+import { CreateServerTransferDto } from './dto/create-server-transfer.dto';
+import { PatchServerTransferDto } from './dto/patch-server-transfer.dto';
+import { ServerTransferResponse } from './responses/server-transfer.response';
+import { Public, Roles } from '../common/decorators';
+import { ServerTransferListResponse } from './responses';
+import { PatchServerTransferProgressDto } from './dto';
+
+@Controller('server-transfer')
+export class ServerTransferController {
+  constructor(private readonly serverTransferService: ServerTransferService) {}
+
+  @ApiBearerAuth()
+  @Roles('OWNER')
+  @Get('category/:id')
+  @ApiOkResponse({
+    description: 'List transfers by category',
+    type: [ServerTransferListResponse],
+  })
+  async listByCategory(
+    @Param('id') categoryId: string,
+  ): Promise<ServerTransferListResponse> {
+    return this.serverTransferService.listByCategory(categoryId);
+  }
+
+  @ApiBearerAuth()
+  @Roles('OWNER')
+  @Post('category/:id')
+  @ApiOkResponse({
+    description: 'Created transfer',
+    type: ServerTransferResponse,
+  })
+  async create(
+    @Param('id') categoryId: string,
+    @Body() dto: CreateServerTransferDto,
+  ): Promise<ServerTransferResponse> {
+    return this.serverTransferService.create(categoryId, dto);
+  }
+
+  @ApiBearerAuth()
+  @Roles('OWNER')
+  @Patch(':id')
+  @ApiOkResponse({
+    description: 'Patched transfer',
+    type: ServerTransferResponse,
+  })
+  async patch(
+    @Param('id') id: string,
+    @Body() dto: PatchServerTransferDto,
+  ): Promise<ServerTransferResponse> {
+    return this.serverTransferService.patch(id, dto);
+  }
+
+  @Public()
+  @MessagePattern('server.transfer.get')
+  async getTransfersForAgent(dto: {
+    serverName: string;
+  }): Promise<ServerTransferResponse[]> {
+    return this.serverTransferService.listForAgent(dto.serverName);
+  }
+
+  @Public()
+  @EventPattern('server.transfer.progress')
+  async patchProgress(dto: PatchServerTransferProgressDto) {
+    this.serverTransferService.patchProgressFromAgent(dto);
+  }
+}
