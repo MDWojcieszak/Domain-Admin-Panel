@@ -203,6 +203,21 @@ enum CategorySource {
   MAIN
 }
 
+enum PhotoEntryType {
+  GENERAL
+  WORK
+  ASTRO
+}
+
+enum PhotoEntryStatus {
+  PLANNED
+  ACTIVE
+  IMPORTED
+  SELECTED
+  EDITING
+  COMPLETED
+}
+
 model User {
   id           String  @id @default(uuid())
   role         Role    @default(USER)
@@ -226,6 +241,8 @@ model User {
   startedServers ServerProperties[] @relation("StartedBy")
   stoppedServers ServerProperties[] @relation("StoppedBy")
   userSettings   UserSettings?
+
+  photoEntries PhotoEntry[]
 
   aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
   aiContextId String?
@@ -677,6 +694,8 @@ model Server {
   location   String?
   isDeleted  Boolean @default(false)
 
+  queueName String @unique
+
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
   properties ServerProperties?
@@ -848,4 +867,75 @@ model ServerTransfer {
 
   @@unique([serverCategoryId, name])
   @@index([serverCategoryId])
+}
+
+model AstroObject {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String
+  code        String?
+  aliases     String?
+  description String?
+
+  thumbnailUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  photoLinks PhotoEntryAstroObject[]
+
+  @@unique([slug])
+}
+
+model PhotoEntry {
+  id     String           @id @default(uuid())
+  name   String
+  slug   String
+  type   PhotoEntryType   @default(GENERAL)
+  status PhotoEntryStatus @default(PLANNED)
+
+  year      Int
+  startDate DateTime
+  endDate   DateTime
+  daysCount Int
+
+  location    String?
+  description String?
+  notes       String?
+
+  rootPath String?
+
+  astroObjects PhotoEntryAstroObject[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId, type])
+  @@index([userId, year])
+  @@index([userId, startDate])
+  @@index([userId, status])
+}
+
+model PhotoEntryAstroObject {
+  id String @id @default(uuid())
+
+  photoEntry   PhotoEntry @relation(fields: [photoEntryId], references: [id], onDelete: Cascade)
+  photoEntryId String
+
+  astroObject   AstroObject @relation(fields: [astroObjectId], references: [id], onDelete: Cascade)
+  astroObjectId String
+
+  rootPath String
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([photoEntryId, astroObjectId])
+  @@unique([photoEntryId, rootPath])
+  @@index([astroObjectId])
 }
