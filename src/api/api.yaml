@@ -1,5 +1,129 @@
 openapi: 3.0.0
 paths:
+  /person/list:
+    get:
+      operationId: PersonController_listPersons
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: List all persons for the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonListResponseDto'
+      tags: &ref_0
+        - Person
+      security: &ref_1
+        - bearer: []
+  /person/{id}:
+    get:
+      operationId: PersonController_getPerson
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get person details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonDetailResponseDto'
+      tags: *ref_0
+      security: *ref_1
+    put:
+      operationId: PersonController_updatePerson
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonUpdateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonDetailResponseDto'
+      tags: *ref_0
+      security: *ref_1
+    delete:
+      operationId: PersonController_deletePerson
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonDetailResponseDto'
+      tags: *ref_0
+      security: *ref_1
+  /person/{id}/ai/history:
+    get:
+      operationId: PersonController_getAiHistory
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiHistoryListResponseDto'
+      tags: *ref_0
+      security: *ref_1
+  /person:
+    post:
+      operationId: PersonController_createPerson
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonCreateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonDetailResponseDto'
+      tags: *ref_0
+      security: *ref_1
   /auth/local/signin:
     post:
       operationId: AuthController_signIn
@@ -18,7 +142,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokensDto'
-      tags: &ref_0
+      tags: &ref_2
         - Auth
   /auth/logout:
     post:
@@ -28,7 +152,7 @@ paths:
       responses:
         '200':
           description: User successfully logged out
-      tags: *ref_0
+      tags: *ref_2
       security:
         - bearer: []
   /auth/reset-password-request:
@@ -45,7 +169,7 @@ paths:
       responses:
         '200':
           description: Reset password email sent (if user exists)
-      tags: *ref_0
+      tags: *ref_2
   /auth/reset-password:
     post:
       operationId: AuthController_resetPassword
@@ -60,7 +184,7 @@ paths:
       responses:
         '200':
           description: Password reset successful
-      tags: *ref_0
+      tags: *ref_2
       security:
         - JWT-reset-password: []
   /auth/refresh:
@@ -75,7 +199,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokensDto'
-      tags: *ref_0
+      tags: *ref_2
       security:
         - JWT-refresh: []
   /auth/register:
@@ -92,7 +216,7 @@ paths:
       responses:
         '200':
           description: User registered successfully
-      tags: *ref_0
+      tags: *ref_2
       security:
         - JWT-register-user: []
   /auth/check-register:
@@ -112,7 +236,7 @@ paths:
                     type: string
                   firstName:
                     type: string
-      tags: *ref_0
+      tags: *ref_2
       security:
         - JWT-register-user: []
   /user/create:
@@ -132,9 +256,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponseDto'
-      tags: &ref_1
+      tags: &ref_3
         - User
-      security: &ref_2
+      security: &ref_4
         - bearer: []
   /user/list:
     get:
@@ -161,8 +285,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserListResponseDto'
-      tags: *ref_1
-      security: *ref_2
+      tags: *ref_3
+      security: *ref_4
   /user/me:
     patch:
       operationId: UserController_update
@@ -174,8 +298,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponseDto'
-      tags: *ref_1
-      security: *ref_2
+      tags: *ref_3
+      security: *ref_4
   /user/role:
     patch:
       operationId: UserController_updateAdmin
@@ -198,8 +322,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponseDto'
-      tags: *ref_1
-      security: *ref_2
+      tags: *ref_3
+      security: *ref_4
   /image/list:
     get:
       operationId: ImageController_getList
@@ -225,7 +349,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImageListResponseDto'
-      tags: &ref_3
+      tags: &ref_5
         - Image
   /image:
     get:
@@ -243,7 +367,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImageDataResponseDto'
-      tags: *ref_3
+      tags: *ref_5
     put:
       operationId: ImageController_update
       parameters:
@@ -259,7 +383,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImageDataResponseDto'
-      tags: *ref_3
+      tags: *ref_5
       security:
         - bearer: []
     delete:
@@ -273,7 +397,7 @@ paths:
       responses:
         '200':
           description: Delete image
-      tags: *ref_3
+      tags: *ref_5
       security:
         - bearer: []
   /image/create:
@@ -293,7 +417,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImageDataResponseDto'
-      tags: *ref_3
+      tags: *ref_5
       security:
         - bearer: []
   /image/cover:
@@ -313,7 +437,7 @@ paths:
               schema:
                 type: string
                 format: binary
-      tags: *ref_3
+      tags: *ref_5
   /image/low-res:
     get:
       operationId: ImageController_getLowResImage
@@ -331,7 +455,7 @@ paths:
               schema:
                 type: string
                 format: binary
-      tags: *ref_3
+      tags: *ref_5
   /image/original:
     get:
       operationId: ImageController_getOriginalImage
@@ -349,7 +473,7 @@ paths:
               schema:
                 type: string
                 format: binary
-      tags: *ref_3
+      tags: *ref_5
       security:
         - bearer: []
   /session/my:
@@ -377,9 +501,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionListResponseDto'
-      tags: &ref_4
+      tags: &ref_6
         - Session
-      security: &ref_5
+      security: &ref_7
         - bearer: []
   /session/user/{userId}:
     get:
@@ -411,8 +535,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionListResponseDto'
-      tags: *ref_4
-      security: *ref_5
+      tags: *ref_6
+      security: *ref_7
   /session/all:
     get:
       operationId: SessionController_getAll
@@ -438,8 +562,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionListResponseDto'
-      tags: *ref_4
-      security: *ref_5
+      tags: *ref_6
+      security: *ref_7
   /session/current:
     get:
       operationId: SessionController_getCurrent
@@ -451,8 +575,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionResponseDto'
-      tags: *ref_4
-      security: *ref_5
+      tags: *ref_6
+      security: *ref_7
   /session/logout:
     post:
       operationId: SessionController_removeSession
@@ -466,8 +590,8 @@ paths:
       responses:
         '200':
           description: Session deleted
-      tags: *ref_4
-      security: *ref_5
+      tags: *ref_6
+      security: *ref_7
   /file/upload/image:
     post:
       operationId: FileController_uploadImage
@@ -516,7 +640,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerListResponseDto'
-      tags: &ref_6
+      tags: &ref_8
         - Server
       security:
         - bearer: []
@@ -536,7 +660,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerResponseDto'
-      tags: *ref_6
+      tags: *ref_8
       security:
         - bearer: []
   /server/details/{serverId}:
@@ -555,7 +679,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerDetailsResponseDto'
-      tags: *ref_6
+      tags: *ref_8
       security:
         - bearer: []
   /server/{serverId}/start:
@@ -574,7 +698,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PowerServerResponseDto'
-      tags: *ref_6
+      tags: *ref_8
       security:
         - bearer: []
   /server/{serverId}/stop:
@@ -593,7 +717,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PowerServerResponseDto'
-      tags: *ref_6
+      tags: *ref_8
       security:
         - bearer: []
   /server/{serverId}/reboot:
@@ -612,7 +736,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PowerServerResponseDto'
-      tags: *ref_6
+      tags: *ref_8
       security:
         - bearer: []
   /server/disk/{id}:
@@ -633,7 +757,28 @@ paths:
       responses:
         '200':
           description: Changed correctly
-      tags: *ref_6
+      tags: *ref_8
+      security:
+        - bearer: []
+  /server/catgory:
+    post:
+      operationId: ServerController_createCategory
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryDto'
+      responses:
+        '200':
+          description: Changed correctly
+      tags: *ref_8
       security:
         - bearer: []
   /server/catgory/{id}:
@@ -650,11 +795,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchCategorykDto'
+              $ref: '#/components/schemas/PatchCategoryDto'
       responses:
         '200':
           description: Changed correctly
-      tags: *ref_6
+      tags: *ref_8
       security:
         - bearer: []
   /server/commands/all:
@@ -673,7 +818,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandListResponseDto'
-      tags: &ref_7
+      tags: &ref_9
         - Server
       security:
         - bearer: []
@@ -699,7 +844,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandResponseDto'
-      tags: *ref_7
+      tags: *ref_9
       security:
         - bearer: []
   /server/commands/send/{id}:
@@ -718,7 +863,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandExecuteResponseDto'
-      tags: *ref_7
+      tags: *ref_9
       security:
         - bearer: []
   /server/settings:
@@ -742,7 +887,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerSettingsListResponseDto'
-      tags: &ref_8
+      tags: &ref_10
         - Server
       security:
         - bearer: []
@@ -768,7 +913,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerSettingsResponseDto'
-      tags: *ref_8
+      tags: *ref_10
       security:
         - bearer: []
   /server/process/all:
@@ -796,7 +941,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessListResponseDto'
-      tags: &ref_9
+      tags: &ref_11
         - Server
       security:
         - bearer: []
@@ -816,7 +961,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessResponseDto'
-      tags: *ref_9
+      tags: *ref_11
       security:
         - bearer: []
   /server/process/{id}/logs:
@@ -849,7 +994,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessLogListResponseDto'
-      tags: *ref_9
+      tags: *ref_11
       security:
         - bearer: []
   /gallery/all:
@@ -863,7 +1008,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryResponseDto'
-      tags: &ref_10
+      tags: &ref_12
         - Gallery
   /gallery/cover:
     get:
@@ -877,7 +1022,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_10
+      tags: *ref_12
   /gallery/low-res:
     get:
       operationId: GalleryController_getLowResImage
@@ -890,7 +1035,1120 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_10
+      tags: *ref_12
+  /token/generate:
+    post:
+      operationId: TokenController_generateToken
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateTokenDto'
+      responses:
+        '200':
+          description: Generate personal API token (INTERNAL or AI, write-once)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateTokenResponseDto'
+      tags: &ref_13
+        - Token
+      security: &ref_14
+        - bearer: []
+  /token/save-service-token:
+    post:
+      operationId: TokenController_saveServiceToken
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveServiceTokenDto'
+      responses:
+        '200':
+          description: Save or update a service integration token (EXTERNAL, editable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveServiceTokenResponseDto'
+      tags: *ref_13
+      security: *ref_14
+  /token/list:
+    get:
+      operationId: TokenController_listTokens
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: List all tokens for current user (paginated)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenListResponseDto'
+      tags: *ref_13
+      security: *ref_14
+  /token/{id}:
+    get:
+      operationId: TokenController_getTokenMetadata
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get token metadata (never reveals token value!)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenMetadataResponseDto'
+      tags: *ref_13
+      security: *ref_14
+    delete:
+      operationId: TokenController_deleteToken
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Delete/revoke token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenMetadataResponseDto'
+      tags: *ref_13
+      security: *ref_14
+  /person/ai/list:
+    get:
+      operationId: PersonAiController_listPersonsForAI
+      parameters: []
+      responses:
+        '200':
+          description: 'AI: List persons for the user (with AI context)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonAiListResponseDto'
+      tags: &ref_15
+        - AI - Person
+  /person/ai/{id}:
+    get:
+      operationId: PersonAiController_getPersonForAI
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'AI: Get person details (with AI context)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonAiDetailResponseDto'
+      tags: *ref_15
+    put:
+      operationId: PersonAiController_updatePerson
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonAiUpdateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonAiDetailResponseDto'
+      tags: *ref_15
+  /person/ai:
+    post:
+      operationId: PersonAiController_createPerson
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonAiCreateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonAiDetailResponseDto'
+      tags: *ref_15
+  /person/ai/{id}/history:
+    get:
+      operationId: PersonAiController_getAiHistory
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiHistoryListResponseDto'
+      tags: *ref_15
+  /person/ai/{id}/context:
+    get:
+      operationId: PersonAiController_getAiContext
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiContextDto'
+      tags: *ref_15
+    put:
+      operationId: PersonAiController_updateAiContext
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiContextDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiContextDto'
+      tags: *ref_15
+  /place/list:
+    get:
+      operationId: PlaceController_listPlaces
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: List all places for the current user (owner or member)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceListResponseDto'
+      tags: &ref_16
+        - Place
+      security: &ref_17
+        - bearer: []
+  /place/{id}:
+    get:
+      operationId: PlaceController_getPlace
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get place details (with members and location)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetailResponseDto'
+      tags: *ref_16
+      security: *ref_17
+    put:
+      operationId: PlaceController_updatePlace
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceUpdateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetailResponseDto'
+      tags: *ref_16
+      security: *ref_17
+    delete:
+      operationId: PlaceController_deletePlace
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetailResponseDto'
+      tags: *ref_16
+      security: *ref_17
+  /place:
+    post:
+      operationId: PlaceController_createPlace
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceCreateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetailResponseDto'
+      tags: *ref_16
+      security: *ref_17
+  /place/{id}/ai/history:
+    get:
+      operationId: PlaceController_getPlaceAiHistory
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiHistoryListResponseDto'
+      tags: *ref_16
+      security: *ref_17
+  /place/{id}/members:
+    get:
+      operationId: PlaceController_listMembers
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List members of a place
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceMemberListResponseDto'
+      tags: *ref_16
+      security: *ref_17
+    post:
+      operationId: PlaceController_addMember
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceAddMemberDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceMemberListResponseDto'
+      tags: *ref_16
+      security: *ref_17
+  /place/{id}/members/{memberId}:
+    delete:
+      operationId: PlaceController_removeMember
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: memberId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceMemberListResponseDto'
+      tags: *ref_16
+      security: *ref_17
+  /place/ai/list:
+    get:
+      operationId: PlaceAiController_listPlaces
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceAiListResponseDto'
+      tags: &ref_18
+        - AI - Place
+  /place/ai/{id}:
+    get:
+      operationId: PlaceAiController_getPlace
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceAiDetailResponseDto'
+      tags: *ref_18
+    put:
+      operationId: PlaceAiController_updatePlace
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceAiUpdateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceAiDetailResponseDto'
+      tags: *ref_18
+  /place/ai:
+    post:
+      operationId: PlaceAiController_createPlace
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceAiCreateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceAiDetailResponseDto'
+      tags: *ref_18
+  /place/ai/{id}/history:
+    get:
+      operationId: PlaceAiController_getAiHistory
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiHistoryListResponseDto'
+      tags: *ref_18
+  /place/ai/{id}/context:
+    get:
+      operationId: PlaceAiController_getAiContext
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiContextResponseDto'
+      tags: *ref_18
+    put:
+      operationId: PlaceAiController_updateAiContext
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiContextDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiContextResponseDto'
+      tags: *ref_18
+  /tag/list:
+    get:
+      operationId: TagController_listTags
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagListResponseDto'
+      tags: &ref_19
+        - Tag
+      security: &ref_20
+        - bearer: []
+  /tag:
+    post:
+      operationId: TagController_createTag
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagCreateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDetailResponseDto'
+      tags: *ref_19
+      security: *ref_20
+  /tag/{id}:
+    put:
+      operationId: TagController_updateTag
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDetailResponseDto'
+      tags: *ref_19
+      security: *ref_20
+    delete:
+      operationId: TagController_deleteTag
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDetailResponseDto'
+      tags: *ref_19
+      security: *ref_20
+  /task-comment/list:
+    get:
+      operationId: TaskCommentController_list
+      parameters:
+        - name: taskId
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCommentListResponseDto'
+      tags: &ref_21
+        - Task Comment
+      security: &ref_22
+        - bearer: []
+  /task-comment/{id}:
+    get:
+      operationId: TaskCommentController_get
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCommentResponseDto'
+      tags: *ref_21
+      security: *ref_22
+    put:
+      operationId: TaskCommentController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCommentUpdateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCommentResponseDto'
+      tags: *ref_21
+      security: *ref_22
+    delete:
+      operationId: TaskCommentController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_21
+      security: *ref_22
+  /task-comment:
+    post:
+      operationId: TaskCommentController_create
+      parameters:
+        - name: taskId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCommentCreateDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCommentResponseDto'
+      tags: *ref_21
+      security: *ref_22
+  /dev/ocr/recognize:
+    post:
+      operationId: OcrController_recognize
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OcrOptionsDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OcrResponseDto'
+      tags: &ref_23
+        - OCR (dev)
+      security: &ref_24
+        - bearer: []
+  /dev/ocr/structured:
+    post:
+      operationId: OcrController_structured
+      summary: Recognize, clean, and structure OCR into items and totals
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OcrStructuredResponseDto'
+      tags: *ref_23
+      security: *ref_24
+  /ai/ollama/models:
+    get:
+      operationId: OllamaController_listModels
+      summary: List of locally available models at Ollama
+      parameters: []
+      responses:
+        '200':
+          description: Model array
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OllamaListModelsResponseDto'
+      tags: &ref_25
+        - AI / Ollama
+  /ai/ollama/models/pull:
+    post:
+      operationId: OllamaController_pull
+      summary: Download the model to your local Ollama repo (pull)
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PullModelDto'
+      responses:
+        '200':
+          description: Model download status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OllamaPullModelResponseDto'
+      tags: *ref_25
+  /server-transfer/category/{id}:
+    get:
+      operationId: ServerTransferController_listByCategory
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List transfers by category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerTransferListResponse'
+      security:
+        - bearer: []
+    post:
+      operationId: ServerTransferController_create
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServerTransferDto'
+      responses:
+        '200':
+          description: Created transfer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerTransferResponse'
+      security:
+        - bearer: []
+  /server-transfer/{id}:
+    patch:
+      operationId: ServerTransferController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchServerTransferDto'
+      responses:
+        '200':
+          description: Patched transfer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerTransferResponse'
+      security:
+        - bearer: []
+  /astro-object:
+    get:
+      operationId: AstroObjectController_list
+      parameters:
+        - name: search
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: take
+          required: false
+          in: query
+          schema:
+            type: integer
+        - name: skip
+          required: false
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List astro objects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AstroObjectListResponse'
+      tags: &ref_26
+        - Astro Object
+      security:
+        - bearer: []
+    post:
+      operationId: AstroObjectController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAstroObjectDto'
+      responses:
+        '200':
+          description: Created astro object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AstroObjectResponse'
+      tags: *ref_26
+      security:
+        - bearer: []
+  /astro-object/{id}:
+    get:
+      operationId: AstroObjectController_getById
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Astro object details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AstroObjectDetailsResponse'
+      tags: *ref_26
+      security:
+        - bearer: []
+    patch:
+      operationId: AstroObjectController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchAstroObjectDto'
+      responses:
+        '200':
+          description: Patched astro object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AstroObjectResponse'
+      tags: *ref_26
+      security:
+        - bearer: []
+  /photo-entry:
+    get:
+      operationId: PhotoEntryController_list
+      parameters:
+        - name: type
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/PhotoEntryType'
+        - name: status
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/PhotoEntryStatus'
+        - name: astroObjectId
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: search
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: take
+          required: false
+          in: query
+          schema:
+            type: integer
+        - name: skip
+          required: false
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List photo entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoEntryListResponse'
+      tags: &ref_27
+        - Photo Entry
+      security:
+        - bearer: []
+    post:
+      operationId: PhotoEntryController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePhotoEntryDto'
+      responses:
+        '200':
+          description: Created photo entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoEntryResponse'
+      tags: *ref_27
+      security:
+        - bearer: []
+  /photo-entry/{id}:
+    get:
+      operationId: PhotoEntryController_getById
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Photo entry details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoEntryDetailsResponse'
+      tags: *ref_27
+      security:
+        - bearer: []
+    patch:
+      operationId: PhotoEntryController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchPhotoEntryDto'
+      responses:
+        '200':
+          description: Patched photo entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoEntryResponse'
+      tags: *ref_27
+      security:
+        - bearer: []
+    delete:
+      operationId: PhotoEntryController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted photo entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoEntryResponse'
+      tags: *ref_27
+      security:
+        - bearer: []
+  /photo-entry/{id}/status:
+    patch:
+      operationId: PhotoEntryController_patchStatus
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchPhotoEntryStatusDto'
+      responses:
+        '200':
+          description: Patched photo entry status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoEntryResponse'
+      tags: *ref_27
+      security:
+        - bearer: []
+  /photo-entry/{id}/create-folders:
+    post:
+      operationId: PhotoEntryController_createFolders
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Created photo entry folders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoEntryResponse'
+      tags: *ref_27
+      security:
+        - bearer: []
 info:
   title: WHCP Backend
   description: XD
@@ -929,6 +2187,185 @@ components:
       description: Enter JWT register user
       in: header
   schemas:
+    PersonRelation:
+      type: string
+      enum:
+        - FAMILY
+        - FRIEND
+        - WORK
+        - OTHER
+    AiContextResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        summary:
+          type: string
+        keywords:
+          type: object
+        context:
+          type: string
+        aiMeta:
+          type: object
+        aiConfidence:
+          type: number
+        aiSource:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+    PersonDetailResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        nickname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        notes:
+          type: string
+        birthday:
+          type: string
+          format: date-time
+        avatarUrl:
+          type: string
+        relation:
+          $ref: '#/components/schemas/PersonRelation'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        aiContext:
+          $ref: '#/components/schemas/AiContextResponseDto'
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+    PaginationDto:
+      type: object
+      properties:
+        take:
+          type: number
+          minimum: 1
+          maximum: 20
+        skip:
+          type: number
+          minimum: 0
+          default: 0
+    PersonListResponseDto:
+      type: object
+      properties:
+        persons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonDetailResponseDto'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - persons
+        - total
+    AiHistoryResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        aiContextId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        action:
+          type: string
+        source:
+          type: string
+        userPrompt:
+          type: string
+        aiResponse:
+          type: string
+        text:
+          type: string
+        meta:
+          type: object
+      required:
+        - id
+        - aiContextId
+        - timestamp
+        - action
+    AiHistoryListResponseDto:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiHistoryResponseDto'
+        total:
+          type: number
+      required:
+        - entries
+        - total
+    PersonCreateDto:
+      type: object
+      properties:
+        name:
+          type: string
+        nickname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        notes:
+          type: string
+        birthday:
+          type: string
+          format: date-time
+        avatarUrl:
+          type: string
+        relation:
+          $ref: '#/components/schemas/PersonRelation'
+        locationId:
+          type: string
+          description: Location ID to associate with this person
+      required:
+        - name
+    PersonUpdateDto:
+      type: object
+      properties:
+        name:
+          type: string
+        nickname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        notes:
+          type: string
+        birthday:
+          type: string
+          format: date-time
+        avatarUrl:
+          type: string
+        relation:
+          $ref: '#/components/schemas/PersonRelation'
+        locationId:
+          type: string
+          description: Location ID to associate with this person
     SignInDto:
       type: object
       properties:
@@ -1019,17 +2456,6 @@ components:
         - email
         - role
         - createdAt
-    PaginationDto:
-      type: object
-      properties:
-        take:
-          type: number
-          minimum: 1
-          maximum: 20
-        skip:
-          type: number
-          minimum: 0
-          default: 0
     UserListResponseDto:
       type: object
       properties:
@@ -1354,7 +2780,16 @@ components:
           type: string
         mediaType:
           $ref: '#/components/schemas/DiskType'
-    PatchCategorykDto:
+    CreateCategoryDto:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      required:
+        - value
+    PatchCategoryDto:
       type: object
       properties:
         name:
@@ -1610,3 +3045,1413 @@ components:
       required:
         - images
         - count
+    ApiKeyType:
+      type: string
+      enum:
+        - AI
+        - INTERNAL
+        - EXTERNAL
+    GenerateTokenDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 64
+          example: Integration with ...
+        expires:
+          type: boolean
+          description: Should the token expire?
+          example: true
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2023-10-01T00:00:00.000Z'
+        type:
+          $ref: '#/components/schemas/ApiKeyType'
+      required:
+        - name
+        - type
+    GenerateTokenResponseDto:
+      type: object
+      properties:
+        token:
+          type: string
+          example: fa6f0cf5224b...
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+        - token
+    ConnectedServiceType:
+      type: string
+      enum:
+        - GOOGLE
+        - TODOIST
+        - NOTION
+        - TELEGRAM
+        - N8N
+        - OPENAI
+        - OTHER
+    SaveServiceTokenDto:
+      type: object
+      properties:
+        service:
+          example: TELEGRAM
+          $ref: '#/components/schemas/ConnectedServiceType'
+        value:
+          type: string
+          minLength: 1
+          example: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+        name:
+          type: string
+          maxLength: 128
+          example: Oliwia Telegram Token
+      required:
+        - service
+        - value
+    SaveServiceTokenResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: f7a3d2b1-4e60-4379-a7ef-bdfd1234a789
+        service:
+          type: string
+          example: telegram
+        name:
+          type: string
+          example: Oliwia Telegram Token
+        type:
+          type: string
+          example: EXTERNAL
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        meta:
+          type: object
+      required:
+        - id
+        - service
+        - name
+        - type
+    TokenMetadataResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        service:
+          $ref: '#/components/schemas/ConnectedServiceType'
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/ApiKeyType'
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        meta:
+          type: object
+      required:
+        - id
+        - service
+        - name
+        - type
+        - createdAt
+        - updatedAt
+    TokenListResponseDto:
+      type: object
+      properties:
+        tokens:
+          type: array
+          items:
+            $ref: '#/components/schemas/TokenMetadataResponseDto'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - tokens
+        - total
+    AiContextDto:
+      type: object
+      properties:
+        userPrompt:
+          type: string
+          description: Prompt from user to the AI
+        aiResponse:
+          type: string
+          description: AI-generated response
+        aiMeta:
+          type: object
+          description: Meta/object for AI log details
+        summary:
+          type: string
+        keywords:
+          type: object
+        context:
+          type: string
+        aiConfidence:
+          type: number
+        aiSource:
+          type: string
+    PersonAiDetailResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        nickname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        notes:
+          type: string
+        avatarUrl:
+          type: string
+        relation:
+          $ref: '#/components/schemas/PersonRelation'
+        aiContext:
+          $ref: '#/components/schemas/AiContextDto'
+      required:
+        - id
+        - name
+    PersonAiListResponseDto:
+      type: object
+      properties:
+        persons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonAiDetailResponseDto'
+        total:
+          type: number
+          example: 1
+      required:
+        - persons
+        - total
+    PersonAiCreateDto:
+      type: object
+      properties:
+        userPrompt:
+          type: string
+          description: Prompt from user to the AI
+        aiResponse:
+          type: string
+          description: AI-generated response
+        aiMeta:
+          type: object
+          description: Meta/object for AI log details
+        name:
+          type: string
+        nickname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        notes:
+          type: string
+        birthday:
+          type: string
+          format: date-time
+        relation:
+          $ref: '#/components/schemas/PersonRelation'
+      required:
+        - name
+    PersonAiUpdateDto:
+      type: object
+      properties:
+        userPrompt:
+          type: string
+          description: Prompt from user to the AI
+        aiResponse:
+          type: string
+          description: AI-generated response
+        aiMeta:
+          type: object
+          description: Meta/object for AI log details
+        name:
+          type: string
+        nickname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        notes:
+          type: string
+        birthday:
+          type: string
+          format: date-time
+        relation:
+          $ref: '#/components/schemas/PersonRelation'
+    PlaceType:
+      type: string
+      enum:
+        - HOME
+        - WORK
+        - FAMILY_HOME
+        - FRIEND_HOME
+        - RESTAURANT
+        - SHOP
+        - OFFICE
+        - SCHOOL
+        - GYM
+        - HOSPITAL
+        - HOTEL
+        - HOSTEL
+        - AIRPORT
+        - TRAIN_STATION
+        - BUS_STATION
+        - PORT
+        - PARK
+        - BEACH
+        - MOUNTAIN
+        - CAMP
+        - NATIONAL_PARK
+        - MUSEUM
+        - MONUMENT
+        - ATTRACTION
+        - TRAVEL_DESTINATION
+        - SIGHTSEEING
+        - EVENT
+        - OTHER
+    LocationResponseDto:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        radius:
+          type: integer
+          description: Radius in meters
+          example: 50
+        latitude:
+          type: number
+        longitude:
+          type: number
+        description:
+          type: string
+    PlaceDetailResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/PlaceType'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        aiContext:
+          $ref: '#/components/schemas/AiContextResponseDto'
+        location:
+          $ref: '#/components/schemas/LocationResponseDto'
+      required:
+        - id
+        - name
+    PlaceListResponseDto:
+      type: object
+      properties:
+        places:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceDetailResponseDto'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - places
+        - total
+    LocationCreateDto:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        radius:
+          type: integer
+          description: Radius in meters
+          example: 50
+        latitude:
+          type: number
+        longitude:
+          type: number
+        description:
+          type: string
+    PlaceCreateDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/PlaceType'
+        location:
+          $ref: '#/components/schemas/LocationCreateDto'
+      required:
+        - name
+    PlaceUpdateDto:
+      type: object
+      properties:
+        userPrompt:
+          type: string
+          description: Prompt from user to the AI
+        aiResponse:
+          type: string
+          description: AI-generated response
+        aiMeta:
+          type: object
+          description: Meta/object for AI log details
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/PlaceType'
+        location:
+          $ref: '#/components/schemas/LocationCreateDto'
+    PlaceMemberRole:
+      type: string
+      enum:
+        - OWNER
+        - MEMBER
+        - VIEWER
+    PlaceMemberResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserResponseDto'
+        joinedAt:
+          type: string
+          format: date-time
+        role:
+          $ref: '#/components/schemas/PlaceMemberRole'
+      required:
+        - id
+        - user
+        - joinedAt
+    PlaceMemberListResponseDto:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceMemberResponseDto'
+        total:
+          type: number
+          description: Total number of members
+      required:
+        - members
+        - total
+    PlaceAddMemberDto:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: User ID to add as member
+        role:
+          $ref: '#/components/schemas/PlaceMemberRole'
+      required:
+        - userId
+    PlaceAiDetailResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/PlaceType'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        aiContext:
+          $ref: '#/components/schemas/AiContextResponseDto'
+        location:
+          $ref: '#/components/schemas/LocationResponseDto'
+      required:
+        - id
+        - name
+    PlaceAiListResponseDto:
+      type: object
+      properties:
+        places:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceAiDetailResponseDto'
+        total:
+          type: number
+          example: 1
+      required:
+        - places
+        - total
+    PlaceAiCreateDto:
+      type: object
+      properties:
+        userPrompt:
+          type: string
+          description: Prompt from user to the AI
+        aiResponse:
+          type: string
+          description: AI-generated response
+        aiMeta:
+          type: object
+          description: Meta/object for AI log details
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/PlaceType'
+        location:
+          $ref: '#/components/schemas/LocationCreateDto'
+      required:
+        - name
+    PlaceAiUpdateDto:
+      type: object
+      properties:
+        userPrompt:
+          type: string
+          description: Prompt from user to the AI
+        aiResponse:
+          type: string
+          description: AI-generated response
+        aiMeta:
+          type: object
+          description: Meta/object for AI log details
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/PlaceType'
+        location:
+          $ref: '#/components/schemas/LocationCreateDto'
+    TagDetailResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+      required:
+        - id
+        - name
+    TagListResponseDto:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagDetailResponseDto'
+        total:
+          type: number
+      required:
+        - tags
+        - total
+    TagCreateDto:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+      required:
+        - name
+    TagUpdateDto:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+    TaskCommentUserResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+      required:
+        - id
+        - email
+    TaskCommentResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        user:
+          $ref: '#/components/schemas/TaskCommentUserResponseDto'
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - taskId
+        - user
+        - comment
+        - createdAt
+    TaskCommentListResponseDto:
+      type: object
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskCommentResponseDto'
+        total:
+          type: number
+      required:
+        - comments
+        - total
+    TaskCommentCreateDto:
+      type: object
+      properties:
+        taskId:
+          type: string
+        comment:
+          type: string
+      required:
+        - taskId
+        - comment
+    TaskCommentUpdateDto:
+      type: object
+      properties:
+        comment:
+          type: string
+      required:
+        - comment
+    OcrLang:
+      type: string
+      default: pol
+      enum:
+        - pol
+        - eng
+        - deu
+        - spa
+        - fra
+    OcrPSM:
+      type: number
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+        - 10
+        - 11
+        - 12
+        - 13
+    OcrOEM:
+      type: number
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+    OcrOptionsDto:
+      type: object
+      properties:
+        lang:
+          $ref: '#/components/schemas/OcrLang'
+        psm:
+          $ref: '#/components/schemas/OcrPSM'
+        oem:
+          $ref: '#/components/schemas/OcrOEM'
+        rotate:
+          type: integer
+          default: 0
+        maxWidth:
+          type: integer
+          default: 1800
+          description: Max image width after resize
+          minimum: 200
+          maximum: 4000
+        timeoutMs:
+          type: integer
+          default: 15000
+        threshold:
+          type: boolean
+          default: false
+      required:
+        - rotate
+        - timeoutMs
+    OcrUsedDto:
+      type: object
+      properties:
+        lang:
+          type: string
+        psm:
+          $ref: '#/components/schemas/OcrPSM'
+        oem:
+          $ref: '#/components/schemas/OcrOEM'
+        rotate:
+          type: number
+        width:
+          type: number
+        threshold:
+          type: boolean
+      required:
+        - lang
+        - psm
+        - oem
+        - rotate
+        - width
+        - threshold
+    OcrResponseDto:
+      type: object
+      properties:
+        text:
+          type: string
+        durationMs:
+          type: number
+        used:
+          $ref: '#/components/schemas/OcrUsedDto'
+        shotDate:
+          type: string
+      required:
+        - text
+        - durationMs
+        - used
+    OcrStructuredHeaderDto:
+      type: object
+      properties:
+        sellerName:
+          type: string
+          description: Seller/vendor name
+          example: APPLOGY
+        sellerTaxId:
+          type: string
+          description: Seller tax id (e.g., NIP/VATIN)
+          example: '1122009977'
+        date:
+          type: string
+          description: Document date (ISO-8601 if possible)
+          example: '2018-08-14'
+        documentNumber:
+          type: string
+          description: Document number (invoice no., receipt id, etc.)
+          example: H000156
+        buyerName:
+          type: string
+          description: Buyer name if present
+          example: ACME Sp. z o.o.
+        buyerTaxId:
+          type: string
+          description: Buyer tax id if present
+          example: '1234567890'
+    OcrStructuredItemDto:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Item name as seen on the document
+          example: Apples
+        quantity:
+          type: number
+          description: Quantity (if available)
+          example: 2
+        unit:
+          type: string
+          description: Unit of measure (e.g., kg, pcs)
+          example: kg
+        unitPrice:
+          type: number
+          description: Unit price (if available)
+          example: 7.5
+        lineTotal:
+          type: number
+          description: Line total (sum for this item)
+          example: 15
+        vatRate:
+          type: number
+          description: VAT rate in percent (if present)
+          example: 8
+        currency:
+          type: string
+          description: Currency code inferred from the document
+          example: PLN
+      required:
+        - name
+    OcrStructuredTotalsDto:
+      type: object
+      properties:
+        subtotal:
+          type: number
+          description: Subtotal amount before taxes (if present)
+          example: 32.37
+        vatTotal:
+          type: number
+          description: Total VAT amount (if present)
+          example: 1.78
+        total:
+          type: number
+          description: Grand total amount
+          example: 34.15
+        currency:
+          type: string
+          description: Currency code inferred from the document
+          example: PLN
+    OcrStructuredResponseDto:
+      type: object
+      properties:
+        cleanedText:
+          type: string
+          description: Cleaned, human-readable text reconstructed from OCR
+          example: |-
+            ZETO Serwis
+            ul. Oleska 7
+            45-052 Opole
+            NIP: 7453009977
+            ...
+        header:
+          description: Document header fields
+          allOf:
+            - $ref: '#/components/schemas/OcrStructuredHeaderDto'
+        items:
+          description: Detected line items
+          example:
+            - name: Ser żółty
+              quantity: 0.5
+              unit: kg
+              unitPrice: 11.9
+              lineTotal: 5.95
+              vatRate: 8
+              currency: PLN
+            - name: Jabłka
+              quantity: 3
+              unitPrice: 4.4
+              lineTotal: 13.2
+              currency: PLN
+          type: array
+          items:
+            $ref: '#/components/schemas/OcrStructuredItemDto'
+        totals:
+          description: Totals section
+          example:
+            subtotal: 32.37
+            vatTotal: 1.78
+            total: 34.15
+            currency: PLN
+          allOf:
+            - $ref: '#/components/schemas/OcrStructuredTotalsDto'
+        warnings:
+          description: Non-fatal warnings the model produced while structuring
+          example:
+            - Uncertain currency
+            - Ambiguous date format
+          type: array
+          items:
+            type: string
+      required:
+        - cleanedText
+        - header
+        - items
+        - totals
+    OllamaModelDetailsResponseDto:
+      type: object
+      properties:
+        parent_model:
+          type: string
+          description: Parent model tag if present, otherwise empty string
+          example: ''
+        format:
+          type: string
+          description: On-disk format of the model
+          example: gguf
+        family:
+          type: string
+          description: Primary model family
+          example: llama
+        families:
+          description: All families this model belongs to
+          example:
+            - llama
+          type: array
+          items:
+            type: string
+        parameter_size:
+          type: string
+          description: Human-readable parameter size
+          example: 3.2B
+        quantization_level:
+          type: string
+          description: Quantization level used for the model
+          example: Q4_K_M
+      required:
+        - format
+        - family
+        - families
+        - parameter_size
+        - quantization_level
+    OllamaModelResponseDto:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Model tag/name as shown by Ollama
+          example: llama3.2:latest
+        model:
+          type: string
+          description: Full model identifier (often same as name)
+          example: llama3.2:latest
+        modified_at:
+          type: string
+          description: Last modification timestamp in ISO 8601
+          example: '2025-07-19T11:08:06.399820654Z'
+        size:
+          type: number
+          description: Model size in bytes
+          example: 2019393189
+        digest:
+          type: string
+          description: SHA256 digest of the model
+          example: a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72
+        details:
+          description: Additional model metadata
+          example:
+            parent_model: ''
+            format: gguf
+            family: llama
+            families:
+              - llama
+            parameter_size: 3.2B
+            quantization_level: Q4_K_M
+          allOf:
+            - $ref: '#/components/schemas/OllamaModelDetailsResponseDto'
+      required:
+        - name
+        - model
+        - modified_at
+        - size
+        - digest
+        - details
+    OllamaListModelsResponseDto:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/OllamaModelResponseDto'
+        total:
+          type: integer
+      required:
+        - models
+        - total
+    PullModelDto:
+      type: object
+      properties:
+        model:
+          type: string
+          minLength: 2
+          description: Full name of model
+          example: llama3.1:8b-instruct
+      required:
+        - model
+    OllamaPullModelResponseDto:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Current status of the model pull process
+          example: downloading
+        model:
+          type: string
+          description: Name of the model being pulled
+          example: llama3.2:latest
+        digest:
+          type: string
+          description: Unique digest (hash) of the pulled model
+          example: a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72
+        total:
+          type: integer
+          description: Total size of the model to be downloaded in bytes
+          example: 2019393189
+        completed:
+          type: integer
+          description: Number of bytes already downloaded
+          example: 1048576000
+        error:
+          type: string
+          description: Error message if the pull process failed
+          example: Failed to download model due to network error
+    ServerTransferMode:
+      type: string
+      enum:
+        - MOVE
+        - COPY
+    ServerTransferStatus:
+      type: string
+      enum:
+        - IDLE
+        - RUNNING
+        - SUCCESS
+        - FAILED
+    ServerTransferResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        serverCategoryId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        originPath:
+          type: string
+        targetPath:
+          type: string
+        agentLogPath:
+          type: string
+        enableMoveBackup:
+          type: boolean
+        moveBackupPath:
+          type: string
+        mode:
+          $ref: '#/components/schemas/ServerTransferMode'
+        status:
+          $ref: '#/components/schemas/ServerTransferStatus'
+        bwLimitKbps:
+          type: integer
+        secondsStart:
+          type: integer
+        secondsStop:
+          type: integer
+        isEnabled:
+          type: boolean
+        queuedFiles:
+          type: number
+        queuedBytes:
+          type: number
+        sentFiles:
+          type: number
+        sentBytes:
+          type: number
+        currentProcessId:
+          type: string
+        lastProcessId:
+          type: string
+        lastRunAt:
+          type: string
+        lastSuccessAt:
+          type: string
+        lastError:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - serverCategoryId
+        - name
+        - originPath
+        - targetPath
+        - enableMoveBackup
+        - mode
+        - status
+        - secondsStart
+        - secondsStop
+        - isEnabled
+        - queuedFiles
+        - queuedBytes
+        - sentFiles
+        - sentBytes
+        - createdAt
+        - updatedAt
+    ServerTransferListResponse:
+      type: object
+      properties:
+        transfers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerTransferResponse'
+        total:
+          type: number
+      required:
+        - transfers
+        - total
+    CreateServerTransferDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        originPath:
+          type: string
+        targetPath:
+          type: string
+        agentLogPath:
+          type: string
+        enableMoveBackup:
+          type: boolean
+        moveBackupPath:
+          type: string
+        mode:
+          $ref: '#/components/schemas/ServerTransferMode'
+        bwLimitKbps:
+          type: integer
+        secondsStart:
+          type: integer
+        secondsStop:
+          type: integer
+        isEnabled:
+          type: boolean
+      required:
+        - name
+        - originPath
+        - targetPath
+        - enableMoveBackup
+        - mode
+        - secondsStart
+        - secondsStop
+        - isEnabled
+    PatchServerTransferDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        originPath:
+          type: string
+        targetPath:
+          type: string
+        agentLogPath:
+          type: string
+        enableMoveBackup:
+          type: boolean
+        moveBackupPath:
+          type: string
+        mode:
+          $ref: '#/components/schemas/ServerTransferMode'
+        bwLimitKbps:
+          type: integer
+        secondsStart:
+          type: integer
+        secondsStop:
+          type: integer
+        isEnabled:
+          type: boolean
+    AstroObjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        code:
+          type: string
+        thumbnailUrl:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+    AstroObjectListResponse:
+      type: object
+      properties:
+        astroObjects:
+          type: array
+          items:
+            $ref: '#/components/schemas/AstroObjectResponse'
+        total:
+          type: number
+      required:
+        - astroObjects
+        - total
+    AstroObjectDetailsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        code:
+          type: string
+        thumbnailUrl:
+          type: string
+        photoEntriesCount:
+          type: number
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - photoEntriesCount
+        - createdAt
+        - updatedAt
+    CreateAstroObjectDto:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        thumbnailUrl:
+          type: string
+      required:
+        - name
+    PatchAstroObjectDto:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        thumbnailUrl:
+          type: string
+    PhotoEntryType:
+      type: string
+      enum:
+        - GENERAL
+        - WORK
+        - ASTRO
+    PhotoEntryStatus:
+      type: string
+      enum:
+        - PLANNED
+        - ACTIVE
+        - IMPORTED
+        - SELECTED
+        - EDITING
+        - COMPLETED
+    PhotoEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/PhotoEntryType'
+        status:
+          $ref: '#/components/schemas/PhotoEntryStatus'
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        rootPath:
+          type: string
+          nullable: true
+        foldersCreated:
+          type: boolean
+        foldersCreatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - type
+        - status
+        - foldersCreated
+        - createdAt
+        - updatedAt
+    PhotoEntryListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        photoEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhotoEntryResponse'
+      required:
+        - total
+        - photoEntries
+    PhotoEntryAstroObjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        astroObjectId:
+          type: string
+        rootPath:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - astroObjectId
+        - createdAt
+        - updatedAt
+    PhotoEntryDetailsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/PhotoEntryType'
+        status:
+          $ref: '#/components/schemas/PhotoEntryStatus'
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        rootPath:
+          type: string
+          nullable: true
+        foldersCreated:
+          type: boolean
+        foldersCreatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        astroObjects:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhotoEntryAstroObjectResponse'
+        astroObjectsCount:
+          type: integer
+      required:
+        - id
+        - name
+        - type
+        - status
+        - foldersCreated
+        - createdAt
+        - updatedAt
+        - astroObjects
+        - astroObjectsCount
+    CreatePhotoEntryDto:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/PhotoEntryType'
+        status:
+          $ref: '#/components/schemas/PhotoEntryStatus'
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        astroObjectIds:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - type
+        - status
+    PatchPhotoEntryDto:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/PhotoEntryType'
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        astroObjectIds:
+          type: array
+          items:
+            type: string
+    PatchPhotoEntryStatusDto:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/PhotoEntryStatus'
+      required:
+        - status
