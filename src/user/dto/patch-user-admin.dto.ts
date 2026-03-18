@@ -1,4 +1,4 @@
-import { Role, User } from 'prisma/prisma-client';
+import { Role, User } from '@prisma/client';
 import { IsEnum, IsString } from 'nestjs-swagger-dto';
 export class PatchUserAdminDto {
   @IsString({ isEmail: true, optional: true })
