@@ -12,19 +12,19 @@ import {
   ServerCommandDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { ClientProxy } from '@nestjs/microservices';
 import { SendCommandEvent } from './events';
 import { firstValueFrom } from 'rxjs';
 import { CommandContext } from '../common/types';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { UpdateServerCommandDto } from './dto/update-server-command.dto';
 import { CommandType } from '@prisma/client';
+import { ServerOutboundMessagingService } from '../server-outbound/server-outbound-messaging.service';
 
 @Injectable()
 export class ServerCommandsService {
   constructor(
     private prisma: PrismaService,
-    @Inject('MULTIVERSE_SERVICE') private multiVerseClient: ClientProxy,
+    private readonly outbound: ServerOutboundMessagingService,
     private readonly websocketGateway: WebsocketGateway,
   ) {}
 
@@ -62,7 +62,8 @@ export class ServerCommandsService {
     try {
       switch (command.type) {
         case CommandType.EVENT:
-          this.multiVerseClient.emit(
+          this.outbound.emitToServer(
+            server.name,
             command.value,
             new SendCommandEvent(context),
           );
@@ -70,11 +71,10 @@ export class ServerCommandsService {
             success: true,
           };
         case CommandType.MESSAGE:
-          const sendRes = await firstValueFrom(
-            this.multiVerseClient.send(
-              command.value,
-              new SendCommandEvent(context),
-            ),
+          const sendRes = await this.outbound.sendToServer(
+            server.name,
+            command.value,
+            new SendCommandEvent(context),
           );
           return {
             success: !!sendRes,
