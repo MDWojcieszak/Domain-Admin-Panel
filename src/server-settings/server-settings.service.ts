@@ -6,15 +6,15 @@ import {
   RegisterServerSettingsDto,
   ServerSettingsDto,
 } from './dto';
-import { ClientProxy } from '@nestjs/microservices';
 import { SetSettingEvent } from './events';
 import { SettingType } from '@prisma/client';
+import { ServerOutboundMessagingService } from '../server-outbound/server-outbound-messaging.service';
 
 @Injectable()
 export class ServerSettingsService {
   constructor(
     private prisma: PrismaService,
-    @Inject('MULTIVERSE_SERVICE') private multiVerseClient: ClientProxy,
+    private readonly outbound: ServerOutboundMessagingService,
   ) {}
 
   async handleGet(dto: GetServerSettingsDto) {
@@ -78,7 +78,8 @@ export class ServerSettingsService {
         },
       });
 
-      this.multiVerseClient.emit(
+      this.outbound.emitToServer(
+        server.name,
         'setting.set',
         new SetSettingEvent(
           server.name,
@@ -134,7 +135,8 @@ export class ServerSettingsService {
                 });
               } else {
                 if (existingSetting.value !== setting.settingValue)
-                  this.multiVerseClient.emit(
+                  this.outbound.emitToServer(
+                    server.name,
                     'setting.set',
                     new SetSettingEvent(
                       server.name,
