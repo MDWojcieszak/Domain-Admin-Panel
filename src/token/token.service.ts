@@ -9,14 +9,24 @@ import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import { GenerateTokenDto, SaveServiceTokenDto } from './dto';
 import { ApiKeyType, ConnectedServiceType } from '@prisma/client';
 import { PaginationDto } from '../common/dto';
+import { ConfigService } from '@nestjs/config';
 
 const algorithm = 'aes-256-gcm';
-const key = Buffer.from(process.env.EXTERNAL_TOKEN_KEY!, 'hex');
 const ivLength = 12;
 
 @Injectable()
 export class TokenService {
-  constructor(private prisma: PrismaService) {}
+  private readonly key: Buffer;
+
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+  ) {
+    this.key = Buffer.from(
+      this.config.get<string>('EXTERNAL_TOKEN_KEY')!,
+      'hex',
+    );
+  }
 
   async getTokenMetadata(userId: string, id: string) {
     const token = await this.prisma.apiKey.findFirst({
@@ -154,7 +164,7 @@ export class TokenService {
 
   private encrypt(text: string): { cipher: string; iv: string; tag: string } {
     const iv = randomBytes(ivLength);
-    const cipher = createCipheriv(algorithm, key, iv);
+    const cipher = createCipheriv(algorithm, this.key, iv);
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     const tag = cipher.getAuthTag();
@@ -172,7 +182,7 @@ export class TokenService {
   }): string {
     const decipher = createDecipheriv(
       algorithm,
-      key,
+      this.key,
       Buffer.from(encrypted.iv, 'hex'),
     );
     decipher.setAuthTag(Buffer.from(encrypted.tag, 'hex'));
