@@ -8,10 +8,7 @@ CREATE TYPE "PhotoEntryStatus" AS ENUM ('PLANNED', 'ACTIVE', 'IMPORTED', 'SELECT
 CREATE TABLE "AstroObject" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "slug" TEXT NOT NULL,
     "code" TEXT,
-    "aliases" TEXT,
-    "description" TEXT,
     "thumbnailUrl" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -23,17 +20,13 @@ CREATE TABLE "AstroObject" (
 CREATE TABLE "PhotoEntry" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "slug" TEXT NOT NULL,
     "type" "PhotoEntryType" NOT NULL DEFAULT 'GENERAL',
     "status" "PhotoEntryStatus" NOT NULL DEFAULT 'PLANNED',
-    "year" INTEGER NOT NULL,
-    "startDate" TIMESTAMP(3) NOT NULL,
-    "endDate" TIMESTAMP(3) NOT NULL,
-    "daysCount" INTEGER NOT NULL,
-    "location" TEXT,
-    "description" TEXT,
-    "notes" TEXT,
+    "startDate" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
     "rootPath" TEXT,
+    "foldersCreated" BOOLEAN NOT NULL DEFAULT false,
+    "foldersCreatedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "userId" TEXT NOT NULL,
@@ -46,8 +39,7 @@ CREATE TABLE "PhotoEntryAstroObject" (
     "id" TEXT NOT NULL,
     "photoEntryId" TEXT NOT NULL,
     "astroObjectId" TEXT NOT NULL,
-    "rootPath" TEXT NOT NULL,
-    "notes" TEXT,
+    "rootPath" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -55,13 +47,7 @@ CREATE TABLE "PhotoEntryAstroObject" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "AstroObject_slug_key" ON "AstroObject"("slug");
-
--- CreateIndex
 CREATE INDEX "PhotoEntry_userId_type_idx" ON "PhotoEntry"("userId", "type");
-
--- CreateIndex
-CREATE INDEX "PhotoEntry_userId_year_idx" ON "PhotoEntry"("userId", "year");
 
 -- CreateIndex
 CREATE INDEX "PhotoEntry_userId_startDate_idx" ON "PhotoEntry"("userId", "startDate");

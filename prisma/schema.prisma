@@ -870,12 +870,9 @@ model ServerTransfer {
 }
 
 model AstroObject {
-  id          String  @id @default(uuid())
-  name        String
-  slug        String
-  code        String?
-  aliases     String?
-  description String?
+  id   String  @id @default(uuid())
+  name String
+  code String?
 
   thumbnailUrl String?
 
@@ -883,27 +880,20 @@ model AstroObject {
   updatedAt DateTime @updatedAt
 
   photoLinks PhotoEntryAstroObject[]
-
-  @@unique([slug])
 }
 
 model PhotoEntry {
   id     String           @id @default(uuid())
   name   String
-  slug   String
   type   PhotoEntryType   @default(GENERAL)
   status PhotoEntryStatus @default(PLANNED)
 
-  year      Int
-  startDate DateTime
-  endDate   DateTime
-  daysCount Int
+  startDate DateTime?
+  endDate   DateTime?
 
-  location    String?
-  description String?
-  notes       String?
-
-  rootPath String?
+  rootPath         String?
+  foldersCreated   Boolean   @default(false)
+  foldersCreatedAt DateTime?
 
   astroObjects PhotoEntryAstroObject[]
 
@@ -914,7 +904,6 @@ model PhotoEntry {
   userId String
 
   @@index([userId, type])
-  @@index([userId, year])
   @@index([userId, startDate])
   @@index([userId, status])
 }
@@ -928,9 +917,7 @@ model PhotoEntryAstroObject {
   astroObject   AstroObject @relation(fields: [astroObjectId], references: [id], onDelete: Cascade)
   astroObjectId String
 
-  rootPath String
-
-  notes String?
+  rootPath String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
