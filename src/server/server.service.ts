@@ -20,7 +20,6 @@ import { CategorySource } from '@prisma/client';
 @Injectable()
 export class ServerService {
   constructor(
-    @Inject('MULTIVERSE_SERVICE') private multiVerseClient: ClientProxy,
     private prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
   ) {}
@@ -156,39 +155,86 @@ export class ServerService {
 
   async handleRegisterServer(dto: RegisterServerDto) {
     try {
-      const existingServer = await this.prisma.server.findUnique({
-        where: {
-          name: dto.name,
+      const existing = await this.prisma.server.findUnique({
+        where: { name: dto.name },
+        include: {
+          properties: { include: { diskInfo: true } },
         },
-        select: { id: true, properties: { select: { diskInfo: true } } },
       });
-      if (
-        existingServer &&
-        existingServer.properties.diskInfo.length === dto.diskCount
-      ) {
+
+      if (existing) {
         await this.prisma.server.update({
-          where: { id: existingServer.id },
+          where: { id: existing.id },
           data: {
             ipAddress: dto.ipAddress,
             macAddress: dto.macAddress,
+            queueName: dto.queueName,
             isDeleted: false,
           },
         });
-        Logger.log(`Server ${dto.name} already registered`);
-        return true;
-      }
-      if (existingServer) {
-        await this.prisma.server.delete({
-          where: {
-            id: existingServer.id,
+
+        let props = existing.properties;
+        if (!props) {
+          props = await this.prisma.serverProperties.create({
+            data: { server: { connect: { id: existing.id } } },
+            include: { diskInfo: true },
+          });
+        }
+
+        await this.prisma.cPUInfo.upsert({
+          where: { serverPropertiesId: props.id },
+          create: {
+            cores: dto.cpu.cores,
+            physicalCores: dto.cpu.physicalCores,
+            ServerProperties: { connect: { id: props.id } },
+          },
+          update: {
+            cores: dto.cpu.cores,
+            physicalCores: dto.cpu.physicalCores,
           },
         });
+
+        await this.prisma.memoryInfo.upsert({
+          where: { serverPropertiesId: props.id },
+          create: {
+            ServerProperties: { connect: { id: props.id } },
+          },
+          update: {},
+        });
+
+        const currentCount = props.diskInfo?.length ?? 0;
+
+        if (currentCount < dto.diskCount) {
+          const missing = dto.diskCount - currentCount;
+          await Promise.all(
+            Array.from({ length: missing }).map(() =>
+              this.createDiskInfo(props.id),
+            ),
+          );
+          Logger.log(
+            `Server ${dto.name} diskInfo extended: ${currentCount} -> ${dto.diskCount}`,
+          );
+        } else if (currentCount > dto.diskCount) {
+          const toDelete = props.diskInfo.slice(dto.diskCount);
+          await this.prisma.diskInfo.deleteMany({
+            where: { id: { in: toDelete.map((d) => d.id) } },
+          });
+          Logger.log(
+            `Server ${dto.name} diskInfo reduced: ${currentCount} -> ${dto.diskCount}`,
+          );
+        }
+
+        Logger.log(`Server ${dto.name} re-registered (updated)`);
+        return true;
       }
+
       const server = await this.prisma.server.create({
         data: {
           name: dto.name,
+          queueName: dto.queueName,
           ipAddress: dto.ipAddress,
           macAddress: dto.macAddress,
+          isDeleted: false,
         },
       });
 
@@ -213,13 +259,16 @@ export class ServerService {
       });
 
       await Promise.all(
-        Array.from(new Array(dto.diskCount)).map(async () => {
-          return await this.createDiskInfo(serverProperties.id);
-        }),
+        Array.from({ length: dto.diskCount }).map(() =>
+          this.createDiskInfo(serverProperties.id),
+        ),
       );
+
+      Logger.log(`Server ${dto.name} registered (created)`);
       return true;
-    } catch (error) {
-      throw new Error(`Failed to register server: ${error.message}`);
+    } catch (error: any) {
+      Logger.error(error);
+      throw new Error(`Failed to register server: ${error?.message ?? error}`);
     }
   }
 
@@ -316,12 +365,5 @@ export class ServerService {
       where: { id },
       data: diskInfo,
     });
-  }
-
-  async onApplicationBootstrap() {
-    this.multiVerseClient
-      .connect()
-      .then(() => console.log('connected to QUEUE'))
-      .catch((e) => console.log(e));
   }
 }

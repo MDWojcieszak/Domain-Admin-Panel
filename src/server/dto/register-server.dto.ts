@@ -23,4 +23,7 @@ export class RegisterServerDto {
 
   @IsNested({ type: CpuDto })
   cpu: CpuDto;
+
+  @IsString()
+  queueName: string;
 }

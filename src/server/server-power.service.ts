@@ -16,11 +16,12 @@ import { wake } from 'wol';
 import { ServerStatus } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { PowerServerEvent } from './events';
+import { ServerOutboundMessagingService } from '../server-outbound/server-outbound-messaging.service';
 
 @Injectable()
 export class ServerPowerService {
   constructor(
-    @Inject('MULTIVERSE_SERVICE') private multiVerseClient: ClientProxy,
+    private readonly outbound: ServerOutboundMessagingService,
     private prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
   ) {}
@@ -134,11 +135,10 @@ export class ServerPowerService {
     }
 
     try {
-      await firstValueFrom(
-        this.multiVerseClient.send(
-          'server.shutdown',
-          new PowerServerEvent({ serverId }),
-        ),
+      await this.outbound.sendToServer(
+        server.name,
+        'server.shutdown',
+        new PowerServerEvent({ serverId }),
       );
 
       await this.prisma.serverProperties.update({
@@ -176,11 +176,10 @@ export class ServerPowerService {
     }
 
     try {
-      await firstValueFrom(
-        this.multiVerseClient.send(
-          'server.reboot',
-          new PowerServerEvent({ serverId }),
-        ),
+      await this.outbound.sendToServer(
+        server.name,
+        'server.reboot',
+        new PowerServerEvent({ serverId }),
       );
 
       await this.prisma.serverProperties.update({
