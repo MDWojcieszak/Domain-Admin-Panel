@@ -81,7 +81,11 @@ async function bootstrap() {
 
   const yaml = require('js-yaml');
   const yamlContent = yaml.dump(document);
-  writeFileSync(join(__dirname, '../src/api/api.yaml'), yamlContent, 'utf8');
+  writeFileSync(
+    join(process.cwd(), 'src', 'api', 'api.yaml'),
+    yamlContent,
+    'utf8',
+  );
 
   SwaggerModule.setup('docs', app, document, { customCss: darkStyle });
   await app.listen(3000);

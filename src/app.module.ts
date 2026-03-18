@@ -7,13 +7,11 @@ import { ImageModule } from './image/image.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SessionModule } from './session/session.module';
 import { APP_GUARD } from '@nestjs/core';
-import { RolesGuard } from './common/guards/roles.guard';
-import { AutorizatonGuard } from './common/guards';
+import { AutorizatonGuard, RolesGuard, TokenGuard } from './common/guards';
 import { JwtModule } from '@nestjs/jwt';
 import { FileModule } from './file/file.module';
 import { ServerModule } from './server/server.module';
 import { config } from './config/config';
-import { MultiVerseModule } from './multi-verse/multi-verse.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 import { ServerCommandsModule } from './server-commands/server-commands.module';
@@ -21,16 +19,30 @@ import { ServerSettingsModule } from './server-settings/server-settings.module';
 import { ServerProcessModule } from './server-process/server-process.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { GalleryModule } from './gallery/gallery.module';
+import { TokenService } from './token/token.service';
+import { TokenModule } from './token/token.module';
+import { PersonModule } from './person/person.module';
+import { PersonController } from './person/person.controller';
+import { PlaceModule } from './place/place.module';
+import { TagModule } from './tag/tag.module';
+import { TaskCommentModule } from './task-comment/task-comment.module';
+import { OcrModule } from './ocr/ocr.module';
+import { AiModule } from './ai/ai.module';
+import { ClassificationModule } from './classification/classification.module';
+import { ServerTransferModule } from './server-transfer/server-transfer.module';
+import { AstroObjectModule } from './astro-object/astro-object.module';
+import { PhotoEntryModule } from './photo-entry/photo-entry.module';
+import { PhotoStorageModule } from './photo-storage-service/photo-storage.module';
 
 @Module({
   imports: [
-    JwtModule.register({ global: true }),
-    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
       load: [config],
     }),
+    JwtModule.register({ global: true }),
+    EventEmitterModule.forRoot(),
     AuthModule,
     UserModule,
     ImageModule,
@@ -38,13 +50,23 @@ import { GalleryModule } from './gallery/gallery.module';
     SessionModule,
     FileModule,
     ServerModule,
-    MultiVerseModule,
     CronJobsModule,
     ServerCommandsModule,
     ServerSettingsModule,
     ServerProcessModule,
     WebsocketModule,
     GalleryModule,
+    TokenModule,
+    PersonModule,
+    PlaceModule,
+    TagModule,
+    TaskCommentModule,
+    OcrModule,
+    AiModule,
+    ClassificationModule,
+    ServerTransferModule,
+    AstroObjectModule,
+    PhotoEntryModule,
   ],
   providers: [
     {
@@ -55,6 +77,13 @@ import { GalleryModule } from './gallery/gallery.module';
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    {
+      provide: APP_GUARD,
+      useClass: TokenGuard,
+    },
+    TokenService,
+    PhotoStorageModule,
   ],
+  controllers: [PersonController],
 })
 export class AppModule {}
