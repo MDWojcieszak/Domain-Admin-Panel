@@ -12,9 +12,6 @@ import { ApiKeyType } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { TOKEN_KEY } from '../decorators';
 
-const algorithm = 'aes-256-gcm';
-const key = Buffer.from(process.env.EXTERNAL_TOKEN_KEY!, 'hex');
-
 @Injectable()
 export class TokenGuard implements CanActivate {
   private readonly logger = new Logger(TokenGuard.name);
