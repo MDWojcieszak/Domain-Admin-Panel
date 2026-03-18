@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ServerTransferService } from './server-transfer.service';
-import { MultiVerseModule } from '../multi-verse/multi-verse.module';
 import { ServerTransferController } from './server-transfer.controller';
+import { ServerOutboundMessagingModule } from '../server-outbound/server-outbound-messaging.module';
 
 @Module({
-  imports: [MultiVerseModule],
+  imports: [ServerOutboundMessagingModule],
   controllers: [ServerTransferController],
   providers: [ServerTransferService],
 })

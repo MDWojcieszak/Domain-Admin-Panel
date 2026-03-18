@@ -10,12 +10,12 @@ import { SetServerTransferEvent } from './events';
 import { ServerTransferListResponse } from './responses';
 import { response } from 'express';
 import { PatchServerTransferProgressDto } from './dto';
+import { ServerOutboundMessagingService } from '../server-outbound/server-outbound-messaging.service';
 
 @Injectable()
 export class ServerTransferService {
   constructor(
-    @Inject('MULTIVERSE_SERVICE')
-    private readonly multiVerseClient: ClientProxy,
+    private readonly outbound: ServerOutboundMessagingService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -179,7 +179,8 @@ export class ServerTransferService {
     categoryValue: string,
     transfer: ServerTransferResponse,
   ) {
-    this.multiVerseClient.emit(
+    this.outbound.emitToServer(
+      serverName,
       'server.transfer.set',
       new SetServerTransferEvent(
         serverName,

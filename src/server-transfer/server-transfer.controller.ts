@@ -19,7 +19,7 @@ export class ServerTransferController {
   @Get('category/:id')
   @ApiOkResponse({
     description: 'List transfers by category',
-    type: [ServerTransferListResponse],
+    type: ServerTransferListResponse,
   })
   async listByCategory(
     @Param('id') categoryId: string,
