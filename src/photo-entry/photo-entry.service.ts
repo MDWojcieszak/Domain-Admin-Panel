@@ -345,11 +345,17 @@ export class PhotoEntryService {
       }
 
       if (existing.type === PhotoEntryType.ASTRO) {
-        if (!existing.astroObjects.length) {
+        if (!existing.astroObjects.length || !generated.entryRootPath) {
           throw new BadRequestException(
             'ASTRO entry requires related astro objects',
           );
         }
+        const year = this.resolveEntryYear(existing);
+
+        await this.photoStorageService.ensureYearStructure(year);
+        await this.photoStorageService.ensureGeneralEntryStructure(
+          generated.entryRootPath,
+        );
 
         for (const astroLink of existing.astroObjects) {
           const astroRootPath = generated.astroRootPathsByLinkId[astroLink.id];
@@ -379,7 +385,7 @@ export class PhotoEntryService {
         await tx.photoEntry.update({
           where: { id: existing.id },
           data: {
-            rootPath: null,
+            rootPath: generated.entryRootPath,
             foldersCreated: true,
             foldersCreatedAt,
           },
@@ -623,7 +629,7 @@ export class PhotoEntryService {
     }
 
     return {
-      entryRootPath: null,
+      entryRootPath: `${year}/${entryFolderName}`,
       astroRootPathsByLinkId,
     };
   }
