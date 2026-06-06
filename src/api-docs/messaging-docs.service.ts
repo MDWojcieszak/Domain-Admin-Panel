@@ -7,7 +7,11 @@ import { writeFileSync } from 'fs';
 import { join } from 'path';
 import * as yaml from 'js-yaml';
 
-import { getRegisteredOutboundMessages } from '../common/decorators';
+import {
+  getRegisteredOutboundMessages,
+  REPLY_TYPE_METADATA,
+  ReplyTypeMeta,
+} from '../common/decorators';
 
 // @nestjs/microservices metadata keys (kept as literals to avoid deep imports).
 const PATTERN_METADATA = 'microservices:pattern';
@@ -34,6 +38,7 @@ type InboundMessage = {
   channel: string;
   interaction: 'message' | 'event';
   payloadType?: Function;
+  reply?: ReplyTypeMeta;
 };
 
 export type MessagingDocsInfo = {
@@ -69,6 +74,9 @@ export class MessagingDocsService {
       const payloadClasses = this.uniqueClasses([
         ...inbound
           .map((message) => message.payloadType)
+          .filter((type): type is Function => Boolean(type)),
+        ...inbound
+          .map((message) => message.reply?.type)
           .filter((type): type is Function => Boolean(type)),
         ...outbound.map((entry) => entry.payload),
       ]);
@@ -127,11 +135,15 @@ export class MessagingDocsService {
           Reflect.getMetadata('design:paramtypes', prototype, key) || [];
         const payloadType = this.pickPayloadType(paramTypes);
 
+        const reply = Reflect.getMetadata(REPLY_TYPE_METADATA, handler) as
+          | ReplyTypeMeta
+          | undefined;
+
         const patternList = Array.isArray(patterns) ? patterns : [patterns];
         for (const pattern of patternList) {
           const channel = this.patternToChannel(pattern);
           if (!channel || byChannel.has(channel)) continue;
-          byChannel.set(channel, { channel, interaction, payloadType });
+          byChannel.set(channel, { channel, interaction, payloadType, reply });
         }
       }
     }
@@ -198,14 +210,26 @@ export class MessagingDocsService {
         schemas,
       );
 
+      const publish: Record<string, unknown> = {
+        operationId: `recv_${this.sanitize(message.channel)}`,
+        'x-direction': 'server->backend',
+        'x-interaction': message.interaction,
+        message: { $ref: `#/components/messages/${messageName}` },
+      };
+
+      const replyName = message.reply?.type.name;
+      if (replyName && schemas[replyName]) {
+        const ref = { $ref: `#/components/schemas/${replyName}` };
+        publish['x-reply'] = {
+          payload: message.reply?.isArray
+            ? { type: 'array', items: ref }
+            : ref,
+        };
+      }
+
       channels[message.channel] = {
         description: 'Direction: Server → Backend',
-        publish: {
-          operationId: `recv_${this.sanitize(message.channel)}`,
-          'x-direction': 'server->backend',
-          'x-interaction': message.interaction,
-          message: { $ref: `#/components/messages/${messageName}` },
-        },
+        publish,
       };
     }
 

@@ -88,7 +88,12 @@ channels:
       x-direction: server->backend
       x-interaction: message
       message:
-        $ref: '#/components/messages/server_transfer_getMessage'
+        $ref: '#/components/messages/GetServerTransfersForAgentDto'
+      x-reply:
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerTransferResponse'
   server.transfer.progress:
     description: 'Direction: Server → Backend'
     publish:
@@ -209,12 +214,12 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/RegisterServerDto'
-    server_transfer_getMessage:
-      name: server_transfer_getMessage
-      title: server_transfer_getMessage
+    GetServerTransfersForAgentDto:
+      name: GetServerTransfersForAgentDto
+      title: GetServerTransfersForAgentDto
       contentType: application/json
       payload:
-        type: object
+        $ref: '#/components/schemas/GetServerTransfersForAgentDto'
     PatchServerTransferProgressDto:
       name: PatchServerTransferProgressDto
       title: PatchServerTransferProgressDto
@@ -262,6 +267,10 @@ components:
       properties:
         commandName:
           type: string
+          description: >-
+            Command identifier. Stored as ServerCommand.value and used verbatim
+            as the RMQ pattern of the {commandValue} channel (i.e. value ===
+            commandName).
         commandType:
           $ref: '#/components/schemas/CommandType'
         category:
@@ -509,6 +518,14 @@ components:
         - diskCount
         - cpu
         - queueName
+    GetServerTransfersForAgentDto:
+      type: object
+      properties:
+        serverName:
+          type: string
+          description: Name of the server (Server.name) requesting its transfer tasks.
+      required:
+        - serverName
     ServerTransferStatus:
       type: string
       enum:
@@ -582,56 +599,6 @@ components:
       required:
         - serverName
         - settings
-    PowerServerContext:
-      type: object
-      properties:
-        serverId:
-          type: string
-      required:
-        - serverId
-    PowerServerEvent:
-      type: object
-      properties:
-        context:
-          $ref: '#/components/schemas/PowerServerContext'
-      required:
-        - context
-    CommandContext:
-      type: object
-      properties:
-        serverId:
-          type: string
-        categoryId:
-          type: string
-        userId:
-          type: string
-      required:
-        - serverId
-        - categoryId
-        - userId
-    SendCommandEvent:
-      type: object
-      properties:
-        context:
-          $ref: '#/components/schemas/CommandContext'
-      required:
-        - context
-    SetSettingEvent:
-      type: object
-      properties:
-        serverName:
-          type: string
-        name:
-          type: string
-        value:
-          type: string
-        category:
-          type: string
-      required:
-        - serverName
-        - name
-        - value
-        - category
     ServerTransferMode:
       type: string
       enum:
@@ -710,6 +677,56 @@ components:
         - sentBytes
         - createdAt
         - updatedAt
+    PowerServerContext:
+      type: object
+      properties:
+        serverId:
+          type: string
+      required:
+        - serverId
+    PowerServerEvent:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/PowerServerContext'
+      required:
+        - context
+    CommandContext:
+      type: object
+      properties:
+        serverId:
+          type: string
+        categoryId:
+          type: string
+        userId:
+          type: string
+      required:
+        - serverId
+        - categoryId
+        - userId
+    SendCommandEvent:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/CommandContext'
+      required:
+        - context
+    SetSettingEvent:
+      type: object
+      properties:
+        serverName:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        category:
+          type: string
+      required:
+        - serverName
+        - name
+        - value
+        - category
     SetServerTransferEvent:
       type: object
       properties:
