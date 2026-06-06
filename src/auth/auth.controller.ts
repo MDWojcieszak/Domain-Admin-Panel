@@ -116,6 +116,10 @@ export class AuthController {
       },
     },
   })
+  checkRegister(@GetCurrentUser('sub') userId: string) {
+    return this.authService.checkRegisterToken(userId);
+  }
+
   @OnEvent('user.created')
   handleUserCreatedEvent(payload: UserCreatedEvent) {
     this.authService.initiateRegister(payload);
