@@ -117,6 +117,19 @@ export class PhotoEntryController {
 
   @ApiBearerAuth()
   @Roles('OWNER')
+  @Post(':id/mark-media-uploaded')
+  @ApiOkResponse({
+    description: 'Created photo entry folders',
+    type: PhotoEntryResponse,
+  })
+  async markMediaUploaded(
+    @Param('id') id: string,
+  ): Promise<PhotoEntryResponse> {
+    return this.photoEntryService.markMediaUploaded(id);
+  }
+
+  @ApiBearerAuth()
+  @Roles('OWNER')
   @Delete(':id')
   @ApiOkResponse({
     description: 'Deleted photo entry',

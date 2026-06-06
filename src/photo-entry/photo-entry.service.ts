@@ -3,7 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PhotoEntry, PhotoEntryType, Prisma } from '@prisma/client';
+import {
+  MediaStatus,
+  PhotoEntry,
+  PhotoEntryType,
+  Prisma,
+} from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PhotoStorageService } from '../photo-storage-service/photo-storage.service';
@@ -404,6 +409,19 @@ export class PhotoEntryService {
       throw new NotFoundException('PhotoEntry not found after folder creation');
     }
 
+    return PhotoEntryMapper.toResponse(updated);
+  }
+
+  async markMediaUploaded(id: string): Promise<PhotoEntryResponse> {
+    const updated = await this.prisma.photoEntry.update({
+      where: { id },
+      data: {
+        uploadStatus: MediaStatus.UPLOADED,
+      },
+    });
+    if (!updated) {
+      throw new NotFoundException('PhotoEntry not found after folder creation');
+    }
     return PhotoEntryMapper.toResponse(updated);
   }
 

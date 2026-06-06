@@ -1,4 +1,4 @@
-import { PhotoEntryStatus, PhotoEntryType } from '@prisma/client';
+import { MediaStatus, PhotoEntryStatus, PhotoEntryType } from '@prisma/client';
 import { IsBoolean, IsDate, IsEnum, IsString } from 'nestjs-swagger-dto';
 
 export class PhotoEntryResponse {
@@ -25,6 +25,9 @@ export class PhotoEntryResponse {
 
   @IsBoolean()
   foldersCreated: boolean;
+
+  @IsEnum({ enum: { MediaStatus } })
+  uploadStatus?: MediaStatus;
 
   @IsString({ isDate: { format: 'date-time' }, optional: true, nullable: true })
   foldersCreatedAt: Date | null;

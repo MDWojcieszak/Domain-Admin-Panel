@@ -41,6 +41,7 @@ export class PhotoEntryMapper {
       foldersCreatedAt: photoEntry.foldersCreatedAt,
       createdAt: photoEntry.createdAt,
       updatedAt: photoEntry.updatedAt,
+      uploadStatus: photoEntry.uploadStatus,
     };
   }
 
