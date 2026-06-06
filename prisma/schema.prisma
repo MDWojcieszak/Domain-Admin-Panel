@@ -758,9 +758,7 @@ model ServerCommand {
   serverCategoryId String
   name             String?
   value            String
-  status           CommandStatus        @default(DISABLED)
-  runtimeStatus    CommandRuntimeStatus @default(IDLE)
-  runningProgress  Int?
+  status           CommandStatus @default(DISABLED)
   type             CommandType
 
   progressMarkers CommandProgressMarker[]
@@ -872,7 +870,8 @@ model Process {
   commandId String?
 
   status          ServerProcessStatus
-  progress        Int?            @default(0)
+  runtimeStatus   CommandRuntimeStatus @default(IDLE)
+  progress        Int?                 @default(0)
   logs            ProcessLog[]
   serverTransfers ServerTransfer[]
 }
