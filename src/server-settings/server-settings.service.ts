@@ -7,7 +7,7 @@ import {
   ServerSettingsDto,
 } from './dto';
 import { SetSettingEvent } from './events';
-import { SettingType } from '@prisma/client';
+import { Prisma, SettingType } from '@prisma/client';
 import { ServerOutboundMessagingService } from '../server-outbound/server-outbound-messaging.service';
 
 @Injectable()
@@ -18,36 +18,30 @@ export class ServerSettingsService {
   ) {}
 
   async handleGet(dto: GetServerSettingsDto) {
-    const count = await this.prisma.serverSettings.count({
-      where: {
-        serverCategory: {
-          serverId: dto.serverId,
-          id: dto.categoryId || undefined,
-        },
-      },
-    });
-    const settingsInCategories = await this.prisma.serverCategory.findUnique({
-      where: {
-        id: dto.categoryId || undefined,
+    const where: Prisma.ServerSettingsWhereInput = {
+      serverCategory: {
         serverId: dto.serverId,
+        ...(dto.categoryId ? { id: dto.categoryId } : {}),
       },
-      select: {
-        settings: {
-          select: {
-            id: true,
-            serverName: true,
-            type: true,
-            value: true,
-            serverCategory: { select: { id: true, name: true } },
-          },
-        },
-      },
-    });
-    if (!settingsInCategories) throw new ForbiddenException();
-    return {
-      settings: settingsInCategories.settings,
-      total: count,
     };
+
+    const [settings, total] = await Promise.all([
+      this.prisma.serverSettings.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          serverName: true,
+          type: true,
+          value: true,
+          serverCategory: { select: { id: true, name: true } },
+        },
+        orderBy: [{ serverCategoryId: 'asc' }, { serverName: 'asc' }],
+      }),
+      this.prisma.serverSettings.count({ where }),
+    ]);
+
+    return { settings, total };
   }
 
   async handlePatch(id: string, dto: PatchServerSettingDto) {

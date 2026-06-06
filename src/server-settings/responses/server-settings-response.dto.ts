@@ -5,8 +5,8 @@ class ServerCategory {
   @IsString()
   id: string;
 
-  @IsString()
-  name: string;
+  @IsString({ optional: true })
+  name?: string;
 }
 
 export class ServerSettingsResponseDto {
