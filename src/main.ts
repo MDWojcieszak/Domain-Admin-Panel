@@ -8,6 +8,7 @@ import { Transport } from '@nestjs/microservices';
 import { config } from './config/config';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
+import { MessagingDocsService } from './api-docs/messaging-docs.service';
 
 const theme = new SwaggerTheme();
 const darkStyle = theme.getBuffer(SwaggerThemeNameEnum.DARK);
@@ -86,6 +87,14 @@ async function bootstrap() {
     yamlContent,
     'utf8',
   );
+
+  app.get(MessagingDocsService).generate({
+    title: 'WHCP Server Messaging API',
+    version: '1.0',
+    description:
+      'RabbitMQ message contract between the backend and remote servers (agents). ' +
+      'publish = Server → Backend, subscribe = Backend → Server.',
+  });
 
   SwaggerModule.setup('docs', app, document, { customCss: darkStyle });
   await app.listen(3000);

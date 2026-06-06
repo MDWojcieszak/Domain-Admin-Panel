@@ -34,6 +34,7 @@ import { AstroObjectModule } from './astro-object/astro-object.module';
 import { PhotoEntryModule } from './photo-entry/photo-entry.module';
 import { PhotoStorageModule } from './photo-storage-service/photo-storage.module';
 import { ImmichModule } from './immich/immich.module';
+import { ApiDocsModule } from './api-docs/api-docs.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { ImmichModule } from './immich/immich.module';
     AstroObjectModule,
     PhotoEntryModule,
     ImmichModule,
+    ApiDocsModule,
   ],
   providers: [
     {

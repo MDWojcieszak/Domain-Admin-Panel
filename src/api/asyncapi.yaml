@@ -1,0 +1,740 @@
+asyncapi: 2.6.0
+info:
+  title: WHCP Server Messaging API
+  version: '1.0'
+  description: RabbitMQ message contract (verification run).
+defaultContentType: application/json
+servers:
+  rabbitmq:
+    url: amqp://{username}:{password}@{host}:5672
+    protocol: amqp
+    description: >-
+      Backend consumes MAIN_QUEUE; each server consumes its own
+      Server.queueName. Inbound (publish) patterns are sent by agents to
+      MAIN_QUEUE; outbound (subscribe) patterns are sent by the backend to the
+      target server queue. Configure the real broker URL via the RABBITMQ_URL
+      environment variable.
+channels:
+  commands.register:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_commands_register
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/RegisterServerCommandsDto'
+  commands.update:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_commands_update
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/UpdateServerCommandDto'
+  process.register:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_process_register
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/RegisterProcessDto'
+  process.register-log:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_process_register_log
+      x-direction: server->backend
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/RegisterProcessLogDto'
+  process.status:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_process_status
+      x-direction: server->backend
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/ProcessStatusDto'
+  server.heartbeat:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_server_heartbeat
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/HeartbeatDto'
+  server.raport-usage:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_server_raport_usage
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/UpdateServerPropertiesDto'
+  server.register:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_server_register
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/RegisterServerDto'
+  server.transfer.get:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_server_transfer_get
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/server_transfer_getMessage'
+  server.transfer.progress:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_server_transfer_progress
+      x-direction: server->backend
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/PatchServerTransferProgressDto'
+  settings.register:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_settings_register
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/RegisterServerSettingsDto'
+  server.reboot:
+    description: 'Direction: Backend → Server. Request a reboot of the server.'
+    subscribe:
+      operationId: send_server_reboot
+      x-direction: backend->server
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/PowerServerEvent'
+  server.shutdown:
+    description: 'Direction: Backend → Server. Request a graceful shutdown of the server.'
+    subscribe:
+      operationId: send_server_shutdown
+      x-direction: backend->server
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/PowerServerEvent'
+  '{commandValue}':
+    description: >-
+      Direction: Backend → Server. Execute a registered command. The pattern
+      equals ServerCommand.value (CommandType MESSAGE = request/reply, EVENT =
+      fire-and-forget).
+    subscribe:
+      operationId: send_commandValue
+      x-direction: backend->server
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/SendCommandEvent'
+    parameters:
+      commandValue:
+        description: >-
+          Equals the ServerCommand.value the agent registered via
+          commands.register.
+        schema:
+          type: string
+  setting.set:
+    description: >-
+      Direction: Backend → Server. Push a single setting value to the server
+      agent.
+    subscribe:
+      operationId: send_setting_set
+      x-direction: backend->server
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/SetSettingEvent'
+  server.transfer.set:
+    description: >-
+      Direction: Backend → Server. Push a transfer task configuration to the
+      server agent.
+    subscribe:
+      operationId: send_server_transfer_set
+      x-direction: backend->server
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/SetServerTransferEvent'
+components:
+  messages:
+    RegisterServerCommandsDto:
+      name: RegisterServerCommandsDto
+      title: RegisterServerCommandsDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/RegisterServerCommandsDto'
+    UpdateServerCommandDto:
+      name: UpdateServerCommandDto
+      title: UpdateServerCommandDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/UpdateServerCommandDto'
+    RegisterProcessDto:
+      name: RegisterProcessDto
+      title: RegisterProcessDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/RegisterProcessDto'
+    RegisterProcessLogDto:
+      name: RegisterProcessLogDto
+      title: RegisterProcessLogDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/RegisterProcessLogDto'
+    ProcessStatusDto:
+      name: ProcessStatusDto
+      title: ProcessStatusDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/ProcessStatusDto'
+    HeartbeatDto:
+      name: HeartbeatDto
+      title: HeartbeatDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/HeartbeatDto'
+    UpdateServerPropertiesDto:
+      name: UpdateServerPropertiesDto
+      title: UpdateServerPropertiesDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/UpdateServerPropertiesDto'
+    RegisterServerDto:
+      name: RegisterServerDto
+      title: RegisterServerDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/RegisterServerDto'
+    server_transfer_getMessage:
+      name: server_transfer_getMessage
+      title: server_transfer_getMessage
+      contentType: application/json
+      payload:
+        type: object
+    PatchServerTransferProgressDto:
+      name: PatchServerTransferProgressDto
+      title: PatchServerTransferProgressDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/PatchServerTransferProgressDto'
+    RegisterServerSettingsDto:
+      name: RegisterServerSettingsDto
+      title: RegisterServerSettingsDto
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/RegisterServerSettingsDto'
+    PowerServerEvent:
+      name: PowerServerEvent
+      title: PowerServerEvent
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/PowerServerEvent'
+    SendCommandEvent:
+      name: SendCommandEvent
+      title: SendCommandEvent
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/SendCommandEvent'
+    SetSettingEvent:
+      name: SetSettingEvent
+      title: SetSettingEvent
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/SetSettingEvent'
+    SetServerTransferEvent:
+      name: SetServerTransferEvent
+      title: SetServerTransferEvent
+      contentType: application/json
+      schemaFormat: application/vnd.oai.openapi;version=3.0.0
+      payload:
+        $ref: '#/components/schemas/SetServerTransferEvent'
+  schemas:
+    CommandType:
+      type: string
+      enum:
+        - MESSAGE
+        - EVENT
+    ServerCommandDto:
+      type: object
+      properties:
+        commandName:
+          type: string
+        commandType:
+          $ref: '#/components/schemas/CommandType'
+        category:
+          type: string
+      required:
+        - commandName
+        - commandType
+        - category
+    RegisterServerCommandsDto:
+      type: object
+      properties:
+        serverName:
+          type: string
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerCommandDto'
+      required:
+        - serverName
+        - commands
+    CommandStatus:
+      type: string
+      enum:
+        - ENABLED
+        - DISABLED
+        - RUNNING
+    CommandRuntimeStatus:
+      type: string
+      enum:
+        - IDLE
+        - STARTING
+        - RUNNING
+        - STOPPING
+        - STOPPED
+        - ERROR
+    UpdateServerCommandDto:
+      type: object
+      properties:
+        serverName:
+          type: string
+        commandName:
+          type: string
+        category:
+          type: string
+        runningProgress:
+          type: number
+        status:
+          $ref: '#/components/schemas/CommandStatus'
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+      required:
+        - serverName
+        - commandName
+        - category
+    ServerProcessStatus:
+      type: string
+      enum:
+        - UNKNOWN
+        - STARTED
+        - ONGOING
+        - CLOSED
+        - ENDED
+        - FAILED
+    RegisterProcessDto:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        commandValue:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerProcessStatus'
+      required:
+        - categoryId
+        - userId
+        - name
+    ProcessLogLevel:
+      type: string
+      enum:
+        - LOG
+        - SUCCESS
+        - WARNING
+        - ERROR
+    RegisterProcessLogDto:
+      type: object
+      properties:
+        processId:
+          type: string
+        message:
+          type: string
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+      required:
+        - processId
+        - message
+    ProcessStatusDto:
+      type: object
+      properties:
+        processId:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerProcessStatus'
+      required:
+        - processId
+        - status
+    HeartbeatDto:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    ServerStatus:
+      type: string
+      enum:
+        - UNKNOWN
+        - OFFLINE
+        - ONLINE
+        - ERROR
+        - MAINTENANCE
+        - WAKE_IN_PROGRESS
+        - SHUTDOWN_IN_PROGRESS
+    Role:
+      type: string
+      enum:
+        - USER
+        - MODERATOR
+        - ADMIN
+        - OWNER
+    UserDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+      required:
+        - email
+        - role
+    CpuDto:
+      type: object
+      properties:
+        cores:
+          type: number
+        physicalCores:
+          type: number
+        currentLoad:
+          type: number
+        currentLoadUser:
+          type: number
+        currentLoadSystem:
+          type: number
+      required:
+        - currentLoad
+        - currentLoadUser
+        - currentLoadSystem
+    MemoryDto:
+      type: object
+      properties:
+        total:
+          type: number
+        free:
+          type: number
+    DiskType:
+      type: string
+      enum:
+        - HDD
+        - SSD
+        - NVME
+    DiskInfoDto:
+      type: object
+      properties:
+        fs:
+          type: string
+        type:
+          type: string
+        used:
+          type: number
+        available:
+          type: number
+        name:
+          type: string
+        mediaType:
+          $ref: '#/components/schemas/DiskType'
+    ServerPropertiesDto:
+      type: object
+      properties:
+        uptime:
+          type: number
+        status:
+          $ref: '#/components/schemas/ServerStatus'
+        lastSeenAt:
+          type: string
+          format: date-time
+        isOnline:
+          type: boolean
+        startedBy:
+          $ref: '#/components/schemas/UserDto'
+        cpuInfo:
+          $ref: '#/components/schemas/CpuDto'
+        memoryInfo:
+          $ref: '#/components/schemas/MemoryDto'
+        diskInfo:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiskInfoDto'
+    UpdateServerPropertiesDto:
+      type: object
+      properties:
+        name:
+          type: string
+        properties:
+          $ref: '#/components/schemas/ServerPropertiesDto'
+      required:
+        - name
+        - properties
+    RegisterServerDto:
+      type: object
+      properties:
+        name:
+          type: string
+        ipAddress:
+          type: string
+        macAddress:
+          type: string
+        diskCount:
+          type: number
+        cpu:
+          $ref: '#/components/schemas/CpuDto'
+        queueName:
+          type: string
+      required:
+        - name
+        - ipAddress
+        - macAddress
+        - diskCount
+        - cpu
+        - queueName
+    ServerTransferStatus:
+      type: string
+      enum:
+        - IDLE
+        - RUNNING
+        - SUCCESS
+        - FAILED
+    PatchServerTransferProgressDto:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        transferName:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerTransferStatus'
+        queuedFiles:
+          type: number
+        queuedBytes:
+          type: number
+        sentFiles:
+          type: number
+        sentBytes:
+          type: number
+        currentProcessId:
+          type: string
+        lastProcessId:
+          type: string
+        lastError:
+          type: string
+          format: date-time
+        lastRunAt:
+          type: string
+          format: date-time
+        lastSuccessAt:
+          type: string
+          format: date-time
+      required:
+        - categoryId
+        - transferName
+    SettingType:
+      type: string
+      enum:
+        - STRING
+        - NUMBER
+    ServerSettingsDto:
+      type: object
+      properties:
+        settingName:
+          type: string
+        settingValue:
+          type: string
+        settingType:
+          $ref: '#/components/schemas/SettingType'
+        category:
+          type: string
+      required:
+        - settingName
+        - settingValue
+        - settingType
+        - category
+    RegisterServerSettingsDto:
+      type: object
+      properties:
+        serverName:
+          type: string
+        settings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerSettingsDto'
+      required:
+        - serverName
+        - settings
+    PowerServerContext:
+      type: object
+      properties:
+        serverId:
+          type: string
+      required:
+        - serverId
+    PowerServerEvent:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/PowerServerContext'
+      required:
+        - context
+    CommandContext:
+      type: object
+      properties:
+        serverId:
+          type: string
+        categoryId:
+          type: string
+        userId:
+          type: string
+      required:
+        - serverId
+        - categoryId
+        - userId
+    SendCommandEvent:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/CommandContext'
+      required:
+        - context
+    SetSettingEvent:
+      type: object
+      properties:
+        serverName:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        category:
+          type: string
+      required:
+        - serverName
+        - name
+        - value
+        - category
+    ServerTransferMode:
+      type: string
+      enum:
+        - MOVE
+        - COPY
+    ServerTransferResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        serverCategoryId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        originPath:
+          type: string
+        targetPath:
+          type: string
+        agentLogPath:
+          type: string
+        enableMoveBackup:
+          type: boolean
+        moveBackupPath:
+          type: string
+        mode:
+          $ref: '#/components/schemas/ServerTransferMode'
+        status:
+          $ref: '#/components/schemas/ServerTransferStatus'
+        bwLimitKbps:
+          type: integer
+        secondsStart:
+          type: integer
+        secondsStop:
+          type: integer
+        isEnabled:
+          type: boolean
+        queuedFiles:
+          type: number
+        queuedBytes:
+          type: number
+        sentFiles:
+          type: number
+        sentBytes:
+          type: number
+        currentProcessId:
+          type: string
+        lastProcessId:
+          type: string
+        lastRunAt:
+          type: string
+        lastSuccessAt:
+          type: string
+        lastError:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - serverCategoryId
+        - name
+        - originPath
+        - targetPath
+        - enableMoveBackup
+        - mode
+        - status
+        - secondsStart
+        - secondsStop
+        - isEnabled
+        - queuedFiles
+        - queuedBytes
+        - sentFiles
+        - sentBytes
+        - createdAt
+        - updatedAt
+    SetServerTransferEvent:
+      type: object
+      properties:
+        serverName:
+          type: string
+        categoryValue:
+          type: string
+        transferName:
+          type: string
+        transfer:
+          $ref: '#/components/schemas/ServerTransferResponse'
+      required:
+        - serverName
+        - categoryValue
+        - transferName
+        - transfer
