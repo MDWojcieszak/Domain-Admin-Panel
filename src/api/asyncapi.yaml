@@ -4,7 +4,7 @@ info:
   version: '1.0'
   description: >-
     RabbitMQ message contract between the backend and remote servers (agents).
-    publish = Server → Backend, subscribe = Backend → Server.
+    publish = Server -> Backend, subscribe = Backend -> Server.
 defaultContentType: application/json
 servers:
   rabbitmq:
@@ -165,56 +165,48 @@ components:
       name: RegisterServerCommandsDto
       title: RegisterServerCommandsDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/RegisterServerCommandsDto'
     UpdateServerCommandDto:
       name: UpdateServerCommandDto
       title: UpdateServerCommandDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/UpdateServerCommandDto'
     RegisterProcessDto:
       name: RegisterProcessDto
       title: RegisterProcessDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/RegisterProcessDto'
     RegisterProcessLogDto:
       name: RegisterProcessLogDto
       title: RegisterProcessLogDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/RegisterProcessLogDto'
     ProcessStatusDto:
       name: ProcessStatusDto
       title: ProcessStatusDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/ProcessStatusDto'
     HeartbeatDto:
       name: HeartbeatDto
       title: HeartbeatDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/HeartbeatDto'
     UpdateServerPropertiesDto:
       name: UpdateServerPropertiesDto
       title: UpdateServerPropertiesDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/UpdateServerPropertiesDto'
     RegisterServerDto:
       name: RegisterServerDto
       title: RegisterServerDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/RegisterServerDto'
     server_transfer_getMessage:
@@ -227,42 +219,36 @@ components:
       name: PatchServerTransferProgressDto
       title: PatchServerTransferProgressDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/PatchServerTransferProgressDto'
     RegisterServerSettingsDto:
       name: RegisterServerSettingsDto
       title: RegisterServerSettingsDto
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/RegisterServerSettingsDto'
     PowerServerEvent:
       name: PowerServerEvent
       title: PowerServerEvent
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/PowerServerEvent'
     SendCommandEvent:
       name: SendCommandEvent
       title: SendCommandEvent
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/SendCommandEvent'
     SetSettingEvent:
       name: SetSettingEvent
       title: SetSettingEvent
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/SetSettingEvent'
     SetServerTransferEvent:
       name: SetServerTransferEvent
       title: SetServerTransferEvent
       contentType: application/json
-      schemaFormat: application/vnd.oai.openapi;version=3.0.0
       payload:
         $ref: '#/components/schemas/SetServerTransferEvent'
   schemas:

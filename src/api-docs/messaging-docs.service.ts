@@ -264,11 +264,12 @@ export class MessagingDocsService {
     schemas: Record<string, unknown>,
   ) {
     if (schemaName && schemas[schemaName]) {
+      // No schemaFormat: keep payloads as default AsyncAPI schema so parsers
+      // resolve the $ref cleanly (schemaFormat + $ref breaks some tooling).
       return {
         name,
         title: name,
         contentType: 'application/json',
-        schemaFormat: 'application/vnd.oai.openapi;version=3.0.0',
         payload: { $ref: `#/components/schemas/${schemaName}` },
       };
     }
