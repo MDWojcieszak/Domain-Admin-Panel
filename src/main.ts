@@ -80,6 +80,7 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const yaml = require('js-yaml');
   const yamlContent = yaml.dump(document);
   writeFileSync(

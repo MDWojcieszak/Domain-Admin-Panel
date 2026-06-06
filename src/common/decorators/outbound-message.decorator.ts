@@ -7,6 +7,8 @@
  * A payload class may carry several decorators (e.g. PowerServerEvent is sent
  * on both `server.shutdown` and `server.reboot`).
  */
+import { Type } from '@nestjs/common';
+
 export type OutboundInteraction = 'message' | 'event';
 
 export interface OutboundMessageMeta {
@@ -23,7 +25,7 @@ export interface OutboundMessageMeta {
 }
 
 export interface RegisteredOutboundMessage {
-  payload: Function;
+  payload: Type<any>;
   meta: OutboundMessageMeta;
 }
 
@@ -31,7 +33,10 @@ const OUTBOUND_MESSAGES: RegisteredOutboundMessage[] = [];
 
 export function OutboundMessage(meta: OutboundMessageMeta): ClassDecorator {
   return (target) => {
-    OUTBOUND_MESSAGES.push({ payload: target as unknown as Function, meta });
+    OUTBOUND_MESSAGES.push({
+      payload: target as unknown as Type<any>,
+      meta,
+    });
   };
 }
 

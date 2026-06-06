@@ -1,10 +1,18 @@
-import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { GetCurrentUser, RequirePermissions } from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../common/dto';
-import { User } from '@prisma/client';
 import {
   UserListResponseDto,
   UserResponseDto,
@@ -80,5 +88,18 @@ export class UserController {
     @Body() data: PatchUserAdminDto,
   ): Promise<UserResponseDto> {
     return this.userService.update(userId, data);
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PERMISSIONS.USER_MANAGE)
+  @ApiOkResponse({
+    description: 'User soft-deleted (account disabled, sessions revoked)',
+    type: UserResponseDto,
+  })
+  delete(
+    @GetCurrentUser('sub') requesterId: string,
+    @Param('id') id: string,
+  ): Promise<UserResponseDto> {
+    return this.userService.softDelete(id, requesterId);
   }
 }

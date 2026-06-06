@@ -3,7 +3,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PaginationDto } from '../common/dto';
 import { PersonDetailResponseDto, PersonListResponseDto } from './responses';
 import { PersonCreateDto, PersonUpdateDto } from './dto';
-import { AiHistoryListResponseDto } from '../common/responses';
 
 @Injectable()
 export class PersonService {

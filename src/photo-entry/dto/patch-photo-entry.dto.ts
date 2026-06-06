@@ -14,6 +14,13 @@ export class PatchPhotoEntryDto {
   @IsString({ isDate: { format: 'date-time' }, optional: true })
   endDate?: string;
 
-  @IsString({ isArray: true, optional: true })
+  @IsString({
+    isArray: true,
+    optional: true,
+    description:
+      'ASTRO entries only. Replaces the linked objects; send an empty array to ' +
+      'clear them (general astro session). Omit to leave links unchanged. ' +
+      'Cannot be changed after folders are created.',
+  })
   astroObjectIds?: string[];
 }

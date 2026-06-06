@@ -1,17 +1,23 @@
-import { IsDate, IsString } from 'nestjs-swagger-dto';
+import { IsBoolean, IsDate, IsString } from 'nestjs-swagger-dto';
 
 export class SessionResponseDto {
   @IsString()
   id: string;
 
-  @IsString()
-  browser: string;
+  @IsString({ optional: true, nullable: true })
+  browser: string | null;
 
-  @IsString()
-  os: string;
+  @IsString({ optional: true, nullable: true })
+  os: string | null;
 
-  @IsString()
-  platform: string;
+  @IsString({ optional: true, nullable: true })
+  platform: string | null;
+
+  @IsBoolean({ optional: true })
+  isCurrent?: boolean;
+
+  @IsDate({ format: 'date-time', optional: true })
+  createdAt?: Date;
 
   @IsDate({ format: 'date-time' })
   updatedAt: Date;

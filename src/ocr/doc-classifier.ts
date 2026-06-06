@@ -43,7 +43,6 @@ const RE = {
 
 export function classifyDocument(textRaw: string): DocClassification {
   const text = textRaw;
-  const lines = text.split('\n');
   const priceLines = (text.match(new RegExp(RE.priceLine, 'g')) || []).length;
 
   const score = (patterns: RegExp[]) =>

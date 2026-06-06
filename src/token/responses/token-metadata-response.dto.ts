@@ -24,5 +24,5 @@ export class TokenMetadataResponseDto {
   updatedAt: Date;
 
   @IsObject({ optional: true })
-  meta?: Object;
+  meta?: any;
 }

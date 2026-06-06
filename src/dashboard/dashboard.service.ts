@@ -49,7 +49,7 @@ export class DashboardService {
           startedAt: true,
         },
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where: { deletedAt: null } }),
       this.prisma.photoEntry.count(),
       this.prisma.photoEntry.groupBy({ by: ['type'], _count: { _all: true } }),
       this.prisma.photoEntry.groupBy({

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Type } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
 import { ModelPropertiesAccessor } from '@nestjs/swagger/dist/services/model-properties-accessor';
@@ -37,7 +37,7 @@ const IGNORED_PARAM_TYPES = new Set([
 type InboundMessage = {
   channel: string;
   interaction: 'message' | 'event';
-  payloadType?: Function;
+  payloadType?: Type<any>;
   reply?: ReplyTypeMeta;
 };
 
@@ -74,10 +74,10 @@ export class MessagingDocsService {
       const payloadClasses = this.uniqueClasses([
         ...inbound
           .map((message) => message.payloadType)
-          .filter((type): type is Function => Boolean(type)),
+          .filter((type): type is Type<any> => Boolean(type)),
         ...inbound
           .map((message) => message.reply?.type)
-          .filter((type): type is Function => Boolean(type)),
+          .filter((type): type is Type<any> => Boolean(type)),
         ...outbound.map((entry) => entry.payload),
       ]);
 
@@ -94,7 +94,10 @@ export class MessagingDocsService {
         `Generated AsyncAPI messaging contract (${inbound.length} inbound + ${outbound.length} outbound channels) at src/api/asyncapi.yaml`,
       );
     } catch (error) {
-      this.logger.error('Failed to generate AsyncAPI messaging contract', error);
+      this.logger.error(
+        'Failed to generate AsyncAPI messaging contract',
+        error,
+      );
     }
   }
 
@@ -104,7 +107,7 @@ export class MessagingDocsService {
 
     for (const wrapper of controllers) {
       const metatype = wrapper.metatype as
-        | (Function & { prototype: object })
+        | (((...args: any[]) => any) & { prototype: object })
         | null;
       if (!metatype || !metatype.prototype) continue;
 
@@ -153,10 +156,10 @@ export class MessagingDocsService {
     );
   }
 
-  private pickPayloadType(paramTypes: unknown[]): Function | undefined {
+  private pickPayloadType(paramTypes: unknown[]): Type<any> | undefined {
     for (const type of paramTypes) {
       if (typeof type === 'function' && !IGNORED_PARAM_TYPES.has(type.name)) {
-        return type;
+        return type as Type<any>;
       }
     }
     return undefined;
@@ -168,11 +171,11 @@ export class MessagingDocsService {
     return JSON.stringify(pattern);
   }
 
-  private uniqueClasses(classes: Function[]): Function[] {
+  private uniqueClasses(classes: Type<any>[]): Type<any>[] {
     return Array.from(new Set(classes));
   }
 
-  private buildSchemas(classes: Function[]): Record<string, unknown> {
+  private buildSchemas(classes: Type<any>[]): Record<string, unknown> {
     const schemas: Record<string, unknown> = {};
 
     for (const cls of classes) {
@@ -221,9 +224,7 @@ export class MessagingDocsService {
       if (replyName && schemas[replyName]) {
         const ref = { $ref: `#/components/schemas/${replyName}` };
         publish['x-reply'] = {
-          payload: message.reply?.isArray
-            ? { type: 'array', items: ref }
-            : ref,
+          payload: message.reply?.isArray ? { type: 'array', items: ref } : ref,
         };
       }
 
@@ -236,7 +237,11 @@ export class MessagingDocsService {
     for (const entry of outbound) {
       const messageName = entry.payload.name;
 
-      messages[messageName] = this.buildMessage(messageName, messageName, schemas);
+      messages[messageName] = this.buildMessage(
+        messageName,
+        messageName,
+        schemas,
+      );
 
       const channel: Record<string, unknown> = {
         description: `Direction: Backend → Server.${

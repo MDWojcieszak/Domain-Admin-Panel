@@ -1,5 +1,16 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { AccountStatus, User, Prisma, UserSettings } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  AccountStatus,
+  Role,
+  User,
+  Prisma,
+  UserSettings,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PatchUserSettingsDto, UserDto } from 'src/user/dto';
 import { PaginationDto } from '../common/dto';
@@ -63,8 +74,10 @@ export class UserService {
   }
 
   async getMultiple(dto: PaginationDto) {
-    const total = await this.prisma.user.count();
+    const where: Prisma.UserWhereInput = { deletedAt: null };
+    const total = await this.prisma.user.count({ where });
     const users = await this.prisma.user.findMany({
+      where,
       take: dto.take,
       skip: dto.skip,
       select: {
@@ -78,6 +91,42 @@ export class UserService {
       orderBy: { createdAt: 'desc' },
     });
     return { users, total, params: { ...dto } };
+  }
+
+  /**
+   * Soft-deletes a user: marks the account DISABLED + stamps deletedAt, and
+   * revokes every session so the user is logged out everywhere. Content the
+   * user authored (images, photo entries, tasks…) is preserved.
+   */
+  async softDelete(
+    userId: string,
+    requesterId: string,
+  ): Promise<Omit<User, 'hashPassword'>> {
+    if (userId === requesterId) {
+      throw new BadRequestException('You cannot delete your own account');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.role === Role.OWNER) {
+      throw new ForbiddenException('The owner account cannot be deleted');
+    }
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          accountStatus: AccountStatus.DISABLED,
+          deletedAt: new Date(),
+        },
+      }),
+      this.prisma.session.deleteMany({ where: { userId } }),
+    ]);
+
+    delete updated.hashPassword;
+    return updated;
   }
 
   async create(

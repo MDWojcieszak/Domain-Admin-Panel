@@ -1,6 +1,11 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import {
-  AuthDto,
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import {
   RegisterDto,
   RequestResetPasswordDto,
   ResetPasswordDto,
@@ -11,7 +16,7 @@ import { hash, verify } from 'argon2';
 import { TokensDto } from './responses';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from '../user/user.service';
-import { Role } from '@prisma/client';
+import { AccountStatus, Role } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { SessionService } from '../session/session.service';
 import { v4 as uuid } from 'uuid';
@@ -40,6 +45,9 @@ export class AuthService {
     if (!user || !user.hashPassword)
       throw new ForbiddenException('Credentials incorrect');
 
+    if (user.deletedAt || user.accountStatus === AccountStatus.DISABLED)
+      throw new ForbiddenException('Account is disabled');
+
     const ua = req.headers['user-agent'] || '';
     const parser = new UAParser(ua);
     const uaResult = parser.getResult();
@@ -65,12 +73,12 @@ export class AuthService {
     );
 
     if (matchingSession) {
-      this.sessionService.update({
+      await this.sessionService.update({
         id: matchingSession,
         refreshToken: tokens.refresh_token,
       });
     } else {
-      this.sessionService.create({
+      await this.sessionService.create({
         browser: uaResult.browser.name,
         platform:
           uaResult.device.model && uaResult.device.type
@@ -119,7 +127,7 @@ export class AuthService {
     if (user.accountStatus !== 'EMAIL_VERIFICATION')
       throw new ForbiddenException();
     const hashPassword = await hash(dto.password);
-    const changed = await this.userService.update(user.id, {
+    await this.userService.update(user.id, {
       hashPassword,
       accountStatus: 'ACTIVE',
     });
@@ -139,22 +147,50 @@ export class AuthService {
   async initiatePasswordReset(dto: RequestResetPasswordDto) {
     try {
       const user = await this.userService.find(dto.email);
-      const resetPasswordToken = await this.createToken(
-        {
-          sub: user.id,
-        },
-        'JWT_RESET_PASSWORD_SECRET',
-        60 * 15,
-      );
-
-      await this.mailService.sendUserResetPassword({
-        email: user.email,
-        firstName: user.firstName,
-        resetLink: `${this.config.get<string>('INTERFACE_URL')}/reset-password?token=${resetPasswordToken}`,
-      });
+      // Don't reset for soft-deleted accounts; stay silent to avoid leaking
+      // which emails exist.
+      if (user.deletedAt) return;
+      await this.sendPasswordResetEmail(user);
     } catch (e) {
       Logger.error('Request password reset', dto, e);
     }
+  }
+
+  /**
+   * Owner/admin-initiated password reset for a specific user. Unlike the public
+   * self-service flow this surfaces errors (the admin should know if the user
+   * is missing/deleted). The reset link is mailed to the user's own address.
+   */
+  async adminInitiatePasswordReset(userId: string) {
+    const user = await this.userService.get(userId);
+    if (user.deletedAt) {
+      throw new BadRequestException(
+        'Cannot reset password for a deleted account',
+      );
+    }
+    if (!user.email) {
+      throw new NotFoundException('User has no email address');
+    }
+    await this.sendPasswordResetEmail(user);
+    return { message: 'Password reset email sent' };
+  }
+
+  private async sendPasswordResetEmail(user: {
+    id: string;
+    email: string;
+    firstName?: string | null;
+  }) {
+    const resetPasswordToken = await this.createToken(
+      { sub: user.id },
+      'JWT_RESET_PASSWORD_SECRET',
+      60 * 15,
+    );
+
+    await this.mailService.sendUserResetPassword({
+      email: user.email,
+      firstName: user.firstName,
+      resetLink: `${this.config.get<string>('INTERFACE_URL')}/reset-password?token=${resetPasswordToken}`,
+    });
   }
 
   async resetPassword(userId: string, dto: ResetPasswordDto) {
@@ -187,7 +223,7 @@ export class AuthService {
       session.id,
     );
 
-    this.sessionService.update({
+    await this.sessionService.update({
       id: session.id,
       refreshToken: tokens.refresh_token,
     });

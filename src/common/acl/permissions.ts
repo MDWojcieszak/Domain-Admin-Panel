@@ -29,6 +29,7 @@ export const PERMISSIONS = {
   TOKEN_MANAGE: 'token.manage',
 
   SESSION_READ: 'session.read',
+  SESSION_MANAGE: 'session.manage',
 
   GALLERY_MANAGE: 'gallery.manage',
 
@@ -67,45 +68,163 @@ export type PermissionDescriptor = {
 };
 
 export const PERMISSION_CATALOG: PermissionDescriptor[] = [
-  { key: PERMISSIONS.SERVER_READ, resource: 'server', description: 'View servers, details and status' },
-  { key: PERMISSIONS.SERVER_POWER, resource: 'server', description: 'Start / stop / reboot servers' },
-  { key: PERMISSIONS.SERVER_CATEGORY_MANAGE, resource: 'server', description: 'Create and edit server categories' },
-  { key: PERMISSIONS.SERVER_DISK_MANAGE, resource: 'server', description: 'Edit server disks' },
+  {
+    key: PERMISSIONS.SERVER_READ,
+    resource: 'server',
+    description: 'View servers, details and status',
+  },
+  {
+    key: PERMISSIONS.SERVER_POWER,
+    resource: 'server',
+    description: 'Start / stop / reboot servers',
+  },
+  {
+    key: PERMISSIONS.SERVER_CATEGORY_MANAGE,
+    resource: 'server',
+    description: 'Create and edit server categories',
+  },
+  {
+    key: PERMISSIONS.SERVER_DISK_MANAGE,
+    resource: 'server',
+    description: 'Edit server disks',
+  },
 
-  { key: PERMISSIONS.COMMAND_READ, resource: 'command', description: 'View commands' },
-  { key: PERMISSIONS.COMMAND_EXECUTE, resource: 'command', description: 'Execute commands on servers' },
-  { key: PERMISSIONS.COMMAND_MANAGE, resource: 'command', description: 'Edit commands and progress markers' },
+  {
+    key: PERMISSIONS.COMMAND_READ,
+    resource: 'command',
+    description: 'View commands',
+  },
+  {
+    key: PERMISSIONS.COMMAND_EXECUTE,
+    resource: 'command',
+    description: 'Execute commands on servers',
+  },
+  {
+    key: PERMISSIONS.COMMAND_MANAGE,
+    resource: 'command',
+    description: 'Edit commands and progress markers',
+  },
 
-  { key: PERMISSIONS.PROCESS_READ, resource: 'process', description: 'View processes and their logs' },
-  { key: PERMISSIONS.PROCESS_DELETE, resource: 'process', description: 'Delete processes and their logs' },
+  {
+    key: PERMISSIONS.PROCESS_READ,
+    resource: 'process',
+    description: 'View processes and their logs',
+  },
+  {
+    key: PERMISSIONS.PROCESS_DELETE,
+    resource: 'process',
+    description: 'Delete processes and their logs',
+  },
 
-  { key: PERMISSIONS.SETTINGS_READ, resource: 'settings', description: 'View server settings' },
-  { key: PERMISSIONS.SETTINGS_MANAGE, resource: 'settings', description: 'Change server settings' },
+  {
+    key: PERMISSIONS.SETTINGS_READ,
+    resource: 'settings',
+    description: 'View server settings',
+  },
+  {
+    key: PERMISSIONS.SETTINGS_MANAGE,
+    resource: 'settings',
+    description: 'Change server settings',
+  },
 
-  { key: PERMISSIONS.TRANSFER_READ, resource: 'transfer', description: 'View server transfers' },
-  { key: PERMISSIONS.TRANSFER_MANAGE, resource: 'transfer', description: 'Create and edit server transfers' },
+  {
+    key: PERMISSIONS.TRANSFER_READ,
+    resource: 'transfer',
+    description: 'View server transfers',
+  },
+  {
+    key: PERMISSIONS.TRANSFER_MANAGE,
+    resource: 'transfer',
+    description: 'Create and edit server transfers',
+  },
 
-  { key: PERMISSIONS.USER_READ, resource: 'user', description: 'List and view users' },
-  { key: PERMISSIONS.USER_MANAGE, resource: 'user', description: 'Create users and change their role' },
+  {
+    key: PERMISSIONS.USER_READ,
+    resource: 'user',
+    description: 'List and view users',
+  },
+  {
+    key: PERMISSIONS.USER_MANAGE,
+    resource: 'user',
+    description: 'Create users and change their role',
+  },
 
-  { key: PERMISSIONS.TOKEN_READ, resource: 'token', description: 'List and view API tokens' },
-  { key: PERMISSIONS.TOKEN_MANAGE, resource: 'token', description: 'Generate, save and revoke API tokens' },
+  {
+    key: PERMISSIONS.TOKEN_READ,
+    resource: 'token',
+    description: 'List and view API tokens',
+  },
+  {
+    key: PERMISSIONS.TOKEN_MANAGE,
+    resource: 'token',
+    description: 'Generate, save and revoke API tokens',
+  },
 
-  { key: PERMISSIONS.SESSION_READ, resource: 'session', description: "View other users' sessions" },
+  {
+    key: PERMISSIONS.SESSION_READ,
+    resource: 'session',
+    description: "View other users' sessions",
+  },
+  {
+    key: PERMISSIONS.SESSION_MANAGE,
+    resource: 'session',
+    description: "Revoke any user's sessions",
+  },
 
-  { key: PERMISSIONS.GALLERY_MANAGE, resource: 'gallery', description: 'Manage gallery images (create, edit, delete); reads are public' },
+  {
+    key: PERMISSIONS.GALLERY_MANAGE,
+    resource: 'gallery',
+    description:
+      'Manage gallery images (create, edit, delete); reads are public',
+  },
 
-  { key: PERMISSIONS.PHOTO_ENTRY_READ, resource: 'photoEntry', description: 'View photo entries' },
-  { key: PERMISSIONS.PHOTO_ENTRY_MANAGE, resource: 'photoEntry', description: 'Create, edit and delete photo entries' },
+  {
+    key: PERMISSIONS.PHOTO_ENTRY_READ,
+    resource: 'photoEntry',
+    description: 'View photo entries',
+  },
+  {
+    key: PERMISSIONS.PHOTO_ENTRY_MANAGE,
+    resource: 'photoEntry',
+    description: 'Create, edit and delete photo entries',
+  },
 
-  { key: PERMISSIONS.ASTRO_OBJECT_READ, resource: 'astroObject', description: 'View astro objects' },
-  { key: PERMISSIONS.ASTRO_OBJECT_MANAGE, resource: 'astroObject', description: 'Create and edit astro objects' },
+  {
+    key: PERMISSIONS.ASTRO_OBJECT_READ,
+    resource: 'astroObject',
+    description: 'View astro objects',
+  },
+  {
+    key: PERMISSIONS.ASTRO_OBJECT_MANAGE,
+    resource: 'astroObject',
+    description: 'Create and edit astro objects',
+  },
 
-  { key: PERMISSIONS.AI_MANAGE, resource: 'ai', description: 'Manage Ollama models (list, pull)' },
-  { key: PERMISSIONS.OCR_USE, resource: 'ocr', description: 'Use the OCR endpoints' },
+  {
+    key: PERMISSIONS.AI_MANAGE,
+    resource: 'ai',
+    description: 'Manage Ollama models (list, pull)',
+  },
+  {
+    key: PERMISSIONS.OCR_USE,
+    resource: 'ocr',
+    description: 'Use the OCR endpoints',
+  },
 
-  { key: PERMISSIONS.DASHBOARD_READ, resource: 'dashboard', description: 'View the system dashboard' },
+  {
+    key: PERMISSIONS.DASHBOARD_READ,
+    resource: 'dashboard',
+    description: 'View the system dashboard',
+  },
 
-  { key: PERMISSIONS.ACL_MANAGE, resource: 'acl', description: 'Create and edit permission groups' },
-  { key: PERMISSIONS.ACL_ASSIGN, resource: 'acl', description: 'Assign users to permission groups' },
+  {
+    key: PERMISSIONS.ACL_MANAGE,
+    resource: 'acl',
+    description: 'Create and edit permission groups',
+  },
+  {
+    key: PERMISSIONS.ACL_ASSIGN,
+    resource: 'acl',
+    description: 'Assign users to permission groups',
+  },
 ];

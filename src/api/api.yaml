@@ -170,6 +170,22 @@ paths:
         '200':
           description: Reset password email sent (if user exists)
       tags: *ref_2
+  /auth/admin/reset-password/{userId}:
+    post:
+      operationId: AuthController_adminResetPassword
+      summary: 'Owner/admin: send a password reset email to a specific user'
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Password reset email sent to the user
+      tags: *ref_2
+      security:
+        - bearer: []
   /auth/reset-password:
     post:
       operationId: AuthController_resetPassword
@@ -349,6 +365,24 @@ paths:
       responses:
         '200':
           description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseDto'
+      tags: *ref_3
+      security: *ref_4
+  /user/{id}:
+    delete:
+      operationId: UserController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User soft-deleted (account disabled, sessions revoked)
           content:
             application/json:
               schema:
@@ -608,19 +642,41 @@ paths:
                 $ref: '#/components/schemas/SessionResponseDto'
       tags: *ref_6
       security: *ref_7
-  /session/logout:
-    post:
-      operationId: SessionController_removeSession
+  /session/others:
+    delete:
+      operationId: SessionController_revokeOthers
       parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SessionDto'
       responses:
         '200':
-          description: Session deleted
+          description: Revoke all of the current user sessions except this one
+      tags: *ref_6
+      security: *ref_7
+  /session/admin/{id}:
+    delete:
+      operationId: SessionController_revokeByAdmin
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Revoke any session (admin)
+      tags: *ref_6
+      security: *ref_7
+  /session/{id}:
+    delete:
+      operationId: SessionController_revokeOwn
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Revoke one of your own sessions
       tags: *ref_6
       security: *ref_7
   /file/upload/image:
@@ -2992,18 +3048,23 @@ components:
           type: string
         browser:
           type: string
+          nullable: true
         os:
           type: string
+          nullable: true
         platform:
           type: string
+          nullable: true
+        isCurrent:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
         updatedAt:
           type: string
           format: date-time
       required:
         - id
-        - browser
-        - os
-        - platform
         - updatedAt
     SessionListResponseDto:
       type: object
@@ -3019,11 +3080,6 @@ components:
       required:
         - sessions
         - total
-    SessionDto:
-      type: object
-      properties:
-        sessionId:
-          type: string
     FileDto:
       type: object
       properties:
@@ -4976,6 +5032,11 @@ components:
           type: string
           format: date-time
         astroObjectIds:
+          description: >-
+            Only for ASTRO entries, and optional even then: omit or send an
+            empty array for a general sky / Milky Way / timelapse session not
+            tied to catalogued objects. Must be omitted for GENERAL and WORK
+            entries.
           type: array
           items:
             type: string
@@ -4997,6 +5058,10 @@ components:
           type: string
           format: date-time
         astroObjectIds:
+          description: >-
+            ASTRO entries only. Replaces the linked objects; send an empty array
+            to clear them (general astro session). Omit to leave links
+            unchanged. Cannot be changed after folders are created.
           type: array
           items:
             type: string

@@ -10,17 +10,6 @@ export type RapidOcrBox = {
 };
 export type RapidOcrResp = Record<string, RapidOcrBox>;
 
-type Word = {
-  text: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number; // bounding box (min/max)
-  midY: number;
-  height: number;
-  width: number;
-};
-
 @Injectable()
 export class RapidOcrClient {
   private readonly baseUrl =

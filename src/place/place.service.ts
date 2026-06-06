@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaginationDto } from '../common/dto';
-import { PlaceType, Prisma } from '@prisma/client';
 import { PlaceAddMemberDto, PlaceCreateDto, PlaceUpdateDto } from './dto';
 import {
   PlaceDetailResponseDto,
@@ -171,7 +170,7 @@ export class PlaceService {
     userId: string,
     placeId: string,
   ): Promise<PlaceMemberListResponseDto> {
-    const place = await this.findAccessiblePlace(userId, placeId);
+    await this.findAccessiblePlace(userId, placeId);
     const members = await this.prisma.placeMember.findMany({
       where: { placeId },
       include: { user: true },

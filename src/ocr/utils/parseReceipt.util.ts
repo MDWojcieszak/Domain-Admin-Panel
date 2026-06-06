@@ -35,8 +35,9 @@ function firstIsoLike(text: string): string | undefined {
     return `${m[4]}-${m[5]}-${m[6]}`;
   }
   // dd-mm-yyyy
-  let [, dd, mm, yy] = m as unknown as [string, string, string, string];
-  if (yy.length === 2) yy = (Number(yy) > 60 ? '19' : '20') + yy;
+  const [, dd, mm, yyRaw] = m as unknown as [string, string, string, string];
+  const yy =
+    yyRaw.length === 2 ? (Number(yyRaw) > 60 ? '19' : '20') + yyRaw : yyRaw;
   return `${yy}-${mm}-${dd}`;
 }
 

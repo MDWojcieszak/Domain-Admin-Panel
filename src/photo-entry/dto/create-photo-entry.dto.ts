@@ -17,6 +17,13 @@ export class CreatePhotoEntryDto {
   @IsString({ isDate: { format: 'date-time' }, optional: true })
   endDate?: string;
 
-  @IsString({ isArray: true, optional: true })
+  @IsString({
+    isArray: true,
+    optional: true,
+    description:
+      'Only for ASTRO entries, and optional even then: omit or send an empty ' +
+      'array for a general sky / Milky Way / timelapse session not tied to ' +
+      'catalogued objects. Must be omitted for GENERAL and WORK entries.',
+  })
   astroObjectIds?: string[];
 }

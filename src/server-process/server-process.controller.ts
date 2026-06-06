@@ -12,7 +12,6 @@ import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { ProcessListResponseDto, ProcessResponseDto } from './responses';
 import { PaginationDto } from '../common/dto';
 import { ProcessLogListResponseDto } from './responses/process-log-list-response.dto';
-import { Role } from '@prisma/client';
 
 @ApiTags('Server')
 @Controller('server/process')

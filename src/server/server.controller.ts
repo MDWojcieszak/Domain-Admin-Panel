@@ -8,7 +8,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { ServerService } from './server.service';
-import { GetCurrentUser, Public, RequirePermissions } from '../common/decorators';
+import {
+  GetCurrentUser,
+  Public,
+  RequirePermissions,
+} from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
 import { MessagePattern } from '@nestjs/microservices';
 import {

@@ -89,9 +89,7 @@ export class AclService {
       data: {
         name: dto.name,
         description: dto.description,
-        permissions: dto.permissions
-          ? this.dedupe(dto.permissions)
-          : undefined,
+        permissions: dto.permissions ? this.dedupe(dto.permissions) : undefined,
       },
       include: { _count: { select: { users: true } } },
     });

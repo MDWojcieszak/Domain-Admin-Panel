@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import * as sharp from 'sharp';
 import * as path from 'path';
-import { mkdirSync, unlink, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, unlink, writeFileSync } from 'fs';
 import { v4 as uuid } from 'uuid';
 
 const COVER_PATH = 'cover';
@@ -41,7 +41,7 @@ export class FileService {
 
   private directoryExists(directoryPath: string): boolean {
     try {
-      return require('fs').existsSync(directoryPath);
+      return existsSync(directoryPath);
     } catch (error) {
       return false;
     }

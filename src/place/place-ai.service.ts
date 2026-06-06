@@ -53,6 +53,7 @@ export class PlaceAiService {
       locationId = createdLocation.id;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { location, ...placeData } = dto;
 
     const place = await this.prisma.place.create({
@@ -101,6 +102,7 @@ export class PlaceAiService {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { location, ...placeData } = dto;
 
     const updated = await this.prisma.place.update({

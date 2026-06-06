@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Logger,
   Post,
   Put,
   Query,
@@ -16,7 +15,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ImageDataDto, ImageDto, ImageSizeType } from './dto';
-import { GetCurrentUser, Public, RequirePermissions } from '../common/decorators';
+import {
+  GetCurrentUser,
+  Public,
+  RequirePermissions,
+} from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
 import { ImageService } from './image.service';
 import { Response } from 'express';

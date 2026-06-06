@@ -1,9 +1,5 @@
 import { PhotoEntry } from '@prisma/client';
-import {
-  PhotoEntryDetailsResponse,
-  PhotoEntryListResponse,
-  PhotoEntryResponse,
-} from '../responses';
+import { PhotoEntryDetailsResponse, PhotoEntryResponse } from '../responses';
 
 type PhotoEntryWithAstroObjects = PhotoEntry & {
   astroObjects?: Array<{

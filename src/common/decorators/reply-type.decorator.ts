@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { Type } from '@nestjs/common';
 
 /**
  * Declares the reply payload of a request/reply (@MessagePattern) handler so the
@@ -9,12 +10,12 @@ import 'reflect-metadata';
 export const REPLY_TYPE_METADATA = 'messaging:reply_type';
 
 export interface ReplyTypeMeta {
-  type: Function;
+  type: Type<any>;
   isArray: boolean;
 }
 
 export function ReplyType(
-  type: Function,
+  type: Type<any>,
   options?: { isArray?: boolean },
 ): MethodDecorator {
   return (_target, _key, descriptor) => {

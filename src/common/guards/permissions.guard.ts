@@ -34,9 +34,7 @@ export class PermissionsGuard implements CanActivate {
     const permissions = await this.permissionsService.getEffectivePermissions(
       user.sub,
     );
-    const allowed = required.every((permission) =>
-      permissions.has(permission),
-    );
+    const allowed = required.every((permission) => permissions.has(permission));
 
     if (!allowed) {
       throw new ForbiddenException('Missing required permission');

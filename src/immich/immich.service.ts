@@ -198,9 +198,7 @@ export class ImmichService {
   }
 
   private getLibraryRoot(): string {
-    const value = this.configService
-      .get<string>('IMMICH_LIBRARY_PATH')
-      ?.trim();
+    const value = this.configService.get<string>('IMMICH_LIBRARY_PATH')?.trim();
 
     if (!value) {
       throw new BadRequestException('IMMICH_LIBRARY_PATH is missing');

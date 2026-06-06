@@ -1,5 +1,4 @@
-import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import {
   DiskInfoDto,
   GetServerDto,
@@ -7,7 +6,6 @@ import {
   MemoryDto,
   PatchDiskDto,
   RegisterServerDto,
-  HeartbeatDto,
   CreateCategoryDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -339,7 +337,11 @@ export class ServerService {
           diskInfo: true,
         },
       });
-      this.websocketGateway.emitToRoom(WsRoom.SERVERS, 'server.update', server.id);
+      this.websocketGateway.emitToRoom(
+        WsRoom.SERVERS,
+        'server.update',
+        server.id,
+      );
       return true;
     } catch (error) {
       throw new Error(`Failed to update server properties: ${error.message}`);

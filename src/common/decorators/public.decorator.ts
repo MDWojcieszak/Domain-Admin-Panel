@@ -1,5 +1,5 @@
 import { SetMetadata, applyDecorators } from '@nestjs/common';
-import { ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 
 export const PUBLIC_KEY = 'public';

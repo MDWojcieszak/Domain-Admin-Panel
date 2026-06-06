@@ -350,10 +350,8 @@ export class PhotoEntryService {
       }
 
       if (existing.type === PhotoEntryType.ASTRO) {
-        if (!existing.astroObjects.length || !generated.entryRootPath) {
-          throw new BadRequestException(
-            'ASTRO entry requires related astro objects',
-          );
+        if (!generated.entryRootPath) {
+          throw new BadRequestException('Could not generate ASTRO rootPath');
         }
         const year = this.resolveEntryYear(existing);
 
@@ -510,13 +508,9 @@ export class PhotoEntryService {
     type: PhotoEntryType,
     astroObjectIds?: string[],
   ): void {
+    // ASTRO entries may have zero objects (general sky / Milky Way / timelapse
+    // sessions that aren't tied to a catalogued object).
     if (type === PhotoEntryType.ASTRO) {
-      if (!astroObjectIds || astroObjectIds.length === 0) {
-        throw new BadRequestException(
-          'ASTRO entry requires at least one astroObjectId',
-        );
-      }
-
       return;
     }
 

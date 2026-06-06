@@ -3,20 +3,25 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
 import {
-  AuthDto,
   RegisterDto,
   RequestResetPasswordDto,
   ResetPasswordDto,
   SignInDto,
 } from './dto';
 import { TokensDto } from './responses';
-import { GetCurrentUser, Public } from '../common/decorators';
+import {
+  GetCurrentUser,
+  Public,
+  RequirePermissions,
+} from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -57,6 +62,18 @@ export class AuthController {
   @ApiOkResponse({ description: 'Reset password email sent (if user exists)' })
   async resetPasswordRequest(@Body() dto: RequestResetPasswordDto) {
     return this.authService.initiatePasswordReset(dto);
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.USER_MANAGE)
+  @HttpCode(HttpStatus.OK)
+  @Post('admin/reset-password/:userId')
+  @ApiOperation({
+    summary: 'Owner/admin: send a password reset email to a specific user',
+  })
+  @ApiOkResponse({ description: 'Password reset email sent to the user' })
+  adminResetPassword(@Param('userId') userId: string) {
+    return this.authService.adminInitiatePasswordReset(userId);
   }
 
   @Public()

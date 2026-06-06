@@ -1,4 +1,4 @@
-import { IsDate, IsString } from 'nestjs-swagger-dto';
+import { IsString } from 'nestjs-swagger-dto';
 
 export class ImageDataDto {
   @IsString()

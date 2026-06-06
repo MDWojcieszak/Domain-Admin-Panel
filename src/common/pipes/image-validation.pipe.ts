@@ -7,7 +7,7 @@ import {
 
 @Injectable()
 export class ImageValidationPipe implements PipeTransform {
-  async transform(value: any, metadata: ArgumentMetadata) {
+  async transform(value: any, _metadata: ArgumentMetadata) {
     const image = value;
     if (!image) {
       throw new BadRequestException('No file uploaded');

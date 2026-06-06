@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { OcrLang, OcrOEM, OcrPSM } from '../enums';
+import { OcrOEM, OcrPSM } from '../enums';
 import { IsString } from 'nestjs-swagger-dto';
 
 export class OcrUsedDto {

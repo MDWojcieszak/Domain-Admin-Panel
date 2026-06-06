@@ -6,13 +6,13 @@ export class AiContextDto extends AiLogFieldsDto {
   summary?: string;
 
   @IsObject({ optional: true })
-  keywords?: Object;
+  keywords?: any;
 
   @IsString({ optional: true })
   context?: string;
 
   @IsObject({ optional: true })
-  aiMeta?: Object;
+  aiMeta?: any;
 
   @IsNumber({ optional: true })
   aiConfidence?: number;

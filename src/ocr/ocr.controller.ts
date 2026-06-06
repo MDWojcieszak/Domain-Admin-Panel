@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiBody,
   ApiConsumes,
   ApiOkResponse,
   ApiOperation,

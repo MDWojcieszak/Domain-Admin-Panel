@@ -4,6 +4,6 @@ import { TaskCommentService } from './task-comment.service';
 
 @Module({
   controllers: [TaskCommentController],
-  providers: [TaskCommentService]
+  providers: [TaskCommentService],
 })
 export class TaskCommentModule {}

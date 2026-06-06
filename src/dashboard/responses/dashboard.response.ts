@@ -1,7 +1,4 @@
-import {
-  CommandRuntimeStatus,
-  ServerProcessStatus,
-} from '@prisma/client';
+import { CommandRuntimeStatus, ServerProcessStatus } from '@prisma/client';
 import {
   IsDate,
   IsEnum,

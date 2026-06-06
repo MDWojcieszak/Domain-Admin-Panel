@@ -11,7 +11,11 @@ import {
 import { ServerCommandsService } from './server-commands.service';
 import { CommandProgressMarkerService } from './command-progress-marker.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { GetCurrentUser, Public, RequirePermissions } from '../common/decorators';
+import {
+  GetCurrentUser,
+  Public,
+  RequirePermissions,
+} from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
 import { MessagePattern } from '@nestjs/microservices';
 import {

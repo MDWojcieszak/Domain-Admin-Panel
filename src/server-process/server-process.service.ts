@@ -262,11 +262,13 @@ export class ServerProcessService {
 
     const progressChanged = nextProgress > context.currentProgress;
     const runtimeStatusChanged =
-      runtimeStatusMatched && nextRuntimeStatus !== context.currentRuntimeStatus;
+      runtimeStatusMatched &&
+      nextRuntimeStatus !== context.currentRuntimeStatus;
 
     if (!progressChanged && !runtimeStatusChanged) return;
 
-    const data: { progress?: number; runtimeStatus?: CommandRuntimeStatus } = {};
+    const data: { progress?: number; runtimeStatus?: CommandRuntimeStatus } =
+      {};
     if (progressChanged) {
       data.progress = nextProgress;
       context.currentProgress = nextProgress;

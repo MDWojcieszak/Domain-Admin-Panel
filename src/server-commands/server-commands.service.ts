@@ -1,6 +1,5 @@
 import {
   ForbiddenException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -13,7 +12,6 @@ import {
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { SendCommandEvent } from './events';
-import { firstValueFrom } from 'rxjs';
 import { CommandContext } from '../common/types';
 import { UpdateServerCommandDto } from './dto/update-server-command.dto';
 import { CommandType } from '@prisma/client';

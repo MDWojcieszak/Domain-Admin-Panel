@@ -1,4 +1,4 @@
-import { IsNested, IsNumber, IsObject } from 'nestjs-swagger-dto';
+import { IsNested, IsNumber } from 'nestjs-swagger-dto';
 import { PhotoEntryAstroObjectResponse } from './photo-entry-astro-object.response';
 import { PhotoEntryResponse } from './photo-entry.response';
 

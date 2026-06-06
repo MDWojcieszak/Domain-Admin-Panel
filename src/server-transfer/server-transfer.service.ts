@@ -1,5 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateServerTransferDto } from './dto/create-server-transfer.dto';
@@ -8,7 +7,6 @@ import { PatchServerTransferDto } from './dto/patch-server-transfer.dto';
 import { ServerTransferResponse } from './responses/server-transfer.response';
 import { SetServerTransferEvent } from './events';
 import { ServerTransferListResponse } from './responses';
-import { response } from 'express';
 import { PatchServerTransferProgressDto } from './dto';
 import { ServerOutboundMessagingService } from '../server-outbound/server-outbound-messaging.service';
 

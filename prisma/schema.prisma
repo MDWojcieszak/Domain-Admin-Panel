@@ -247,6 +247,7 @@ model User {
   accountStatus AccountStatus @default(ACTIVE)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
   firstName     String?
   lastName      String?
 

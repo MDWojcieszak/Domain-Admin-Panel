@@ -1,4 +1,4 @@
-import { IsNested, IsNumber, IsString } from 'nestjs-swagger-dto';
+import { IsNested, IsNumber } from 'nestjs-swagger-dto';
 import { OllamaModelResponseDto } from './ollama-model-response.dto';
 
 export class OllamaListModelsResponseDto {

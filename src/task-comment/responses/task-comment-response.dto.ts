@@ -1,5 +1,4 @@
 import { IsString, IsDate, IsNested } from 'nestjs-swagger-dto';
-import { UserResponseDto } from '../../user/responses';
 import { TaskCommentUserResponseDto } from './task-comment-user-response.dto';
 
 export class TaskCommentResponseDto {

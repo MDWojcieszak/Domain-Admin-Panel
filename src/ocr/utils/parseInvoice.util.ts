@@ -33,7 +33,6 @@ export type InvoiceParsed = {
 
 const dec = (s: string) =>
   Number(s.replace(/\s/g, '').replace(/\./g, '').replace(',', '.'));
-const moneyRE = /(\d{1,3}(?:[.\s]\d{3})*|\d+)[,\.]\d{2}\b/;
 const allMoneyRE = /(\d{1,3}(?:[.\s]\d{3})*|\d+)[,\.]\d{2}\b/g;
 
 const toISO = (d?: string) => {
@@ -43,8 +42,9 @@ const toISO = (d?: string) => {
   const m2 = d.match(/^(\d{4})[-./](\d{2})[-./](\d{2})$/);
   if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
   if (!m1) return undefined;
-  let [, dd, mm, yy] = m1;
-  if (yy.length === 2) yy = (Number(yy) > 60 ? '19' : '20') + yy;
+  const [, dd, mm, yyRaw] = m1;
+  const yy =
+    yyRaw.length === 2 ? (Number(yyRaw) > 60 ? '19' : '20') + yyRaw : yyRaw;
   return `${yy}-${mm}-${dd}`;
 };
 

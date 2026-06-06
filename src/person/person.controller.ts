@@ -9,7 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { GetCurrentUser, GetTokenUser } from '../common/decorators';
+import { GetCurrentUser } from '../common/decorators';
 import { PersonService } from './person.service';
 import { PersonDetailResponseDto, PersonListResponseDto } from './responses';
 import { PaginationDto } from '../common/dto';
