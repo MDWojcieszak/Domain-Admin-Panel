@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
-import { GetCurrentUser, Roles } from '../common/decorators';
+import { GetCurrentUser, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../common/dto';
 import { User } from '@prisma/client';
@@ -14,13 +15,13 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @Post('create')
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.USER_MANAGE)
   @ApiOkResponse({ description: 'User created', type: UserResponseDto })
   create(@Body() dto: UserDto): Promise<UserResponseDto> {
     return this.userService.create(dto);
   }
 
-  @Roles('OWNER', 'ADMIN')
+  @RequirePermissions(PERMISSIONS.USER_READ)
   @Get('list')
   @ApiOkResponse({
     description: 'List of users with pagination',
@@ -40,7 +41,7 @@ export class UserController {
   }
 
   @Patch('role')
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.USER_MANAGE)
   @ApiOkResponse({ description: 'User updated', type: UserResponseDto })
   updateAdmin(
     @Query('id') userId: string,

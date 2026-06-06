@@ -16,7 +16,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ImageDataDto, ImageDto, ImageSizeType } from './dto';
-import { GetCurrentUser, Public, Roles } from '../common/decorators';
+import { GetCurrentUser, Public, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { ImageService } from './image.service';
 import { Response } from 'express';
 import { PaginationDto } from '../common/dto';
@@ -101,7 +102,6 @@ export class ImageController {
   }
 
   @ApiBearerAuth()
-  @Roles('USER', 'MODERATOR', 'ADMIN', 'OWNER')
   @Get('original')
   @ApiProduces('image/jpeg', 'image/png', 'image/webp')
   @ApiOkResponse({
@@ -117,7 +117,7 @@ export class ImageController {
   }
 
   @ApiBearerAuth()
-  @Roles('MODERATOR', 'ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.IMAGE_DELETE)
   @Delete()
   @ApiOkResponse({ description: 'Delete image' })
   async delete(@Query() dto: ImageDto) {

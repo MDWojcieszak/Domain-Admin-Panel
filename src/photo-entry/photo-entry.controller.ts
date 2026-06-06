@@ -22,7 +22,8 @@ import {
   PhotoEntryListResponse,
   PhotoEntryResponse,
 } from './responses';
-import { GetCurrentUser, Roles } from '../common/decorators';
+import { GetCurrentUser, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 
 @Controller('photo-entry')
 @ApiTags('Photo Entry')
@@ -30,7 +31,7 @@ export class PhotoEntryController {
   constructor(private readonly photoEntryService: PhotoEntryService) {}
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_READ)
   @Get()
   @ApiOkResponse({
     description: 'List photo entries',
@@ -44,7 +45,7 @@ export class PhotoEntryController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_READ)
   @Get(':id')
   @ApiOkResponse({
     description: 'Photo entry details',
@@ -58,7 +59,7 @@ export class PhotoEntryController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Post()
   @ApiOkResponse({
     description: 'Created photo entry',
@@ -72,7 +73,7 @@ export class PhotoEntryController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Patch(':id')
   @ApiOkResponse({
     description: 'Patched photo entry',
@@ -87,7 +88,7 @@ export class PhotoEntryController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Patch(':id/status')
   @ApiOkResponse({
     description: 'Patched photo entry status',
@@ -102,7 +103,7 @@ export class PhotoEntryController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Post(':id/create-folders')
   @ApiOkResponse({
     description: 'Created photo entry folders',
@@ -116,7 +117,7 @@ export class PhotoEntryController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Post(':id/mark-media-uploaded')
   @ApiOkResponse({
     description: 'Created photo entry folders',
@@ -129,7 +130,7 @@ export class PhotoEntryController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Delete(':id')
   @ApiOkResponse({
     description: 'Deleted photo entry',

@@ -20,7 +20,8 @@ import {
   AstroObjectListResponse,
   AstroObjectResponse,
 } from './responses';
-import { Roles } from '../common/decorators';
+import { RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 
 @Controller('astro-object')
 @ApiTags('Astro Object')
@@ -28,7 +29,7 @@ export class AstroObjectController {
   constructor(private readonly astroObjectService: AstroObjectService) {}
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.ASTRO_OBJECT_READ)
   @Get()
   @ApiOkResponse({
     description: 'List astro objects',
@@ -41,7 +42,7 @@ export class AstroObjectController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.ASTRO_OBJECT_READ)
   @Get(':id')
   @ApiOkResponse({
     description: 'Astro object details',
@@ -52,7 +53,7 @@ export class AstroObjectController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.ASTRO_OBJECT_MANAGE)
   @Post()
   @ApiOkResponse({
     description: 'Created astro object',
@@ -65,7 +66,7 @@ export class AstroObjectController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.ASTRO_OBJECT_MANAGE)
   @Patch(':id')
   @ApiOkResponse({
     description: 'Patched astro object',

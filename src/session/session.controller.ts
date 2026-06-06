@@ -2,7 +2,8 @@ import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { SessionService } from './session.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { SessionDto } from './dto/session.dto';
-import { GetCurrentUser, Roles } from '../common/decorators';
+import { GetCurrentUser, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { PaginationDto } from '../common/dto';
 import { SessionListResponseDto, SessionResponseDto } from './responses';
 import { Session } from 'inspector';
@@ -26,7 +27,7 @@ export class SessionController {
   }
 
   @Get('user/:userId')
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.SESSION_READ)
   @ApiOkResponse({
     type: SessionListResponseDto,
     description: 'List of all sessions for a specific user',
@@ -39,7 +40,7 @@ export class SessionController {
   }
 
   @Get('all')
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.SESSION_READ)
   @ApiOkResponse({
     type: SessionListResponseDto,
     description: 'List of all sessions',

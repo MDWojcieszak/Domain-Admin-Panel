@@ -8,7 +8,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { GetCurrentUser, Roles } from '../common/decorators';
+import { GetCurrentUser, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import {
   GenerateTokenResponseDto,
   SaveServiceTokenResponseDto,
@@ -25,7 +26,7 @@ import { PaginationDto } from '../common/dto';
 export class TokenController {
   constructor(private readonly tokenService: TokenService) {}
 
-  @Roles('MODERATOR', 'ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.TOKEN_MANAGE)
   @Post('generate')
   @ApiOkResponse({
     description: 'Generate personal API token (INTERNAL or AI, write-once)',
@@ -38,7 +39,7 @@ export class TokenController {
     return await this.tokenService.generateExternalToken(userId, dto);
   }
 
-  @Roles('MODERATOR', 'ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.TOKEN_MANAGE)
   @Post('save-service-token')
   @ApiOkResponse({
     description:
@@ -52,7 +53,7 @@ export class TokenController {
     return await this.tokenService.saveServiceToken(userId, dto);
   }
 
-  @Roles('MODERATOR', 'ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.TOKEN_READ)
   @Get('list')
   @ApiOkResponse({
     description: 'List all tokens for current user (paginated)',
@@ -65,7 +66,7 @@ export class TokenController {
     return this.tokenService.listUserTokens(userId, params);
   }
 
-  @Roles('MODERATOR', 'ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.TOKEN_READ)
   @Get(':id')
   @ApiOkResponse({
     description: 'Get token metadata (never reveals token value!)',
@@ -78,7 +79,7 @@ export class TokenController {
     return this.tokenService.getTokenMetadata(userId, id);
   }
 
-  @Roles('MODERATOR', 'ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.TOKEN_MANAGE)
   @Delete(':id')
   @ApiOkResponse({
     description: 'Delete/revoke token',
