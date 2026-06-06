@@ -10,8 +10,9 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
-import { RequirePermissions } from '../common/decorators';
+import { GetCurrentUser, RequirePermissions } from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
+import { Role } from '@prisma/client';
 import { AclService } from './acl.service';
 import {
   CreatePermissionGroupDto,
@@ -19,6 +20,7 @@ import {
   UpdatePermissionGroupDto,
 } from './dto';
 import {
+  MyPermissionsResponseDto,
   PermissionCatalogResponseDto,
   PermissionGroupListResponseDto,
   PermissionGroupResponseDto,
@@ -29,6 +31,15 @@ import {
 @Controller('acl')
 export class AclController {
   constructor(private readonly aclService: AclService) {}
+
+  @Get('me')
+  @ApiOkResponse({ type: MyPermissionsResponseDto })
+  getMyPermissions(
+    @GetCurrentUser('sub') userId: string,
+    @GetCurrentUser('role') role: Role,
+  ): Promise<MyPermissionsResponseDto> {
+    return this.aclService.getMyPermissions(userId, role);
+  }
 
   @RequirePermissions(PERMISSIONS.ACL_MANAGE)
   @Get('permissions')

@@ -4,8 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { Role } from '@prisma/client';
+
 import { PrismaService } from '../prisma/prisma.service';
-import { PERMISSION_CATALOG, isValidPermission } from '../common/acl/permissions';
+import { PermissionsService } from '../common/acl/permissions.service';
+import {
+  ALL_PERMISSIONS,
+  PERMISSION_CATALOG,
+  isValidPermission,
+} from '../common/acl/permissions';
 import {
   CreatePermissionGroupDto,
   SetUserGroupsDto,
@@ -14,10 +21,24 @@ import {
 
 @Injectable()
 export class AclService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
   listCatalog() {
     return { permissions: PERMISSION_CATALOG };
+  }
+
+  async getMyPermissions(userId: string, role: Role) {
+    const isOwner = role === Role.OWNER;
+    const permissions = isOwner
+      ? [...ALL_PERMISSIONS]
+      : Array.from(
+          await this.permissionsService.getEffectivePermissions(userId),
+        );
+
+    return { role, isOwner, permissions };
   }
 
   async listGroups() {
