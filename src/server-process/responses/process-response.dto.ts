@@ -1,5 +1,11 @@
 import { ServerProcessStatus } from '@prisma/client';
-import { IsDate, IsEnum, IsNested, IsString } from 'nestjs-swagger-dto';
+import {
+  IsDate,
+  IsEnum,
+  IsNested,
+  IsNumber,
+  IsString,
+} from 'nestjs-swagger-dto';
 
 class Category {
   @IsString({ optional: true })
@@ -26,6 +32,9 @@ export class ProcessResponseDto {
 
   @IsEnum({ enum: { ServerProcessStatus } })
   status?: ServerProcessStatus;
+
+  @IsNumber({ optional: true })
+  progress?: number;
 
   @IsString({ optional: true })
   name?: string;

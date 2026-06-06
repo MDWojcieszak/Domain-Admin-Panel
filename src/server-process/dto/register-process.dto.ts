@@ -11,6 +11,9 @@ export class RegisterProcessDto {
   @IsString()
   name: string;
 
+  @IsString({ optional: true })
+  commandValue?: string;
+
   @IsEnum({ enum: { ServerProcessStatus }, optional: true })
   status: ServerProcessStatus;
 }
