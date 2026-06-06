@@ -43,8 +43,8 @@ export class AuthService {
     const ua = req.headers['user-agent'] || '';
     const parser = new UAParser(ua);
     const uaResult = parser.getResult();
-
     const pwMatches = await verify(user.hashPassword, dto.password);
+
     if (!pwMatches) throw new ForbiddenException('Credentials incorrect');
 
     const matchingSession = await this.sessionService.findMatching({
@@ -250,5 +250,6 @@ export class AuthService {
         'ACTIVE',
       );
     }
+    Logger.log('Super User exists', this.config.get('SUPERUSER_EMAIL'));
   }
 }
