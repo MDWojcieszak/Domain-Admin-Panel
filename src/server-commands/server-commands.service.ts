@@ -15,17 +15,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SendCommandEvent } from './events';
 import { firstValueFrom } from 'rxjs';
 import { CommandContext } from '../common/types';
-import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { UpdateServerCommandDto } from './dto/update-server-command.dto';
 import { CommandType } from '@prisma/client';
 import { ServerOutboundMessagingService } from '../server-outbound/server-outbound-messaging.service';
+import { ServerProcessService } from '../server-process/server-process.service';
 
 @Injectable()
 export class ServerCommandsService {
   constructor(
     private prisma: PrismaService,
     private readonly outbound: ServerOutboundMessagingService,
-    private readonly websocketGateway: WebsocketGateway,
+    private readonly serverProcessService: ServerProcessService,
   ) {}
 
   async handleGet(dto: GetServerCommandsDto) {
@@ -150,11 +150,12 @@ export class ServerCommandsService {
     });
     if (!command)
       throw new Error(`Failed to update server command: ${dto.commandName}`);
-    await this.prisma.serverCommand.update({
-      where: { id: command.id },
-      data: { runningProgress: dto.runningProgress, status: dto.status },
+
+    await this.serverProcessService.applyCommandRuntimeStatus(command.id, {
+      runtimeStatus: dto.runtimeStatus,
+      runningProgress: dto.runningProgress,
+      status: dto.status,
     });
-    this.websocketGateway.sendToAll('server-command.update', command.id);
   }
 
   async get(id: string) {

@@ -1,5 +1,5 @@
-import { IsEnum, IsNested, IsNumber, IsString } from 'nestjs-swagger-dto';
-import { CommandStatus, CommandType } from '@prisma/client';
+import { IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
+import { CommandRuntimeStatus, CommandStatus } from '@prisma/client';
 
 export class UpdateServerCommandDto {
   @IsString()
@@ -16,4 +16,7 @@ export class UpdateServerCommandDto {
 
   @IsEnum({ enum: { CommandStatus }, optional: true })
   status: CommandStatus;
+
+  @IsEnum({ enum: { CommandRuntimeStatus }, optional: true })
+  runtimeStatus?: CommandRuntimeStatus;
 }

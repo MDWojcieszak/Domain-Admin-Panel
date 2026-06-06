@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -8,25 +9,33 @@ import {
   Query,
 } from '@nestjs/common';
 import { ServerCommandsService } from './server-commands.service';
+import { CommandProgressMarkerService } from './command-progress-marker.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { GetCurrentUser, Public, Roles } from '../common/decorators';
 import { MessagePattern } from '@nestjs/microservices';
 import {
+  CreateCommandProgressMarkerDto,
   GetServerCommandsDto,
   PatchServerCommandDto,
   RegisterServerCommandsDto,
+  UpdateCommandProgressMarkerDto,
 } from './dto';
 import { UpdateServerCommandDto } from './dto/update-server-command.dto';
 import {
   CommandExecuteResponseDto,
   CommandListResponseDto,
+  CommandProgressMarkerListResponseDto,
+  CommandProgressMarkerResponseDto,
   CommandResponseDto,
 } from './responses';
 
 @ApiTags('Server')
 @Controller('server/commands')
 export class ServerCommandsController {
-  constructor(private serverCommandsService: ServerCommandsService) {}
+  constructor(
+    private serverCommandsService: ServerCommandsService,
+    private commandProgressMarkerService: CommandProgressMarkerService,
+  ) {}
 
   @ApiBearerAuth()
   @Roles('ADMIN', 'OWNER')
@@ -63,6 +72,56 @@ export class ServerCommandsController {
     @GetCurrentUser('sub') userId: string,
   ): Promise<CommandExecuteResponseDto> {
     return this.serverCommandsService.handleSend(id, userId);
+  }
+
+  @ApiBearerAuth()
+  @Roles('ADMIN', 'OWNER')
+  @Get(':id/markers')
+  @ApiOkResponse({
+    type: CommandProgressMarkerListResponseDto,
+  })
+  async getProgressMarkers(
+    @Param('id') id: string,
+  ): Promise<CommandProgressMarkerListResponseDto> {
+    return this.commandProgressMarkerService.list(id);
+  }
+
+  @ApiBearerAuth()
+  @Roles('ADMIN', 'OWNER')
+  @Post(':id/markers')
+  @ApiOkResponse({
+    type: CommandProgressMarkerResponseDto,
+  })
+  async createProgressMarker(
+    @Param('id') id: string,
+    @Body() dto: CreateCommandProgressMarkerDto,
+  ): Promise<CommandProgressMarkerResponseDto> {
+    return this.commandProgressMarkerService.create(id, dto);
+  }
+
+  @ApiBearerAuth()
+  @Roles('ADMIN', 'OWNER')
+  @Patch('markers/:markerId')
+  @ApiOkResponse({
+    type: CommandProgressMarkerResponseDto,
+  })
+  async updateProgressMarker(
+    @Param('markerId') markerId: string,
+    @Body() dto: UpdateCommandProgressMarkerDto,
+  ): Promise<CommandProgressMarkerResponseDto> {
+    return this.commandProgressMarkerService.update(markerId, dto);
+  }
+
+  @ApiBearerAuth()
+  @Roles('ADMIN', 'OWNER')
+  @Delete('markers/:markerId')
+  @ApiOkResponse({
+    type: CommandProgressMarkerResponseDto,
+  })
+  async deleteProgressMarker(
+    @Param('markerId') markerId: string,
+  ): Promise<CommandProgressMarkerResponseDto> {
+    return this.commandProgressMarkerService.remove(markerId);
   }
 
   @Public()
