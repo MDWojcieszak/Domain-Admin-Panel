@@ -40,6 +40,7 @@ import { PhotoStorageModule } from './photo-storage-service/photo-storage.module
 import { ImmichModule } from './immich/immich.module';
 import { ApiDocsModule } from './api-docs/api-docs.module';
 import { AclModule } from './acl/acl.module';
+import { AclCoreModule } from './common/acl/acl-core.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { AclModule } from './acl/acl.module';
     ImmichModule,
     ApiDocsModule,
     AclModule,
+    AclCoreModule,
   ],
   providers: [
     {
