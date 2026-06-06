@@ -866,18 +866,13 @@ paths:
       tags: *ref_9
       security:
         - bearer: []
-  /server/settings:
+  /server/commands/{id}/markers:
     get:
-      operationId: ServerSettingsController_getSettings
+      operationId: ServerCommandsController_getProgressMarkers
       parameters:
-        - name: serverId
+        - name: id
           required: true
-          in: query
-          schema:
-            type: string
-        - name: categoryId
-          required: false
-          in: query
+          in: path
           schema:
             type: string
       responses:
@@ -886,14 +881,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ServerSettingsListResponseDto'
-      tags: &ref_10
-        - Server
+                $ref: '#/components/schemas/CommandProgressMarkerListResponseDto'
+      tags: *ref_9
       security:
         - bearer: []
-  /server/settings/{id}:
-    patch:
-      operationId: ServerSettingsController_putCommand
+    post:
+      operationId: ServerCommandsController_createProgressMarker
       parameters:
         - name: id
           required: true
@@ -905,15 +898,58 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchServerSettingDto'
+              $ref: '#/components/schemas/CreateCommandProgressMarkerDto'
       responses:
         '200':
           description: ''
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ServerSettingsResponseDto'
-      tags: *ref_10
+                $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
+      tags: *ref_9
+      security:
+        - bearer: []
+  /server/commands/markers/{markerId}:
+    patch:
+      operationId: ServerCommandsController_updateProgressMarker
+      parameters:
+        - name: markerId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommandProgressMarkerDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
+      tags: *ref_9
+      security:
+        - bearer: []
+    delete:
+      operationId: ServerCommandsController_deleteProgressMarker
+      parameters:
+        - name: markerId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
+      tags: *ref_9
       security:
         - bearer: []
   /server/process/all:
@@ -941,7 +977,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessListResponseDto'
-      tags: &ref_11
+      tags: &ref_10
         - Server
       security:
         - bearer: []
@@ -961,7 +997,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessResponseDto'
-      tags: *ref_11
+      tags: *ref_10
       security:
         - bearer: []
   /server/process/{id}/logs:
@@ -994,6 +1030,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessLogListResponseDto'
+      tags: *ref_10
+      security:
+        - bearer: []
+  /server/settings:
+    get:
+      operationId: ServerSettingsController_getSettings
+      parameters:
+        - name: serverId
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerSettingsListResponseDto'
+      tags: &ref_11
+        - Server
+      security:
+        - bearer: []
+  /server/settings/{id}:
+    patch:
+      operationId: ServerSettingsController_putCommand
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchServerSettingDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerSettingsResponseDto'
       tags: *ref_11
       security:
         - bearer: []
@@ -2168,6 +2254,61 @@ paths:
       tags: *ref_27
       security:
         - bearer: []
+  /immich/status:
+    get:
+      operationId: ImmichController_getStatus
+      parameters: []
+      responses:
+        '200':
+          description: Immich connection status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichStatusResponse'
+      tags: &ref_28
+        - Immich
+      security:
+        - bearer: []
+  /immich/album/create:
+    post:
+      operationId: ImmichController_createAlbum
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImmichAlbumDto'
+      responses:
+        '200':
+          description: Created Immich album
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichAlbumSyncResponse'
+      tags: *ref_28
+      security:
+        - bearer: []
+  /immich/album/refresh:
+    post:
+      operationId: ImmichController_refreshAlbum
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshImmichAlbumDto'
+      responses:
+        '200':
+          description: Refreshed Immich album
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichAlbumSyncResponse'
+      tags: *ref_28
+      security:
+        - bearer: []
 info:
   title: WHCP Backend
   description: XD
@@ -2819,6 +2960,15 @@ components:
         - ENABLED
         - DISABLED
         - RUNNING
+    CommandRuntimeStatus:
+      type: string
+      enum:
+        - IDLE
+        - STARTING
+        - RUNNING
+        - STOPPING
+        - STOPPED
+        - ERROR
     CommandType:
       type: string
       enum:
@@ -2835,6 +2985,8 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/CommandStatus'
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
         runningProgress:
           type: number
         type:
@@ -2843,6 +2995,7 @@ components:
         - id
         - value
         - status
+        - runtimeStatus
         - type
     CommandListResponseDto:
       type: object
@@ -2870,6 +3023,199 @@ components:
           type: boolean
       required:
         - success
+    CommandMatchType:
+      type: string
+      enum:
+        - CONTAINS
+        - STARTS_WITH
+        - REGEX
+    ProcessLogLevel:
+      type: string
+      enum:
+        - LOG
+        - SUCCESS
+        - WARNING
+        - ERROR
+    CommandProgressMarkerResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        commandId:
+          type: string
+        label:
+          type: string
+        pattern:
+          type: string
+        matchType:
+          $ref: '#/components/schemas/CommandMatchType'
+        progress:
+          type: number
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+        order:
+          type: number
+      required:
+        - id
+        - commandId
+        - pattern
+        - matchType
+        - order
+    CommandProgressMarkerListResponseDto:
+      type: object
+      properties:
+        markers:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
+        total:
+          type: number
+      required:
+        - markers
+        - total
+    CreateCommandProgressMarkerDto:
+      type: object
+      properties:
+        label:
+          type: string
+        pattern:
+          type: string
+        matchType:
+          $ref: '#/components/schemas/CommandMatchType'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+        order:
+          type: number
+          minimum: 0
+      required:
+        - pattern
+    UpdateCommandProgressMarkerDto:
+      type: object
+      properties:
+        label:
+          type: string
+        pattern:
+          type: string
+        matchType:
+          $ref: '#/components/schemas/CommandMatchType'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+        order:
+          type: number
+          minimum: 0
+    ServerProcessStatus:
+      type: string
+      enum:
+        - UNKNOWN
+        - STARTED
+        - ONGOING
+        - CLOSED
+        - ENDED
+        - FAILED
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+      required:
+        - id
+        - email
+    Category:
+      type: object
+      properties:
+        name:
+          type: string
+    ProcessResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerProcessStatus'
+        progress:
+          type: number
+        name:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        stoppedAt:
+          type: string
+          format: date-time
+        startedBy:
+          $ref: '#/components/schemas/User'
+        category:
+          $ref: '#/components/schemas/Category'
+      required:
+        - id
+        - status
+        - startedAt
+    ProcessListResponseDto:
+      type: object
+      properties:
+        processes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessResponseDto'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - processes
+        - total
+    ProcessLog:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+      required:
+        - id
+        - message
+        - timestamp
+        - level
+    ProcessLogListResponseDto:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessLog'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - logs
+        - total
     ServerCategory:
       type: object
       properties:
@@ -2927,110 +3273,6 @@ components:
           type: string
       required:
         - name
-    ServerProcessStatus:
-      type: string
-      enum:
-        - UNKNOWN
-        - STARTED
-        - ONGOING
-        - CLOSED
-        - ENDED
-        - FAILED
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-        email:
-          type: string
-          format: email
-        firstName:
-          type: string
-        lastName:
-          type: string
-      required:
-        - id
-        - email
-    Category:
-      type: object
-      properties:
-        name:
-          type: string
-    ProcessResponseDto:
-      type: object
-      properties:
-        id:
-          type: string
-        status:
-          $ref: '#/components/schemas/ServerProcessStatus'
-        name:
-          type: string
-        startedAt:
-          type: string
-          format: date-time
-        stoppedAt:
-          type: string
-          format: date-time
-        startedBy:
-          $ref: '#/components/schemas/User'
-        category:
-          $ref: '#/components/schemas/Category'
-      required:
-        - id
-        - status
-        - startedAt
-    ProcessListResponseDto:
-      type: object
-      properties:
-        processes:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcessResponseDto'
-        total:
-          type: number
-        params:
-          $ref: '#/components/schemas/PaginationDto'
-      required:
-        - processes
-        - total
-    ProcessLogLevel:
-      type: string
-      enum:
-        - LOG
-        - SUCCESS
-        - WARNING
-        - ERROR
-    ProcessLog:
-      type: object
-      properties:
-        id:
-          type: string
-        message:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
-        level:
-          $ref: '#/components/schemas/ProcessLogLevel'
-      required:
-        - id
-        - message
-        - timestamp
-        - level
-    ProcessLogListResponseDto:
-      type: object
-      properties:
-        logs:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcessLog'
-        total:
-          type: number
-        params:
-          $ref: '#/components/schemas/PaginationDto'
-      required:
-        - logs
-        - total
     DimensionsDto:
       type: object
       properties:
@@ -3111,6 +3353,7 @@ components:
         - N8N
         - OPENAI
         - OTHER
+        - IMMICH
     SaveServiceTokenDto:
       type: object
       properties:
@@ -4484,3 +4727,50 @@ components:
           $ref: '#/components/schemas/PhotoEntryStatus'
       required:
         - status
+    ImmichStatusResponse:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        serverVersion:
+          type: string
+        baseUrl:
+          type: string
+      required:
+        - connected
+    CreateImmichAlbumDto:
+      type: object
+      properties:
+        photoEntryId:
+          type: string
+      required:
+        - photoEntryId
+    ImmichAlbumSyncResponse:
+      type: object
+      properties:
+        albumId:
+          type: string
+        albumName:
+          type: string
+        created:
+          type: boolean
+        assetsFound:
+          type: number
+        assetsAdded:
+          type: number
+        totalAlbumAssets:
+          type: number
+      required:
+        - albumId
+        - albumName
+        - created
+        - assetsFound
+        - assetsAdded
+        - totalAlbumAssets
+    RefreshImmichAlbumDto:
+      type: object
+      properties:
+        photoEntryId:
+          type: string
+      required:
+        - photoEntryId

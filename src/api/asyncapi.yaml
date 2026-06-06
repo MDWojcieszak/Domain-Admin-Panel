@@ -2,7 +2,9 @@ asyncapi: 2.6.0
 info:
   title: WHCP Server Messaging API
   version: '1.0'
-  description: RabbitMQ message contract (verification run).
+  description: >-
+    RabbitMQ message contract between the backend and remote servers (agents).
+    publish = Server → Backend, subscribe = Backend → Server.
 defaultContentType: application/json
 servers:
   rabbitmq:
