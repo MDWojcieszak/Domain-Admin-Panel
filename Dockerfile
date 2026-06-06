@@ -5,10 +5,12 @@ FROM node:22
 WORKDIR /app
 
 # Copy package.json and package-lock.json
-COPY package.json ./
+COPY package.json yarn.lock ./
 
 # Install dependencies
-RUN yarn install
+
+RUN corepack enable && yarn install --frozen-lockfile
+
 
 # # Rebuild native modules (such as argon2) inside the container
 # RUN yarn add argon2

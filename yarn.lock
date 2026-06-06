@@ -746,6 +746,13 @@
   resolved "https://registry.yarnpkg.com/@img/sharp-win32-x64/-/sharp-win32-x64-0.34.5.tgz#a81ffb00e69267cd0a1d626eaedb8a8430b2b2f8"
   integrity sha512-+29YMsqY2/9eFEiW93eqWnuLcWcufowXewwSNIT6UwZdUUCrM3oFjMWH/Z6/TMmb4hlFenmfAVbpWeup2jryCw==
 
+"@immich/sdk@^2.6.1":
+  version "2.6.1"
+  resolved "https://registry.yarnpkg.com/@immich/sdk/-/sdk-2.6.1.tgz#a3cf9fe79c8285c32b9ad1fc10e3e4b5b3345352"
+  integrity sha512-b8G0Qm8FZ4+D4IPq5cbXb3Lh3VvpUSnMf9Uz8nB4Yr8ivPG3TmGcw3lRsB00mdAPyQFuMqB8UL6LiMC6rtWy5Q==
+  dependencies:
+    "@oazapfts/runtime" "^1.0.2"
+
 "@isaacs/cliui@^8.0.2":
   version "8.0.2"
   resolved "https://registry.yarnpkg.com/@isaacs/cliui/-/cliui-8.0.2.tgz#b37667b7bc181c168782259bab42474fbf52b550"
@@ -1261,6 +1268,11 @@
     chalk "^4.1.0"
     consola "^2.15.0"
     node-fetch "^2.6.1"
+
+"@oazapfts/runtime@^1.0.2":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@oazapfts/runtime/-/runtime-1.2.0.tgz#2cb95a622fc49ca042b7f846f6e9480d33cd1619"
+  integrity sha512-fi7dp7dNayyh/vzqhf0ZdoPfC7tJvYfjaE8MBL1yR+iIsH7cFoqHt+DV70VU49OMCqLc7wQa+yVJcSmIRnV4wA==
 
 "@one-ini/wasm@0.1.1":
   version "0.1.1"
