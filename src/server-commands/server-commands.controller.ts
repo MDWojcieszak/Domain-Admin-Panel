@@ -11,7 +11,8 @@ import {
 import { ServerCommandsService } from './server-commands.service';
 import { CommandProgressMarkerService } from './command-progress-marker.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { GetCurrentUser, Public, Roles } from '../common/decorators';
+import { GetCurrentUser, Public, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { MessagePattern } from '@nestjs/microservices';
 import {
   CreateCommandProgressMarkerDto,
@@ -38,7 +39,7 @@ export class ServerCommandsController {
   ) {}
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.COMMAND_READ)
   @Get('all')
   @ApiOkResponse({
     type: CommandListResponseDto,
@@ -49,7 +50,7 @@ export class ServerCommandsController {
     return this.serverCommandsService.handleGet(dto);
   }
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.COMMAND_MANAGE)
   @Patch(':id')
   @ApiOkResponse({
     type: CommandResponseDto,
@@ -62,7 +63,7 @@ export class ServerCommandsController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.COMMAND_EXECUTE)
   @Post('send/:id')
   @ApiOkResponse({
     type: CommandExecuteResponseDto,
@@ -75,7 +76,7 @@ export class ServerCommandsController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.COMMAND_READ)
   @Get(':id/markers')
   @ApiOkResponse({
     type: CommandProgressMarkerListResponseDto,
@@ -87,7 +88,7 @@ export class ServerCommandsController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.COMMAND_MANAGE)
   @Post(':id/markers')
   @ApiOkResponse({
     type: CommandProgressMarkerResponseDto,
@@ -100,7 +101,7 @@ export class ServerCommandsController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.COMMAND_MANAGE)
   @Patch('markers/:markerId')
   @ApiOkResponse({
     type: CommandProgressMarkerResponseDto,
@@ -113,7 +114,7 @@ export class ServerCommandsController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.COMMAND_MANAGE)
   @Delete('markers/:markerId')
   @ApiOkResponse({
     type: CommandProgressMarkerResponseDto,

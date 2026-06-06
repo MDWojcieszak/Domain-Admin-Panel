@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { ServerSettingsService } from './server-settings.service';
-import { Public } from '../common/decorators';
+import { Public, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { MessagePattern } from '@nestjs/microservices';
 import {
   GetServerSettingsDto,
@@ -19,7 +20,7 @@ export class ServerSettingsController {
   constructor(private serverSettingsService: ServerSettingsService) {}
 
   @ApiBearerAuth()
-  @Public()
+  @RequirePermissions(PERMISSIONS.SETTINGS_READ)
   @Get()
   @ApiOkResponse({ type: ServerSettingsListResponseDto })
   async getSettings(
@@ -29,7 +30,7 @@ export class ServerSettingsController {
   }
 
   @ApiBearerAuth()
-  @Public()
+  @RequirePermissions(PERMISSIONS.SETTINGS_MANAGE)
   @Patch(':id')
   @ApiOkResponse({ type: ServerSettingsResponseDto })
   async putCommand(

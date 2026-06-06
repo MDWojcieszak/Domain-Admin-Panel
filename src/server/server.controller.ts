@@ -8,7 +8,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { ServerService } from './server.service';
-import { GetCurrentUser, Public, Roles } from '../common/decorators';
+import { GetCurrentUser, Public, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { MessagePattern } from '@nestjs/microservices';
 import {
   CreateCategoryDto,
@@ -37,7 +38,7 @@ export class ServerController {
   ) {}
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_READ)
   @Get('all')
   @ApiOkResponse({ type: ServerListResponseDto })
   async getAll(@Query() dto: PaginationDto): Promise<ServerListResponseDto> {
@@ -45,7 +46,7 @@ export class ServerController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_READ)
   @Get(':serverId')
   @ApiOkResponse({ type: ServerResponseDto })
   async get(@Param('serverId') serverId: string): Promise<ServerResponseDto> {
@@ -53,7 +54,7 @@ export class ServerController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_READ)
   @Get('details/:serverId')
   @ApiOkResponse({ type: ServerDetailsResponseDto })
   async getDetails(
@@ -63,7 +64,7 @@ export class ServerController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_POWER)
   @Patch(':serverId/start')
   @ApiOkResponse({ type: PowerServerResponseDto })
   async start(
@@ -74,7 +75,7 @@ export class ServerController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_POWER)
   @Patch(':serverId/stop')
   @ApiOkResponse({ type: PowerServerResponseDto })
   async stop(
@@ -85,7 +86,7 @@ export class ServerController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_POWER)
   @Patch(':serverId/reboot')
   @ApiOkResponse({ type: PowerServerResponseDto })
   async reboot(
@@ -96,7 +97,7 @@ export class ServerController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_DISK_MANAGE)
   @Patch('disk/:id')
   @ApiOkResponse({ description: 'Changed correctly' })
   async patchDisk(@Param('id') id: string, @Body() dto: PatchDiskDto) {
@@ -104,7 +105,7 @@ export class ServerController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_CATEGORY_MANAGE)
   @Post('catgory')
   @ApiOkResponse({ description: 'Changed correctly' })
   async createCategory(
@@ -115,7 +116,7 @@ export class ServerController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.SERVER_CATEGORY_MANAGE)
   @Patch('catgory/:id')
   @ApiOkResponse({ description: 'Changed correctly' })
   async patchCategory(@Param('id') id: string, @Body() dto: PatchCategoryDto) {

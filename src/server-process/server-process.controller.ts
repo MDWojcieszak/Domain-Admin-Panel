@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ServerProcessService } from './server-process.service';
-import { Public, Roles } from '../common/decorators';
+import { Public, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { EventPattern, MessagePattern } from '@nestjs/microservices';
 import {
   ProcessStatusDto,
@@ -19,7 +20,7 @@ export class ServerProcessController {
   constructor(private serverProcessService: ServerProcessService) {}
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.PROCESS_READ)
   @Get('all')
   @ApiOkResponse({
     type: ProcessListResponseDto,
@@ -29,7 +30,7 @@ export class ServerProcessController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.PROCESS_READ)
   @Get(':id')
   @ApiOkResponse({
     type: ProcessResponseDto,
@@ -39,7 +40,7 @@ export class ServerProcessController {
   }
 
   @ApiBearerAuth()
-  @Roles('ADMIN', 'OWNER')
+  @RequirePermissions(PERMISSIONS.PROCESS_READ)
   @Get(':id/logs')
   @ApiOkResponse({
     type: ProcessLogListResponseDto,

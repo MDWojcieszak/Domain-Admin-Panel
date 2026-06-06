@@ -6,7 +6,8 @@ import { ServerTransferService } from './server-transfer.service';
 import { CreateServerTransferDto } from './dto/create-server-transfer.dto';
 import { PatchServerTransferDto } from './dto/patch-server-transfer.dto';
 import { ServerTransferResponse } from './responses/server-transfer.response';
-import { Public, ReplyType, Roles } from '../common/decorators';
+import { Public, ReplyType, RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { ServerTransferListResponse } from './responses';
 import {
   GetServerTransfersForAgentDto,
@@ -18,7 +19,7 @@ export class ServerTransferController {
   constructor(private readonly serverTransferService: ServerTransferService) {}
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.TRANSFER_READ)
   @Get('category/:id')
   @ApiOkResponse({
     description: 'List transfers by category',
@@ -31,7 +32,7 @@ export class ServerTransferController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.TRANSFER_MANAGE)
   @Post('category/:id')
   @ApiOkResponse({
     description: 'Created transfer',
@@ -45,7 +46,7 @@ export class ServerTransferController {
   }
 
   @ApiBearerAuth()
-  @Roles('OWNER')
+  @RequirePermissions(PERMISSIONS.TRANSFER_MANAGE)
   @Patch(':id')
   @ApiOkResponse({
     description: 'Patched transfer',
