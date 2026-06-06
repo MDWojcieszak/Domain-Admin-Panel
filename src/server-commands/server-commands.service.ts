@@ -18,14 +18,12 @@ import { CommandContext } from '../common/types';
 import { UpdateServerCommandDto } from './dto/update-server-command.dto';
 import { CommandType } from '@prisma/client';
 import { ServerOutboundMessagingService } from '../server-outbound/server-outbound-messaging.service';
-import { ServerProcessService } from '../server-process/server-process.service';
 
 @Injectable()
 export class ServerCommandsService {
   constructor(
     private prisma: PrismaService,
     private readonly outbound: ServerOutboundMessagingService,
-    private readonly serverProcessService: ServerProcessService,
   ) {}
 
   async handleGet(dto: GetServerCommandsDto) {
@@ -138,6 +136,8 @@ export class ServerCommandsService {
     }
   }
 
+  // Command runtime state lives on the Process now; the agent only toggles the
+  // command's config availability (ENABLED/DISABLED) through this message.
   async handleUpdateCommand(dto: UpdateServerCommandDto) {
     const command = await this.prisma.serverCommand.findFirst({
       where: {
@@ -147,15 +147,19 @@ export class ServerCommandsService {
           server: { name: dto.serverName },
         },
       },
+      select: { id: true },
     });
     if (!command)
       throw new Error(`Failed to update server command: ${dto.commandName}`);
 
-    await this.serverProcessService.applyCommandRuntimeStatus(command.id, {
-      runtimeStatus: dto.runtimeStatus,
-      runningProgress: dto.runningProgress,
-      status: dto.status,
-    });
+    if (dto.status !== undefined) {
+      await this.prisma.serverCommand.update({
+        where: { id: command.id },
+        data: { status: dto.status },
+      });
+    }
+
+    return { success: true };
   }
 
   async get(id: string) {

@@ -1,9 +1,5 @@
-import {
-  CommandRuntimeStatus,
-  CommandStatus,
-  CommandType,
-} from '@prisma/client';
-import { IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
+import { CommandStatus, CommandType } from '@prisma/client';
+import { IsEnum, IsString } from 'nestjs-swagger-dto';
 
 export class CommandResponseDto {
   @IsString()
@@ -17,12 +13,6 @@ export class CommandResponseDto {
 
   @IsEnum({ enum: { CommandStatus } })
   status: CommandStatus;
-
-  @IsEnum({ enum: { CommandRuntimeStatus } })
-  runtimeStatus: CommandRuntimeStatus;
-
-  @IsNumber({ optional: true })
-  runningProgress?: number;
 
   @IsEnum({ enum: { CommandType } })
   type: CommandType;
