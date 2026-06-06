@@ -1,9 +1,34 @@
-export class SetSettingEvent {
-  constructor(
-    public readonly serverName: string,
+import { IsString } from 'nestjs-swagger-dto';
 
-    public readonly name: string,
-    public readonly value: string,
-    public readonly category: string,
-  ) {}
+import { OutboundMessage } from '../../common/decorators';
+
+@OutboundMessage({
+  pattern: 'setting.set',
+  interaction: 'event',
+  summary: 'Push a single setting value to the server agent.',
+})
+export class SetSettingEvent {
+  @IsString()
+  serverName: string;
+
+  @IsString()
+  name: string;
+
+  @IsString()
+  value: string;
+
+  @IsString()
+  category: string;
+
+  constructor(
+    serverName: string,
+    name: string,
+    value: string,
+    category: string,
+  ) {
+    this.serverName = serverName;
+    this.name = name;
+    this.value = value;
+    this.category = category;
+  }
 }
