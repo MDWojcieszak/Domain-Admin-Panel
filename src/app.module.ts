@@ -41,6 +41,7 @@ import { ImmichModule } from './immich/immich.module';
 import { ApiDocsModule } from './api-docs/api-docs.module';
 import { AclModule } from './acl/acl.module';
 import { AclCoreModule } from './common/acl/acl-core.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { AclCoreModule } from './common/acl/acl-core.module';
     ApiDocsModule,
     AclModule,
     AclCoreModule,
+    DashboardModule,
   ],
   providers: [
     {

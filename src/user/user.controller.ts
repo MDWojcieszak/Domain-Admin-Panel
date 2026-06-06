@@ -5,8 +5,17 @@ import { PERMISSIONS } from '../common/acl/permissions';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../common/dto';
 import { User } from '@prisma/client';
-import { UserListResponseDto, UserResponseDto } from './responses';
-import { PatchUserAdminDto, PatchUserDto, UserDto } from './dto';
+import {
+  UserListResponseDto,
+  UserResponseDto,
+  UserSettingsResponseDto,
+} from './responses';
+import {
+  PatchUserAdminDto,
+  PatchUserDto,
+  PatchUserSettingsDto,
+  UserDto,
+} from './dto';
 
 @ApiTags('User')
 @Controller('user')
@@ -38,6 +47,29 @@ export class UserController {
     @Body() data: Partial<PatchUserDto>,
   ): Promise<UserResponseDto> {
     return this.userService.update(userId, data);
+  }
+
+  @Get('settings')
+  @ApiOkResponse({
+    description: 'Current user settings',
+    type: UserSettingsResponseDto,
+  })
+  getSettings(
+    @GetCurrentUser('sub') userId: string,
+  ): Promise<UserSettingsResponseDto> {
+    return this.userService.getSettings(userId);
+  }
+
+  @Patch('settings')
+  @ApiOkResponse({
+    description: 'User settings updated',
+    type: UserSettingsResponseDto,
+  })
+  updateSettings(
+    @GetCurrentUser('sub') userId: string,
+    @Body() data: PatchUserSettingsDto,
+  ): Promise<UserSettingsResponseDto> {
+    return this.userService.updateSettings(userId, data);
   }
 
   @Patch('role')

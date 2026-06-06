@@ -41,3 +41,6 @@ lerna-debug.log*
 public/image/cover/*
 public/image/low_res/*
 public/image/original/*
+
+# local docs / briefs
+/docs

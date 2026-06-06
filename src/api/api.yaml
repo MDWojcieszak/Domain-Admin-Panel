@@ -221,7 +221,7 @@ paths:
         - JWT-register-user: []
   /auth/check-register:
     post:
-      operationId: AuthController_handleUserCreatedEvent
+      operationId: AuthController_checkRegister
       summary: Check if registration token is valid
       parameters: []
       responses:
@@ -298,6 +298,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponseDto'
+      tags: *ref_3
+      security: *ref_4
+  /user/settings:
+    get:
+      operationId: UserController_getSettings
+      parameters: []
+      responses:
+        '200':
+          description: Current user settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponseDto'
+      tags: *ref_3
+      security: *ref_4
+    patch:
+      operationId: UserController_updateSettings
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchUserSettingsDto'
+      responses:
+        '200':
+          description: User settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponseDto'
       tags: *ref_3
       security: *ref_4
   /user/role:
@@ -615,193 +646,6 @@ paths:
         - File
       security:
         - bearer: []
-  /server/all:
-    get:
-      operationId: ServerController_getAll
-      parameters:
-        - name: take
-          required: false
-          in: query
-          schema:
-            minimum: 1
-            maximum: 20
-            type: number
-        - name: skip
-          required: false
-          in: query
-          schema:
-            minimum: 0
-            default: 0
-            type: number
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ServerListResponseDto'
-      tags: &ref_8
-        - Server
-      security:
-        - bearer: []
-  /server/{serverId}:
-    get:
-      operationId: ServerController_get
-      parameters:
-        - name: serverId
-          required: true
-          in: path
-          schema:
-            type: string
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ServerResponseDto'
-      tags: *ref_8
-      security:
-        - bearer: []
-  /server/details/{serverId}:
-    get:
-      operationId: ServerController_getDetails
-      parameters:
-        - name: serverId
-          required: true
-          in: path
-          schema:
-            type: string
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ServerDetailsResponseDto'
-      tags: *ref_8
-      security:
-        - bearer: []
-  /server/{serverId}/start:
-    patch:
-      operationId: ServerController_start
-      parameters:
-        - name: serverId
-          required: true
-          in: path
-          schema:
-            type: string
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PowerServerResponseDto'
-      tags: *ref_8
-      security:
-        - bearer: []
-  /server/{serverId}/stop:
-    patch:
-      operationId: ServerController_stop
-      parameters:
-        - name: serverId
-          required: true
-          in: path
-          schema:
-            type: string
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PowerServerResponseDto'
-      tags: *ref_8
-      security:
-        - bearer: []
-  /server/{serverId}/reboot:
-    patch:
-      operationId: ServerController_reboot
-      parameters:
-        - name: serverId
-          required: true
-          in: path
-          schema:
-            type: string
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PowerServerResponseDto'
-      tags: *ref_8
-      security:
-        - bearer: []
-  /server/disk/{id}:
-    patch:
-      operationId: ServerController_patchDisk
-      parameters:
-        - name: id
-          required: true
-          in: path
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchDiskDto'
-      responses:
-        '200':
-          description: Changed correctly
-      tags: *ref_8
-      security:
-        - bearer: []
-  /server/{serverId}/category:
-    post:
-      operationId: ServerController_createCategory
-      parameters:
-        - name: serverId
-          required: true
-          in: path
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCategoryDto'
-      responses:
-        '200':
-          description: Changed correctly
-      tags: *ref_8
-      security:
-        - bearer: []
-  /server/category/{id}:
-    patch:
-      operationId: ServerController_patchCategory
-      parameters:
-        - name: id
-          required: true
-          in: path
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchCategoryDto'
-      responses:
-        '200':
-          description: Changed correctly
-      tags: *ref_8
-      security:
-        - bearer: []
   /server/commands/all:
     get:
       operationId: ServerCommandsController_getCommands
@@ -818,7 +662,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandListResponseDto'
-      tags: &ref_9
+      tags: &ref_8
         - Server
       security:
         - bearer: []
@@ -844,7 +688,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandResponseDto'
-      tags: *ref_9
+      tags: *ref_8
       security:
         - bearer: []
   /server/commands/send/{id}:
@@ -863,7 +707,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandExecuteResponseDto'
-      tags: *ref_9
+      tags: *ref_8
       security:
         - bearer: []
   /server/commands/{id}/markers:
@@ -882,7 +726,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandProgressMarkerListResponseDto'
-      tags: *ref_9
+      tags: *ref_8
       security:
         - bearer: []
     post:
@@ -906,7 +750,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
-      tags: *ref_9
+      tags: *ref_8
       security:
         - bearer: []
   /server/commands/markers/{markerId}:
@@ -931,7 +775,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
-      tags: *ref_9
+      tags: *ref_8
       security:
         - bearer: []
     delete:
@@ -949,7 +793,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
-      tags: *ref_9
+      tags: *ref_8
       security:
         - bearer: []
   /server/process/all:
@@ -977,7 +821,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessListResponseDto'
-      tags: &ref_10
+      tags: &ref_9
         - Server
       security:
         - bearer: []
@@ -997,7 +841,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessResponseDto'
-      tags: *ref_10
+      tags: *ref_9
+      security:
+        - bearer: []
+    delete:
+      operationId: ServerProcessController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Process deleted
+      tags: *ref_9
       security:
         - bearer: []
   /server/process/{id}/logs:
@@ -1030,7 +888,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessLogListResponseDto'
-      tags: *ref_10
+      tags: *ref_9
       security:
         - bearer: []
   /server/settings:
@@ -1054,7 +912,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerSettingsListResponseDto'
-      tags: &ref_11
+      tags: &ref_10
         - Server
       security:
         - bearer: []
@@ -1080,6 +938,193 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerSettingsResponseDto'
+      tags: *ref_10
+      security:
+        - bearer: []
+  /server/all:
+    get:
+      operationId: ServerController_getAll
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerListResponseDto'
+      tags: &ref_11
+        - Server
+      security:
+        - bearer: []
+  /server/{serverId}:
+    get:
+      operationId: ServerController_get
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerResponseDto'
+      tags: *ref_11
+      security:
+        - bearer: []
+  /server/details/{serverId}:
+    get:
+      operationId: ServerController_getDetails
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerDetailsResponseDto'
+      tags: *ref_11
+      security:
+        - bearer: []
+  /server/{serverId}/start:
+    patch:
+      operationId: ServerController_start
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerServerResponseDto'
+      tags: *ref_11
+      security:
+        - bearer: []
+  /server/{serverId}/stop:
+    patch:
+      operationId: ServerController_stop
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerServerResponseDto'
+      tags: *ref_11
+      security:
+        - bearer: []
+  /server/{serverId}/reboot:
+    patch:
+      operationId: ServerController_reboot
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerServerResponseDto'
+      tags: *ref_11
+      security:
+        - bearer: []
+  /server/disk/{id}:
+    patch:
+      operationId: ServerController_patchDisk
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchDiskDto'
+      responses:
+        '200':
+          description: Changed correctly
+      tags: *ref_11
+      security:
+        - bearer: []
+  /server/{serverId}/category:
+    post:
+      operationId: ServerController_createCategory
+      parameters:
+        - name: serverId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryDto'
+      responses:
+        '200':
+          description: Changed correctly
+      tags: *ref_11
+      security:
+        - bearer: []
+  /server/category/{id}:
+    patch:
+      operationId: ServerController_patchCategory
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchCategoryDto'
+      responses:
+        '200':
+          description: Changed correctly
       tags: *ref_11
       security:
         - bearer: []
@@ -2466,6 +2511,52 @@ paths:
                 $ref: '#/components/schemas/PermissionGroupListResponseDto'
       tags: *ref_30
       security: *ref_31
+  /dashboard:
+    get:
+      operationId: DashboardController_getOverview
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponseDto'
+      tags: &ref_32
+        - Dashboard
+      security: &ref_33
+        - bearer: []
+  /dashboard/gallery:
+    get:
+      operationId: DashboardController_getGallery
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardGalleryResponseDto'
+      tags: *ref_32
+      security: *ref_33
+  /dashboard/trends:
+    get:
+      operationId: DashboardController_getTrends
+      parameters:
+        - name: range
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/TrendsRange'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardTrendsResponseDto'
+      tags: *ref_32
+      security: *ref_33
 info:
   title: WHCP Backend
   description: XD
@@ -2787,6 +2878,41 @@ components:
       required:
         - users
         - total
+    UserSettingsResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        serverStatusEmailNotifications:
+          type: boolean
+        serverIdleEmailNotifications:
+          type: boolean
+        serverPushNotifications:
+          type: boolean
+        processEmailNotifications:
+          type: boolean
+        processPushNotifications:
+          type: boolean
+      required:
+        - id
+        - serverStatusEmailNotifications
+        - serverIdleEmailNotifications
+        - serverPushNotifications
+        - processEmailNotifications
+        - processPushNotifications
+    PatchUserSettingsDto:
+      type: object
+      properties:
+        serverStatusEmailNotifications:
+          type: boolean
+        serverIdleEmailNotifications:
+          type: boolean
+        serverPushNotifications:
+          type: boolean
+        processEmailNotifications:
+          type: boolean
+        processPushNotifications:
+          type: boolean
     PatchUserAdminDto:
       type: object
       properties:
@@ -2919,6 +3045,322 @@ components:
           description: URL to the low-res image
       required:
         - id
+    CommandStatus:
+      type: string
+      enum:
+        - ENABLED
+        - DISABLED
+        - RUNNING
+    CommandType:
+      type: string
+      enum:
+        - MESSAGE
+        - EVENT
+    CommandResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        status:
+          $ref: '#/components/schemas/CommandStatus'
+        type:
+          $ref: '#/components/schemas/CommandType'
+      required:
+        - id
+        - value
+        - status
+        - type
+    CommandListResponseDto:
+      type: object
+      properties:
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommandResponseDto'
+        total:
+          type: number
+      required:
+        - commands
+        - total
+    PatchServerCommandDto:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    CommandExecuteResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+    CommandMatchType:
+      type: string
+      enum:
+        - CONTAINS
+        - STARTS_WITH
+        - REGEX
+    CommandRuntimeStatus:
+      type: string
+      enum:
+        - IDLE
+        - STARTING
+        - RUNNING
+        - STOPPING
+        - STOPPED
+        - ERROR
+    ProcessLogLevel:
+      type: string
+      enum:
+        - LOG
+        - SUCCESS
+        - WARNING
+        - ERROR
+    CommandProgressMarkerResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        commandId:
+          type: string
+        label:
+          type: string
+        pattern:
+          type: string
+        matchType:
+          $ref: '#/components/schemas/CommandMatchType'
+        progress:
+          type: number
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+        order:
+          type: number
+      required:
+        - id
+        - commandId
+        - pattern
+        - matchType
+        - order
+    CommandProgressMarkerListResponseDto:
+      type: object
+      properties:
+        markers:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
+        total:
+          type: number
+      required:
+        - markers
+        - total
+    CreateCommandProgressMarkerDto:
+      type: object
+      properties:
+        label:
+          type: string
+        pattern:
+          type: string
+        matchType:
+          $ref: '#/components/schemas/CommandMatchType'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+        order:
+          type: number
+          minimum: 0
+      required:
+        - pattern
+    UpdateCommandProgressMarkerDto:
+      type: object
+      properties:
+        label:
+          type: string
+        pattern:
+          type: string
+        matchType:
+          $ref: '#/components/schemas/CommandMatchType'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+        order:
+          type: number
+          minimum: 0
+    ServerProcessStatus:
+      type: string
+      enum:
+        - UNKNOWN
+        - STARTED
+        - ONGOING
+        - CLOSED
+        - ENDED
+        - FAILED
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+      required:
+        - id
+        - email
+    Category:
+      type: object
+      properties:
+        name:
+          type: string
+    ProcessResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerProcessStatus'
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        progress:
+          type: number
+        name:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        stoppedAt:
+          type: string
+          format: date-time
+        startedBy:
+          $ref: '#/components/schemas/User'
+        category:
+          $ref: '#/components/schemas/Category'
+      required:
+        - id
+        - status
+        - runtimeStatus
+        - startedAt
+    ProcessListResponseDto:
+      type: object
+      properties:
+        processes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessResponseDto'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - processes
+        - total
+    ProcessLog:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+      required:
+        - id
+        - message
+        - timestamp
+        - level
+    ProcessLogListResponseDto:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessLog'
+        total:
+          type: number
+        params:
+          $ref: '#/components/schemas/PaginationDto'
+      required:
+        - logs
+        - total
+    ServerCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+    SettingType:
+      type: string
+      enum:
+        - STRING
+        - NUMBER
+    ServerSettingsResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        serverCategory:
+          $ref: '#/components/schemas/ServerCategory'
+        name:
+          type: string
+        serverName:
+          type: string
+        value:
+          type: string
+        type:
+          $ref: '#/components/schemas/SettingType'
+      required:
+        - id
+        - serverCategory
+        - serverName
+        - value
+        - type
+    ServerSettingsListResponseDto:
+      type: object
+      properties:
+        settings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerSettingsResponseDto'
+        total:
+          type: number
+      required:
+        - settings
+        - total
+    PatchServerSettingDto:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      required:
+        - name
     ServerResponseDto:
       type: object
       properties:
@@ -3111,325 +3553,6 @@ components:
       properties:
         name:
           type: string
-    CommandStatus:
-      type: string
-      enum:
-        - ENABLED
-        - DISABLED
-        - RUNNING
-    CommandRuntimeStatus:
-      type: string
-      enum:
-        - IDLE
-        - STARTING
-        - RUNNING
-        - STOPPING
-        - STOPPED
-        - ERROR
-    CommandType:
-      type: string
-      enum:
-        - MESSAGE
-        - EVENT
-    CommandResponseDto:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        value:
-          type: string
-        status:
-          $ref: '#/components/schemas/CommandStatus'
-        runtimeStatus:
-          $ref: '#/components/schemas/CommandRuntimeStatus'
-        runningProgress:
-          type: number
-        type:
-          $ref: '#/components/schemas/CommandType'
-      required:
-        - id
-        - value
-        - status
-        - runtimeStatus
-        - type
-    CommandListResponseDto:
-      type: object
-      properties:
-        commands:
-          type: array
-          items:
-            $ref: '#/components/schemas/CommandResponseDto'
-        total:
-          type: number
-      required:
-        - commands
-        - total
-    PatchServerCommandDto:
-      type: object
-      properties:
-        name:
-          type: string
-      required:
-        - name
-    CommandExecuteResponseDto:
-      type: object
-      properties:
-        success:
-          type: boolean
-      required:
-        - success
-    CommandMatchType:
-      type: string
-      enum:
-        - CONTAINS
-        - STARTS_WITH
-        - REGEX
-    ProcessLogLevel:
-      type: string
-      enum:
-        - LOG
-        - SUCCESS
-        - WARNING
-        - ERROR
-    CommandProgressMarkerResponseDto:
-      type: object
-      properties:
-        id:
-          type: string
-        commandId:
-          type: string
-        label:
-          type: string
-        pattern:
-          type: string
-        matchType:
-          $ref: '#/components/schemas/CommandMatchType'
-        progress:
-          type: number
-        runtimeStatus:
-          $ref: '#/components/schemas/CommandRuntimeStatus'
-        level:
-          $ref: '#/components/schemas/ProcessLogLevel'
-        order:
-          type: number
-      required:
-        - id
-        - commandId
-        - pattern
-        - matchType
-        - order
-    CommandProgressMarkerListResponseDto:
-      type: object
-      properties:
-        markers:
-          type: array
-          items:
-            $ref: '#/components/schemas/CommandProgressMarkerResponseDto'
-        total:
-          type: number
-      required:
-        - markers
-        - total
-    CreateCommandProgressMarkerDto:
-      type: object
-      properties:
-        label:
-          type: string
-        pattern:
-          type: string
-        matchType:
-          $ref: '#/components/schemas/CommandMatchType'
-        progress:
-          type: number
-          minimum: 0
-          maximum: 100
-        runtimeStatus:
-          $ref: '#/components/schemas/CommandRuntimeStatus'
-        level:
-          $ref: '#/components/schemas/ProcessLogLevel'
-        order:
-          type: number
-          minimum: 0
-      required:
-        - pattern
-    UpdateCommandProgressMarkerDto:
-      type: object
-      properties:
-        label:
-          type: string
-        pattern:
-          type: string
-        matchType:
-          $ref: '#/components/schemas/CommandMatchType'
-        progress:
-          type: number
-          minimum: 0
-          maximum: 100
-        runtimeStatus:
-          $ref: '#/components/schemas/CommandRuntimeStatus'
-        level:
-          $ref: '#/components/schemas/ProcessLogLevel'
-        order:
-          type: number
-          minimum: 0
-    ServerProcessStatus:
-      type: string
-      enum:
-        - UNKNOWN
-        - STARTED
-        - ONGOING
-        - CLOSED
-        - ENDED
-        - FAILED
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-        email:
-          type: string
-          format: email
-        firstName:
-          type: string
-        lastName:
-          type: string
-      required:
-        - id
-        - email
-    Category:
-      type: object
-      properties:
-        name:
-          type: string
-    ProcessResponseDto:
-      type: object
-      properties:
-        id:
-          type: string
-        status:
-          $ref: '#/components/schemas/ServerProcessStatus'
-        progress:
-          type: number
-        name:
-          type: string
-        startedAt:
-          type: string
-          format: date-time
-        stoppedAt:
-          type: string
-          format: date-time
-        startedBy:
-          $ref: '#/components/schemas/User'
-        category:
-          $ref: '#/components/schemas/Category'
-      required:
-        - id
-        - status
-        - startedAt
-    ProcessListResponseDto:
-      type: object
-      properties:
-        processes:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcessResponseDto'
-        total:
-          type: number
-        params:
-          $ref: '#/components/schemas/PaginationDto'
-      required:
-        - processes
-        - total
-    ProcessLog:
-      type: object
-      properties:
-        id:
-          type: string
-        message:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
-        level:
-          $ref: '#/components/schemas/ProcessLogLevel'
-      required:
-        - id
-        - message
-        - timestamp
-        - level
-    ProcessLogListResponseDto:
-      type: object
-      properties:
-        logs:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcessLog'
-        total:
-          type: number
-        params:
-          $ref: '#/components/schemas/PaginationDto'
-      required:
-        - logs
-        - total
-    ServerCategory:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-      required:
-        - id
-        - name
-    SettingType:
-      type: string
-      enum:
-        - STRING
-        - NUMBER
-    ServerSettingsResponseDto:
-      type: object
-      properties:
-        id:
-          type: string
-        serverCategory:
-          $ref: '#/components/schemas/ServerCategory'
-        name:
-          type: string
-        serverName:
-          type: string
-        value:
-          type: string
-        type:
-          $ref: '#/components/schemas/SettingType'
-      required:
-        - id
-        - serverCategory
-        - serverName
-        - value
-        - type
-    ServerSettingsListResponseDto:
-      type: object
-      properties:
-        settings:
-          type: array
-          items:
-            $ref: '#/components/schemas/ServerSettingsResponseDto'
-        total:
-          type: number
-      required:
-        - settings
-        - total
-    PatchServerSettingDto:
-      type: object
-      properties:
-        name:
-          type: string
-        value:
-          type: string
-      required:
-        - name
     DimensionsDto:
       type: object
       properties:
@@ -5044,3 +5167,290 @@ components:
             type: string
       required:
         - groupIds
+    DashboardServersDto:
+      type: object
+      properties:
+        total:
+          type: number
+        online:
+          type: number
+        offline:
+          type: number
+      required:
+        - total
+        - online
+        - offline
+    DashboardRecentProcessDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerProcessStatus'
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        progress:
+          type: number
+        startedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - status
+        - runtimeStatus
+        - startedAt
+    DashboardProcessesDto:
+      type: object
+      properties:
+        total:
+          type: number
+        running:
+          type: number
+        failed:
+          type: number
+        recent:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardRecentProcessDto'
+      required:
+        - total
+        - running
+        - failed
+        - recent
+    DashboardUsersDto:
+      type: object
+      properties:
+        total:
+          type: number
+      required:
+        - total
+    CountByDto:
+      type: object
+      properties:
+        key:
+          type: string
+        count:
+          type: number
+      required:
+        - key
+        - count
+    DashboardPhotoEntriesDto:
+      type: object
+      properties:
+        total:
+          type: number
+        byType:
+          type: array
+          items:
+            $ref: '#/components/schemas/CountByDto'
+        byStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/CountByDto'
+      required:
+        - total
+        - byType
+        - byStatus
+    DashboardTransfersDto:
+      type: object
+      properties:
+        total:
+          type: number
+        running:
+          type: number
+        failed:
+          type: number
+      required:
+        - total
+        - running
+        - failed
+    DashboardResponseDto:
+      type: object
+      properties:
+        servers:
+          $ref: '#/components/schemas/DashboardServersDto'
+        processes:
+          $ref: '#/components/schemas/DashboardProcessesDto'
+        users:
+          $ref: '#/components/schemas/DashboardUsersDto'
+        photoEntries:
+          $ref: '#/components/schemas/DashboardPhotoEntriesDto'
+        transfers:
+          $ref: '#/components/schemas/DashboardTransfersDto'
+      required:
+        - servers
+        - processes
+        - users
+        - photoEntries
+        - transfers
+    GalleryTotalsDto:
+      type: object
+      properties:
+        images:
+          type: number
+        catalogued:
+          type: number
+        missingMetadata:
+          type: number
+      required:
+        - images
+        - catalogued
+        - missingMetadata
+    GalleryCompletenessDto:
+      type: object
+      properties:
+        withoutAuthor:
+          type: number
+        withoutTitle:
+          type: number
+        withoutDescription:
+          type: number
+      required:
+        - withoutAuthor
+        - withoutTitle
+        - withoutDescription
+    GalleryAuthorDto:
+      type: object
+      properties:
+        authorId:
+          type: string
+        name:
+          type: string
+        count:
+          type: number
+      required:
+        - authorId
+        - name
+        - count
+    GalleryLocalizationDto:
+      type: object
+      properties:
+        key:
+          type: string
+        count:
+          type: number
+      required:
+        - key
+        - count
+    GalleryRecentDto:
+      type: object
+      properties:
+        imageId:
+          type: string
+        title:
+          type: string
+        dateTaken:
+          type: string
+          format: date-time
+        localization:
+          type: string
+        author:
+          type: string
+      required:
+        - imageId
+        - dateTaken
+        - localization
+    DashboardGalleryResponseDto:
+      type: object
+      properties:
+        totals:
+          $ref: '#/components/schemas/GalleryTotalsDto'
+        completeness:
+          $ref: '#/components/schemas/GalleryCompletenessDto'
+        byAuthor:
+          type: array
+          items:
+            $ref: '#/components/schemas/GalleryAuthorDto'
+        byLocalization:
+          type: array
+          items:
+            $ref: '#/components/schemas/GalleryLocalizationDto'
+        recent:
+          type: array
+          items:
+            $ref: '#/components/schemas/GalleryRecentDto'
+      required:
+        - totals
+        - completeness
+        - byAuthor
+        - byLocalization
+        - recent
+    TrendsRange:
+      type: string
+      enum:
+        - 7d
+        - 30d
+    DailyPointDto:
+      type: object
+      properties:
+        date:
+          type: string
+        count:
+          type: number
+      required:
+        - date
+        - count
+    MonthlyPointDto:
+      type: object
+      properties:
+        period:
+          type: string
+        count:
+          type: number
+      required:
+        - period
+        - count
+    ProcessPointDto:
+      type: object
+      properties:
+        date:
+          type: string
+        total:
+          type: number
+        failed:
+          type: number
+      required:
+        - date
+        - total
+        - failed
+    TrendsSeriesDto:
+      type: object
+      properties:
+        imagesAdded:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyPointDto'
+        photosByTaken:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyPointDto'
+        photoEntriesCreated:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyPointDto'
+        processes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessPointDto'
+        newUsers:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyPointDto'
+      required:
+        - imagesAdded
+        - photosByTaken
+        - photoEntriesCreated
+        - processes
+        - newUsers
+    DashboardTrendsResponseDto:
+      type: object
+      properties:
+        range:
+          type: string
+        series:
+          $ref: '#/components/schemas/TrendsSeriesDto'
+      required:
+        - range
+        - series

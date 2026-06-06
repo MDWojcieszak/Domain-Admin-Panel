@@ -297,15 +297,6 @@ components:
         - ENABLED
         - DISABLED
         - RUNNING
-    CommandRuntimeStatus:
-      type: string
-      enum:
-        - IDLE
-        - STARTING
-        - RUNNING
-        - STOPPING
-        - STOPPED
-        - ERROR
     UpdateServerCommandDto:
       type: object
       properties:
@@ -315,12 +306,8 @@ components:
           type: string
         category:
           type: string
-        runningProgress:
-          type: number
         status:
           $ref: '#/components/schemas/CommandStatus'
-        runtimeStatus:
-          $ref: '#/components/schemas/CommandRuntimeStatus'
       required:
         - serverName
         - commandName

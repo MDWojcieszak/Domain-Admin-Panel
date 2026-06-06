@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { AccountStatus, User, Prisma } from '@prisma/client';
+import { AccountStatus, User, Prisma, UserSettings } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UserDto } from 'src/user/dto';
+import { PatchUserSettingsDto, UserDto } from 'src/user/dto';
 import { PaginationDto } from '../common/dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserCreatedEvent } from './events';
@@ -41,6 +41,25 @@ export class UserService {
     });
     delete res.hashPassword;
     return res;
+  }
+
+  async getSettings(userId: string): Promise<UserSettings> {
+    return this.prisma.userSettings.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
+  }
+
+  async updateSettings(
+    userId: string,
+    data: PatchUserSettingsDto,
+  ): Promise<UserSettings> {
+    return this.prisma.userSettings.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: data,
+    });
   }
 
   async getMultiple(dto: PaginationDto) {

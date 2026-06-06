@@ -49,6 +49,7 @@ export class ImageController {
   }
 
   @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.GALLERY_MANAGE)
   @Post('create')
   @ApiOkResponse({
     description: 'Create image metadata',
@@ -62,6 +63,7 @@ export class ImageController {
   }
 
   @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.GALLERY_MANAGE)
   @Put()
   @ApiOkResponse({
     description: 'Update image metadata',
@@ -117,7 +119,7 @@ export class ImageController {
   }
 
   @ApiBearerAuth()
-  @RequirePermissions(PERMISSIONS.IMAGE_DELETE)
+  @RequirePermissions(PERMISSIONS.GALLERY_MANAGE)
   @Delete()
   @ApiOkResponse({ description: 'Delete image' })
   async delete(@Query() dto: ImageDto) {

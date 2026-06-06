@@ -30,7 +30,7 @@ export const PERMISSIONS = {
 
   SESSION_READ: 'session.read',
 
-  IMAGE_DELETE: 'image.delete',
+  GALLERY_MANAGE: 'gallery.manage',
 
   PHOTO_ENTRY_READ: 'photoEntry.read',
   PHOTO_ENTRY_MANAGE: 'photoEntry.manage',
@@ -40,6 +40,8 @@ export const PERMISSIONS = {
 
   AI_MANAGE: 'ai.manage',
   OCR_USE: 'ocr.use',
+
+  DASHBOARD_READ: 'dashboard.read',
 
   ACL_MANAGE: 'acl.manage',
   ACL_ASSIGN: 'acl.assign',
@@ -91,7 +93,7 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
 
   { key: PERMISSIONS.SESSION_READ, resource: 'session', description: "View other users' sessions" },
 
-  { key: PERMISSIONS.IMAGE_DELETE, resource: 'image', description: 'Delete images' },
+  { key: PERMISSIONS.GALLERY_MANAGE, resource: 'gallery', description: 'Manage gallery images (create, edit, delete); reads are public' },
 
   { key: PERMISSIONS.PHOTO_ENTRY_READ, resource: 'photoEntry', description: 'View photo entries' },
   { key: PERMISSIONS.PHOTO_ENTRY_MANAGE, resource: 'photoEntry', description: 'Create, edit and delete photo entries' },
@@ -101,6 +103,8 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
 
   { key: PERMISSIONS.AI_MANAGE, resource: 'ai', description: 'Manage Ollama models (list, pull)' },
   { key: PERMISSIONS.OCR_USE, resource: 'ocr', description: 'Use the OCR endpoints' },
+
+  { key: PERMISSIONS.DASHBOARD_READ, resource: 'dashboard', description: 'View the system dashboard' },
 
   { key: PERMISSIONS.ACL_MANAGE, resource: 'acl', description: 'Create and edit permission groups' },
   { key: PERMISSIONS.ACL_ASSIGN, resource: 'acl', description: 'Assign users to permission groups' },
