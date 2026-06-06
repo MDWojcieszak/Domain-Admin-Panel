@@ -2149,6 +2149,25 @@ paths:
       tags: *ref_27
       security:
         - bearer: []
+  /photo-entry/{id}/mark-media-uploaded:
+    post:
+      operationId: PhotoEntryController_markMediaUploaded
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Created photo entry folders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoEntryResponse'
+      tags: *ref_27
+      security:
+        - bearer: []
 info:
   title: WHCP Backend
   description: XD
@@ -4279,10 +4298,14 @@ components:
       enum:
         - PLANNED
         - ACTIVE
-        - IMPORTED
         - SELECTED
         - EDITING
         - COMPLETED
+    MediaStatus:
+      type: string
+      enum:
+        - UPLOADED
+        - NOT_UPLOADED
     PhotoEntryResponse:
       type: object
       properties:
@@ -4307,6 +4330,8 @@ components:
           nullable: true
         foldersCreated:
           type: boolean
+        uploadStatus:
+          $ref: '#/components/schemas/MediaStatus'
         foldersCreatedAt:
           type: string
           format: date-time
@@ -4323,6 +4348,7 @@ components:
         - type
         - status
         - foldersCreated
+        - uploadStatus
         - createdAt
         - updatedAt
     PhotoEntryListResponse:
@@ -4382,6 +4408,8 @@ components:
           nullable: true
         foldersCreated:
           type: boolean
+        uploadStatus:
+          $ref: '#/components/schemas/MediaStatus'
         foldersCreatedAt:
           type: string
           format: date-time
@@ -4404,6 +4432,7 @@ components:
         - type
         - status
         - foldersCreated
+        - uploadStatus
         - createdAt
         - updatedAt
         - astroObjects
