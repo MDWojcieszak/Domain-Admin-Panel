@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ProcessStatusDto,
@@ -136,6 +136,26 @@ export class ServerProcessService {
       orderBy: { timestamp: 'desc' },
     });
     return { logs, total, params: dto };
+  }
+
+  async handleDelete(processId: string) {
+    const process = await this.prisma.process.findUnique({
+      where: { id: processId },
+      select: { id: true },
+    });
+
+    if (!process) throw new NotFoundException('Process not found');
+
+    // ProcessLog cascades on delete; ServerTransfer.currentProcessId is set null.
+    await this.prisma.process.delete({ where: { id: processId } });
+
+    this.progressContexts.delete(processId);
+
+    this.websocketGateway.emitToRoom(WsRoom.PROCESSES, 'process.deleted', {
+      processId,
+    });
+
+    return { success: true };
   }
 
   async handleRegister(dto: RegisterProcessDto) {

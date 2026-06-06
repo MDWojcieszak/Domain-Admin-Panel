@@ -14,6 +14,7 @@ export const PERMISSIONS = {
   COMMAND_MANAGE: 'command.manage',
 
   PROCESS_READ: 'process.read',
+  PROCESS_DELETE: 'process.delete',
 
   SETTINGS_READ: 'settings.read',
   SETTINGS_MANAGE: 'settings.manage',
@@ -74,6 +75,7 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
   { key: PERMISSIONS.COMMAND_MANAGE, resource: 'command', description: 'Edit commands and progress markers' },
 
   { key: PERMISSIONS.PROCESS_READ, resource: 'process', description: 'View processes and their logs' },
+  { key: PERMISSIONS.PROCESS_DELETE, resource: 'process', description: 'Delete processes and their logs' },
 
   { key: PERMISSIONS.SETTINGS_READ, resource: 'settings', description: 'View server settings' },
   { key: PERMISSIONS.SETTINGS_MANAGE, resource: 'settings', description: 'Change server settings' },

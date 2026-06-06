@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Query } from '@nestjs/common';
 import { ServerProcessService } from './server-process.service';
 import { Public, RequirePermissions } from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
@@ -50,6 +50,14 @@ export class ServerProcessController {
     @Query() dto: PaginationDto,
   ): Promise<ProcessLogListResponseDto> {
     return this.serverProcessService.handleGetAllLogs(id, dto);
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.PROCESS_DELETE)
+  @Delete(':id')
+  @ApiOkResponse({ description: 'Process deleted' })
+  async delete(@Param('id') id: string) {
+    return this.serverProcessService.handleDelete(id);
   }
 
   @Public()
