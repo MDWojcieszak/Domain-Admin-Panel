@@ -8,7 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { SessionModule } from './session/session.module';
 import { APP_GUARD } from '@nestjs/core';
 import {
-  AutorizatonGuard,
+  AuthorizationGuard,
   PermissionsGuard,
   TokenGuard,
 } from './common/guards';
@@ -83,7 +83,7 @@ import { AclCoreModule } from './common/acl/acl-core.module';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: AutorizatonGuard,
+      useClass: AuthorizationGuard,
     },
     {
       provide: APP_GUARD,

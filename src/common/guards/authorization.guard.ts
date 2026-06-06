@@ -12,7 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { TOKEN_KEY } from '../decorators';
 
 @Injectable()
-export class AutorizatonGuard implements CanActivate {
+export class AuthorizationGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private jwtService: JwtService,
