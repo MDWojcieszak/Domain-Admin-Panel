@@ -134,6 +134,7 @@ enum ConnectedServiceType {
   N8N
   OPENAI
   OTHER
+  IMMICH
 }
 
 enum PlaceType {
@@ -212,10 +213,14 @@ enum PhotoEntryType {
 enum PhotoEntryStatus {
   PLANNED
   ACTIVE
-  IMPORTED
   SELECTED
   EDITING
   COMPLETED
+}
+
+enum MediaStatus {
+  UPLOADED
+  NOT_UPLOADED
 }
 
 model User {
@@ -895,7 +900,10 @@ model PhotoEntry {
   foldersCreated   Boolean   @default(false)
   foldersCreatedAt DateTime?
 
+  uploadStatus MediaStatus @default(NOT_UPLOADED)
+
   astroObjects PhotoEntryAstroObject[]
+  immichAlbum  PhotoEntryImmichAlbum?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -925,4 +933,24 @@ model PhotoEntryAstroObject {
   @@unique([photoEntryId, astroObjectId])
   @@unique([photoEntryId, rootPath])
   @@index([astroObjectId])
+}
+
+model PhotoEntryImmichAlbum {
+  id String @id @default(uuid())
+
+  photoEntry   PhotoEntry @relation(fields: [photoEntryId], references: [id], onDelete: Cascade)
+  photoEntryId String     @unique
+
+  albumId   String
+  albumName String
+
+  sourcePaths Json?
+
+  lastSyncedAt   DateTime?
+  lastAssetCount Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([albumId])
 }
