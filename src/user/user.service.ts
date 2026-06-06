@@ -78,10 +78,15 @@ export class UserService {
         },
       });
       delete user.hashPassword;
-      this.eventEmitter.emit(
-        'user.created',
-        new UserCreatedEvent(user.id, user.email, user.firstName),
-      );
+      // Only users created WITHOUT a password need the email-verification flow
+      // (sets a password via the register link). Users created with a password
+      // (e.g. the superuser, created ACTIVE) must not be flipped to verification.
+      if (!hashPassword) {
+        this.eventEmitter.emit(
+          'user.created',
+          new UserCreatedEvent(user.id, user.email, user.firstName),
+        );
+      }
       return user;
     } catch (error) {
       if (
