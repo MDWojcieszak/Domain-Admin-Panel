@@ -24,7 +24,6 @@ export class PhotoStorageService {
       '02_SELECTS',
       '03_EDIT',
       '04_EXPORT',
-      '05_PUBLISH',
     ],
 
     work: [
@@ -37,7 +36,6 @@ export class PhotoStorageService {
       '03_EDIT',
       '04_EXPORT',
       '05_DELIVERY',
-      '06_PUBLISH',
     ],
     astro: [
       '01_SOURCE',
@@ -45,10 +43,9 @@ export class PhotoStorageService {
       '01_SOURCE/DARKS',
       '01_SOURCE/FLATS',
       '01_SOURCE/BIASES',
+      '01_SOURCE/REJECTED',
       '02_WORKSPACE',
-      '03_PROCESS',
       '04_EXPORT',
-      '05_PUBLISH',
     ],
   };
 
@@ -121,10 +118,6 @@ export class PhotoStorageService {
     await this.ensureDirectory(yearPath);
 
     await this.ensureDirectories(yearPath, [
-      '00_BEST',
-      '00_BEST/PORTFOLIO',
-      '00_BEST/PRINT',
-      '00_BEST/WEB',
       '01_MIXED',
       '01_MIXED/01_SOURCE',
       '01_MIXED/01_SOURCE/RAW',
@@ -133,7 +126,6 @@ export class PhotoStorageService {
       '01_MIXED/02_SELECTS',
       '01_MIXED/03_EDIT',
       '01_MIXED/04_EXPORT',
-      '01_MIXED/05_PUBLISH',
     ]);
   }
 
