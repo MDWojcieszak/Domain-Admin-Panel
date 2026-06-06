@@ -67,6 +67,21 @@ enum CommandStatus {
   RUNNING
 }
 
+enum CommandRuntimeStatus {
+  IDLE
+  STARTING
+  RUNNING
+  STOPPING
+  STOPPED
+  ERROR
+}
+
+enum CommandMatchType {
+  CONTAINS
+  STARTS_WITH
+  REGEX
+}
+
 enum ProcessLogLevel {
   LOG
   SUCCESS
@@ -731,9 +746,32 @@ model ServerCommand {
   serverCategoryId String
   name             String?
   value            String
-  status           CommandStatus  @default(DISABLED)
+  status           CommandStatus        @default(DISABLED)
+  runtimeStatus    CommandRuntimeStatus @default(IDLE)
   runningProgress  Int?
   type             CommandType
+
+  progressMarkers CommandProgressMarker[]
+  processes       Process[]
+}
+
+model CommandProgressMarker {
+  id        String          @id @default(uuid())
+  command   ServerCommand   @relation(fields: [commandId], references: [id], onDelete: Cascade)
+  commandId String
+
+  label         String?
+  pattern       String
+  matchType     CommandMatchType      @default(CONTAINS)
+  progress      Int?
+  runtimeStatus CommandRuntimeStatus?
+  level         ProcessLogLevel?
+  order         Int                   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([commandId])
 }
 
 model ServerSettings {
@@ -818,7 +856,11 @@ model Process {
   category   ServerCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction)
   categoryId String?
 
+  command   ServerCommand? @relation(fields: [commandId], references: [id], onDelete: NoAction)
+  commandId String?
+
   status          ServerProcessStatus
+  progress        Int?            @default(0)
   logs            ProcessLog[]
   serverTransfers ServerTransfer[]
 }
