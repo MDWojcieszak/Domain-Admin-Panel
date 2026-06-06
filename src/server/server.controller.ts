@@ -106,18 +106,18 @@ export class ServerController {
 
   @ApiBearerAuth()
   @RequirePermissions(PERMISSIONS.SERVER_CATEGORY_MANAGE)
-  @Post('catgory')
+  @Post(':serverId/category')
   @ApiOkResponse({ description: 'Changed correctly' })
   async createCategory(
-    @Param('id') id: string,
+    @Param('serverId') serverId: string,
     @Body() dto: CreateCategoryDto,
   ) {
-    return this.serverService.handleCreateCategory(id, dto);
+    return this.serverService.handleCreateCategory(serverId, dto);
   }
 
   @ApiBearerAuth()
   @RequirePermissions(PERMISSIONS.SERVER_CATEGORY_MANAGE)
-  @Patch('catgory/:id')
+  @Patch('category/:id')
   @ApiOkResponse({ description: 'Changed correctly' })
   async patchCategory(@Param('id') id: string, @Body() dto: PatchCategoryDto) {
     return this.serverService.handlePatchCategory(id, dto);
