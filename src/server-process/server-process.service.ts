@@ -12,7 +12,7 @@ import {
   ServerProcessStatus,
 } from '@prisma/client';
 import { PaginationDto } from '../common/dto';
-import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { WebsocketGateway, WsRoom } from '../websocket/websocket.gateway';
 
 type CompiledMarker = {
   id: string;
@@ -156,7 +156,7 @@ export class ServerProcessService {
         },
       });
 
-      this.websocketGateway.sendToAll('process.created', {
+      this.websocketGateway.emitToRoom(WsRoom.PROCESSES, 'process.created', {
         processId: process.id,
         name: process.name,
         status: process.status,
@@ -189,7 +189,7 @@ export class ServerProcessService {
         select: { id: true, status: true, progress: true, commandId: true },
       });
 
-      this.websocketGateway.sendToAll('process.status', {
+      this.websocketGateway.emitToRoom(WsRoom.PROCESSES, 'process.status', {
         processId: process.id,
         status: process.status,
         progress: process.progress,
@@ -221,7 +221,7 @@ export class ServerProcessService {
         select: { id: true, message: true, level: true, timestamp: true },
       });
 
-      this.websocketGateway.sendToAll('process.log', {
+      this.websocketGateway.emitToRoom(WsRoom.PROCESSES, 'process.log', {
         processId: dto.processId,
         id: log.id,
         message: log.message,
@@ -289,7 +289,7 @@ export class ServerProcessService {
       },
     });
 
-    this.websocketGateway.sendToAll('server-command.update', {
+    this.websocketGateway.emitToRoom(WsRoom.COMMANDS, 'server-command.update', {
       commandId: command.id,
       status: command.status,
       runtimeStatus: command.runtimeStatus,
@@ -328,7 +328,7 @@ export class ServerProcessService {
 
     for (const id of ids) {
       this.invalidateProgressCache(id);
-      this.websocketGateway.sendToAll('server-command.update', {
+      this.websocketGateway.emitToRoom(WsRoom.COMMANDS, 'server-command.update', {
         commandId: id,
         runtimeStatus: CommandRuntimeStatus.IDLE,
         runningProgress: null,
@@ -370,7 +370,7 @@ export class ServerProcessService {
         data: { progress: nextProgress },
       });
 
-      this.websocketGateway.sendToAll('process.progress', {
+      this.websocketGateway.emitToRoom(WsRoom.PROCESSES, 'process.progress', {
         processId,
         progress: nextProgress,
         label: progressLabel,

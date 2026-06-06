@@ -8,7 +8,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { WebsocketGateway, WsRoom } from '../websocket/websocket.gateway';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HeartbeatDto } from './dto';
 import { ClientProxy } from '@nestjs/microservices';
@@ -77,11 +77,11 @@ export class ServerPowerService {
     });
 
     offlineServers.forEach((server) => {
-      this.websocketGateway.sendToAll('server.offline', server.id);
+      this.websocketGateway.emitToRoom(WsRoom.SERVERS, 'server.offline', server.id);
     });
 
     backOnlineServers.forEach((server) => {
-      this.websocketGateway.sendToAll('server.online', server.id);
+      this.websocketGateway.emitToRoom(WsRoom.SERVERS, 'server.online', server.id);
     });
 
     //TODO: Implement user email notifications for offline and online servers

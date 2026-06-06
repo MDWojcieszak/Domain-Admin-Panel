@@ -11,7 +11,7 @@ import {
   CreateCategoryDto,
 } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { WebsocketGateway, WsRoom } from '../websocket/websocket.gateway';
 import { PaginationDto } from '../common/dto';
 import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
 import { PatchCategoryDto } from './dto/patch-category.dto';
@@ -339,7 +339,7 @@ export class ServerService {
           diskInfo: true,
         },
       });
-      this.websocketGateway.sendToAll('server.update', server.id);
+      this.websocketGateway.emitToRoom(WsRoom.SERVERS, 'server.update', server.id);
       return true;
     } catch (error) {
       throw new Error(`Failed to update server properties: ${error.message}`);
