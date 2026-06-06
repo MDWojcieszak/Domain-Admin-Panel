@@ -4,7 +4,7 @@ info:
   version: '1.0'
   description: >-
     RabbitMQ message contract between the backend and remote servers (agents).
-    publish = Server -> Backend, subscribe = Backend -> Server.
+    publish = Server → Backend, subscribe = Backend → Server.
 defaultContentType: application/json
 servers:
   rabbitmq:
