@@ -2,7 +2,10 @@ import { IsEnum, IsNested, IsString } from 'nestjs-swagger-dto';
 import { CommandType } from '@prisma/client';
 
 export class ServerCommandDto {
-  @IsString()
+  @IsString({
+    description:
+      'Command identifier. Stored as ServerCommand.value and used verbatim as the RMQ pattern of the {commandValue} channel (i.e. value === commandName).',
+  })
   commandName: string;
 
   @IsEnum({ enum: { CommandType } })
