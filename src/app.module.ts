@@ -10,7 +10,6 @@ import { APP_GUARD } from '@nestjs/core';
 import {
   AutorizatonGuard,
   PermissionsGuard,
-  RolesGuard,
   TokenGuard,
 } from './common/guards';
 import { JwtModule } from '@nestjs/jwt';
@@ -83,10 +82,6 @@ import { AclModule } from './acl/acl.module';
     {
       provide: APP_GUARD,
       useClass: AutorizatonGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
     },
     {
       provide: APP_GUARD,

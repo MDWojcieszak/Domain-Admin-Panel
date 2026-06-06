@@ -21,6 +21,22 @@ export const PERMISSIONS = {
   TRANSFER_READ: 'transfer.read',
   TRANSFER_MANAGE: 'transfer.manage',
 
+  USER_READ: 'user.read',
+  USER_MANAGE: 'user.manage',
+
+  TOKEN_READ: 'token.read',
+  TOKEN_MANAGE: 'token.manage',
+
+  SESSION_READ: 'session.read',
+
+  IMAGE_DELETE: 'image.delete',
+
+  PHOTO_ENTRY_READ: 'photoEntry.read',
+  PHOTO_ENTRY_MANAGE: 'photoEntry.manage',
+
+  ASTRO_OBJECT_READ: 'astroObject.read',
+  ASTRO_OBJECT_MANAGE: 'astroObject.manage',
+
   ACL_MANAGE: 'acl.manage',
   ACL_ASSIGN: 'acl.assign',
 } as const;
@@ -61,6 +77,22 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
 
   { key: PERMISSIONS.TRANSFER_READ, resource: 'transfer', description: 'View server transfers' },
   { key: PERMISSIONS.TRANSFER_MANAGE, resource: 'transfer', description: 'Create and edit server transfers' },
+
+  { key: PERMISSIONS.USER_READ, resource: 'user', description: 'List and view users' },
+  { key: PERMISSIONS.USER_MANAGE, resource: 'user', description: 'Create users and change their role' },
+
+  { key: PERMISSIONS.TOKEN_READ, resource: 'token', description: 'List and view API tokens' },
+  { key: PERMISSIONS.TOKEN_MANAGE, resource: 'token', description: 'Generate, save and revoke API tokens' },
+
+  { key: PERMISSIONS.SESSION_READ, resource: 'session', description: "View other users' sessions" },
+
+  { key: PERMISSIONS.IMAGE_DELETE, resource: 'image', description: 'Delete images' },
+
+  { key: PERMISSIONS.PHOTO_ENTRY_READ, resource: 'photoEntry', description: 'View photo entries' },
+  { key: PERMISSIONS.PHOTO_ENTRY_MANAGE, resource: 'photoEntry', description: 'Create, edit and delete photo entries' },
+
+  { key: PERMISSIONS.ASTRO_OBJECT_READ, resource: 'astroObject', description: 'View astro objects' },
+  { key: PERMISSIONS.ASTRO_OBJECT_MANAGE, resource: 'astroObject', description: 'Create and edit astro objects' },
 
   { key: PERMISSIONS.ACL_MANAGE, resource: 'acl', description: 'Create and edit permission groups' },
   { key: PERMISSIONS.ACL_ASSIGN, resource: 'acl', description: 'Assign users to permission groups' },
