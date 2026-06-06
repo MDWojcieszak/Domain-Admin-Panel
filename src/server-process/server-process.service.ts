@@ -8,7 +8,6 @@ import {
 import {
   CommandMatchType,
   CommandRuntimeStatus,
-  CommandStatus,
   ServerProcessStatus,
 } from '@prisma/client';
 import { PaginationDto } from '../common/dto';
@@ -28,12 +27,7 @@ type ProcessProgressContext = {
   commandId: string | null;
   markers: CompiledMarker[];
   currentProgress: number;
-};
-
-type RuntimeStatusUpdate = {
-  runtimeStatus?: CommandRuntimeStatus;
-  runningProgress?: number | null;
-  status?: CommandStatus;
+  currentRuntimeStatus: CommandRuntimeStatus;
 };
 
 const TERMINAL_STATUSES: ServerProcessStatus[] = [
@@ -42,12 +36,19 @@ const TERMINAL_STATUSES: ServerProcessStatus[] = [
   ServerProcessStatus.FAILED,
 ];
 
-// Runtime statuses that mean "this command settled" — when a command reaches one,
-// sibling commands of the same category (e.g. start vs stop) are reset to IDLE.
-const SETTLING_STATUSES: CommandRuntimeStatus[] = [
-  CommandRuntimeStatus.RUNNING,
-  CommandRuntimeStatus.STOPPED,
-];
+const PROCESS_SELECT = {
+  id: true,
+  name: true,
+  status: true,
+  runtimeStatus: true,
+  progress: true,
+  startedBy: {
+    select: { id: true, email: true, firstName: true, lastName: true },
+  },
+  category: { select: { id: true, name: true } },
+  startedAt: true,
+  stoppedAt: true,
+} as const;
 
 @Injectable()
 export class ServerProcessService {
@@ -63,28 +64,7 @@ export class ServerProcessService {
     const processes = await this.prisma.process.findMany({
       take: dto.take,
       skip: dto.skip,
-      select: {
-        id: true,
-        name: true,
-        status: true,
-        progress: true,
-        startedBy: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        startedAt: true,
-        stoppedAt: true,
-      },
+      select: PROCESS_SELECT,
       orderBy: { startedAt: 'desc' },
     });
     return { processes, total, params: dto };
@@ -93,28 +73,7 @@ export class ServerProcessService {
   async handleGetOne(processId: string) {
     const process = await this.prisma.process.findUnique({
       where: { id: processId },
-      select: {
-        id: true,
-        name: true,
-        status: true,
-        progress: true,
-        startedBy: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        startedAt: true,
-        stoppedAt: true,
-      },
+      select: PROCESS_SELECT,
     });
     return process;
   }
@@ -180,6 +139,7 @@ export class ServerProcessService {
         processId: process.id,
         name: process.name,
         status: process.status,
+        runtimeStatus: process.runtimeStatus,
         progress: process.progress,
         categoryId: dto.categoryId,
         commandId,
@@ -198,6 +158,7 @@ export class ServerProcessService {
       const reachedSuccess =
         dto.status === ServerProcessStatus.ENDED ||
         dto.status === ServerProcessStatus.CLOSED;
+      const failed = dto.status === ServerProcessStatus.FAILED;
 
       const process = await this.prisma.process.update({
         where: { id: dto.processId },
@@ -205,22 +166,22 @@ export class ServerProcessService {
           status: dto.status,
           ...(isTerminal ? { stoppedAt: new Date() } : {}),
           ...(reachedSuccess ? { progress: 100 } : {}),
+          ...(failed ? { runtimeStatus: CommandRuntimeStatus.ERROR } : {}),
         },
-        select: { id: true, status: true, progress: true, commandId: true },
+        select: {
+          id: true,
+          status: true,
+          runtimeStatus: true,
+          progress: true,
+        },
       });
 
       this.websocketGateway.emitToRoom(WsRoom.PROCESSES, 'process.status', {
         processId: process.id,
         status: process.status,
+        runtimeStatus: process.runtimeStatus,
         progress: process.progress,
       });
-
-      // A failed process maps to a command ERROR so the panel reflects it live.
-      if (dto.status === ServerProcessStatus.FAILED && process.commandId) {
-        await this.applyCommandRuntimeStatus(process.commandId, {
-          runtimeStatus: CommandRuntimeStatus.ERROR,
-        });
-      }
 
       if (isTerminal) {
         this.progressContexts.delete(dto.processId);
@@ -255,6 +216,7 @@ export class ServerProcessService {
     }
   }
 
+  /** Clears cached marker contexts for a command (called when its markers change). */
   invalidateProgressCache(commandId?: string): void {
     if (!commandId) {
       this.progressContexts.clear();
@@ -269,93 +231,10 @@ export class ServerProcessService {
   }
 
   /**
-   * Updates a command's runtime state (status / progress) and broadcasts it live.
-   * Shared by marker-driven progress (here) and agent-driven updates
-   * (ServerCommandsService.handleUpdateCommand). When a command settles into
-   * RUNNING/STOPPED, sibling commands of the same category are reset to IDLE so
-   * e.g. "stop" becomes ready again once "start" is running.
+   * Matches a console line against the command's progress markers and applies the
+   * result to the PROCESS: progress is monotonic, runtimeStatus is set when a
+   * marker carries one. Emits a single live `process.progress` update.
    */
-  async applyCommandRuntimeStatus(
-    commandId: string,
-    update: RuntimeStatusUpdate,
-  ): Promise<void> {
-    const data: {
-      runtimeStatus?: CommandRuntimeStatus;
-      runningProgress?: number | null;
-      status?: CommandStatus;
-    } = {};
-
-    if (update.runtimeStatus !== undefined) {
-      data.runtimeStatus = update.runtimeStatus;
-    }
-    if (update.runningProgress !== undefined) {
-      data.runningProgress = update.runningProgress;
-    }
-    if (update.status !== undefined) {
-      data.status = update.status;
-    }
-
-    if (Object.keys(data).length === 0) return;
-
-    const command = await this.prisma.serverCommand.update({
-      where: { id: commandId },
-      data,
-      select: {
-        id: true,
-        serverCategoryId: true,
-        status: true,
-        runtimeStatus: true,
-        runningProgress: true,
-      },
-    });
-
-    this.websocketGateway.emitToRoom(WsRoom.COMMANDS, 'server-command.update', {
-      commandId: command.id,
-      status: command.status,
-      runtimeStatus: command.runtimeStatus,
-      runningProgress: command.runningProgress,
-    });
-
-    if (
-      update.runtimeStatus !== undefined &&
-      SETTLING_STATUSES.includes(update.runtimeStatus)
-    ) {
-      await this.resetSiblingCommands(command.serverCategoryId, command.id);
-    }
-  }
-
-  private async resetSiblingCommands(
-    categoryId: string,
-    exceptCommandId: string,
-  ): Promise<void> {
-    const siblings = await this.prisma.serverCommand.findMany({
-      where: {
-        serverCategoryId: categoryId,
-        id: { not: exceptCommandId },
-        runtimeStatus: { not: CommandRuntimeStatus.IDLE },
-      },
-      select: { id: true },
-    });
-
-    if (siblings.length === 0) return;
-
-    const ids = siblings.map((sibling) => sibling.id);
-
-    await this.prisma.serverCommand.updateMany({
-      where: { id: { in: ids } },
-      data: { runtimeStatus: CommandRuntimeStatus.IDLE, runningProgress: null },
-    });
-
-    for (const id of ids) {
-      this.invalidateProgressCache(id);
-      this.websocketGateway.emitToRoom(WsRoom.COMMANDS, 'server-command.update', {
-        commandId: id,
-        runtimeStatus: CommandRuntimeStatus.IDLE,
-        runningProgress: null,
-      });
-    }
-  }
-
   private async applyMarkersToLine(
     processId: string,
     message: string,
@@ -365,7 +244,8 @@ export class ServerProcessService {
 
     let nextProgress = context.currentProgress;
     let progressLabel: string | null = null;
-    let nextRuntimeStatus: CommandRuntimeStatus | null = null;
+    let nextRuntimeStatus = context.currentRuntimeStatus;
+    let runtimeStatusMatched = false;
 
     for (const marker of context.markers) {
       if (!this.lineMatchesMarker(message, marker)) continue;
@@ -376,33 +256,37 @@ export class ServerProcessService {
       }
       if (marker.runtimeStatus) {
         nextRuntimeStatus = marker.runtimeStatus;
+        runtimeStatusMatched = true;
       }
     }
 
     const progressChanged = nextProgress > context.currentProgress;
-    if (!progressChanged && !nextRuntimeStatus) return;
+    const runtimeStatusChanged =
+      runtimeStatusMatched && nextRuntimeStatus !== context.currentRuntimeStatus;
 
+    if (!progressChanged && !runtimeStatusChanged) return;
+
+    const data: { progress?: number; runtimeStatus?: CommandRuntimeStatus } = {};
     if (progressChanged) {
+      data.progress = nextProgress;
       context.currentProgress = nextProgress;
-
-      await this.prisma.process.update({
-        where: { id: processId },
-        data: { progress: nextProgress },
-      });
-
-      this.websocketGateway.emitToRoom(WsRoom.PROCESSES, 'process.progress', {
-        processId,
-        progress: nextProgress,
-        label: progressLabel,
-      });
+    }
+    if (runtimeStatusChanged) {
+      data.runtimeStatus = nextRuntimeStatus;
+      context.currentRuntimeStatus = nextRuntimeStatus;
     }
 
-    if (context.commandId) {
-      await this.applyCommandRuntimeStatus(context.commandId, {
-        runtimeStatus: nextRuntimeStatus ?? undefined,
-        runningProgress: progressChanged ? nextProgress : undefined,
-      });
-    }
+    await this.prisma.process.update({
+      where: { id: processId },
+      data,
+    });
+
+    this.websocketGateway.emitToRoom(WsRoom.PROCESSES, 'process.progress', {
+      processId,
+      progress: context.currentProgress,
+      runtimeStatus: context.currentRuntimeStatus,
+      label: progressLabel,
+    });
   }
 
   private async ensureProgressContext(
@@ -415,6 +299,7 @@ export class ServerProcessService {
       where: { id: processId },
       select: {
         progress: true,
+        runtimeStatus: true,
         commandId: true,
         command: {
           select: {
@@ -455,6 +340,7 @@ export class ServerProcessService {
       commandId: process.commandId ?? null,
       markers,
       currentProgress: process.progress ?? 0,
+      currentRuntimeStatus: process.runtimeStatus,
     };
 
     this.progressContexts.set(processId, context);

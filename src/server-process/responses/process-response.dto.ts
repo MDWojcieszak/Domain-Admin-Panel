@@ -1,4 +1,4 @@
-import { ServerProcessStatus } from '@prisma/client';
+import { CommandRuntimeStatus, ServerProcessStatus } from '@prisma/client';
 import {
   IsDate,
   IsEnum,
@@ -32,6 +32,9 @@ export class ProcessResponseDto {
 
   @IsEnum({ enum: { ServerProcessStatus } })
   status?: ServerProcessStatus;
+
+  @IsEnum({ enum: { CommandRuntimeStatus } })
+  runtimeStatus: CommandRuntimeStatus;
 
   @IsNumber({ optional: true })
   progress?: number;
