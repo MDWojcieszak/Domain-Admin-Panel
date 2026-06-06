@@ -16,11 +16,10 @@ CREATE UNIQUE INDEX "PermissionGroup_name_key" ON "PermissionGroup"("name");
 -- CreateTable
 CREATE TABLE "_UserPermissionGroups" (
     "A" TEXT NOT NULL,
-    "B" TEXT NOT NULL
-);
+    "B" TEXT NOT NULL,
 
--- CreateIndex
-CREATE UNIQUE INDEX "_UserPermissionGroups_AB_unique" ON "_UserPermissionGroups"("A", "B");
+    CONSTRAINT "_UserPermissionGroups_AB_pkey" PRIMARY KEY ("A", "B")
+);
 
 -- CreateIndex
 CREATE INDEX "_UserPermissionGroups_B_index" ON "_UserPermissionGroups"("B");
