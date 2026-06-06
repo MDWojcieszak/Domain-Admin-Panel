@@ -105,11 +105,12 @@ export class AuthService {
         firstName: event.firstName,
         accessLink: `${this.config.get<string>('APP_URL')}/register?token=${registerToken}`,
       });
-      this.userService.update(event.id, {
+      await this.userService.update(event.id, {
         accountStatus: 'EMAIL_VERIFICATION',
       });
     } catch (e) {
-      throw new ForbiddenException();
+      // Fire-and-forget (triggered by the user.created event) — never crash.
+      Logger.error('Failed to initiate user registration', e);
     }
   }
 
