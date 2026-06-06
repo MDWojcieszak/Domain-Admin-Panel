@@ -760,11 +760,11 @@ paths:
       tags: *ref_8
       security:
         - bearer: []
-  /server/catgory:
+  /server/{serverId}/category:
     post:
       operationId: ServerController_createCategory
       parameters:
-        - name: id
+        - name: serverId
           required: true
           in: path
           schema:
@@ -781,7 +781,7 @@ paths:
       tags: *ref_8
       security:
         - bearer: []
-  /server/catgory/{id}:
+  /server/category/{id}:
     patch:
       operationId: ServerController_patchCategory
       parameters:
@@ -1890,6 +1890,8 @@ paths:
                 $ref: '#/components/schemas/OllamaListModelsResponseDto'
       tags: &ref_25
         - AI / Ollama
+      security: &ref_26
+        - bearer: []
   /ai/ollama/models/pull:
     post:
       operationId: OllamaController_pull
@@ -1909,6 +1911,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/OllamaPullModelResponseDto'
       tags: *ref_25
+      security: *ref_26
   /server-transfer/category/{id}:
     get:
       operationId: ServerTransferController_listByCategory
@@ -2000,7 +2003,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AstroObjectListResponse'
-      tags: &ref_26
+      tags: &ref_27
         - Astro Object
       security:
         - bearer: []
@@ -2020,7 +2023,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AstroObjectResponse'
-      tags: *ref_26
+      tags: *ref_27
       security:
         - bearer: []
   /astro-object/{id}:
@@ -2039,7 +2042,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AstroObjectDetailsResponse'
-      tags: *ref_26
+      tags: *ref_27
       security:
         - bearer: []
     patch:
@@ -2063,7 +2066,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AstroObjectResponse'
-      tags: *ref_26
+      tags: *ref_27
       security:
         - bearer: []
   /photo-entry:
@@ -2107,7 +2110,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryListResponse'
-      tags: &ref_27
+      tags: &ref_28
         - Photo Entry
       security:
         - bearer: []
@@ -2127,7 +2130,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_27
+      tags: *ref_28
       security:
         - bearer: []
   /photo-entry/{id}:
@@ -2146,7 +2149,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryDetailsResponse'
-      tags: *ref_27
+      tags: *ref_28
       security:
         - bearer: []
     patch:
@@ -2170,7 +2173,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_27
+      tags: *ref_28
       security:
         - bearer: []
     delete:
@@ -2188,7 +2191,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_27
+      tags: *ref_28
       security:
         - bearer: []
   /photo-entry/{id}/status:
@@ -2213,7 +2216,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_27
+      tags: *ref_28
       security:
         - bearer: []
   /photo-entry/{id}/create-folders:
@@ -2232,7 +2235,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_27
+      tags: *ref_28
       security:
         - bearer: []
   /photo-entry/{id}/mark-media-uploaded:
@@ -2251,7 +2254,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_27
+      tags: *ref_28
       security:
         - bearer: []
   /immich/status:
@@ -2265,7 +2268,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichStatusResponse'
-      tags: &ref_28
+      tags: &ref_29
         - Immich
       security:
         - bearer: []
@@ -2286,7 +2289,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumSyncResponse'
-      tags: *ref_28
+      tags: *ref_29
       security:
         - bearer: []
   /immich/album/refresh:
@@ -2306,9 +2309,163 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumSyncResponse'
-      tags: *ref_28
+      tags: *ref_29
       security:
         - bearer: []
+  /acl/me:
+    get:
+      operationId: AclController_getMyPermissions
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyPermissionsResponseDto'
+      tags: &ref_30
+        - ACL
+      security: &ref_31
+        - bearer: []
+  /acl/permissions:
+    get:
+      operationId: AclController_getCatalog
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionCatalogResponseDto'
+      tags: *ref_30
+      security: *ref_31
+  /acl/groups:
+    get:
+      operationId: AclController_listGroups
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionGroupListResponseDto'
+      tags: *ref_30
+      security: *ref_31
+    post:
+      operationId: AclController_createGroup
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePermissionGroupDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionGroupResponseDto'
+      tags: *ref_30
+      security: *ref_31
+  /acl/groups/{id}:
+    get:
+      operationId: AclController_getGroup
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionGroupResponseDto'
+      tags: *ref_30
+      security: *ref_31
+    patch:
+      operationId: AclController_updateGroup
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePermissionGroupDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionGroupResponseDto'
+      tags: *ref_30
+      security: *ref_31
+    delete:
+      operationId: AclController_deleteGroup
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group deleted
+      tags: *ref_30
+      security: *ref_31
+  /acl/users/{userId}/groups:
+    get:
+      operationId: AclController_getUserGroups
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionGroupListResponseDto'
+      tags: *ref_30
+      security: *ref_31
+    put:
+      operationId: AclController_setUserGroups
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetUserGroupsDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionGroupListResponseDto'
+      tags: *ref_30
+      security: *ref_31
 info:
   title: WHCP Backend
   description: XD
@@ -4774,3 +4931,116 @@ components:
           type: string
       required:
         - photoEntryId
+    MyPermissionsResponseDto:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/Role'
+        isOwner:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            type: string
+      required:
+        - role
+        - isOwner
+        - permissions
+    PermissionDescriptorResponseDto:
+      type: object
+      properties:
+        key:
+          type: string
+        resource:
+          type: string
+        description:
+          type: string
+      required:
+        - key
+        - resource
+        - description
+    PermissionCatalogResponseDto:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionDescriptorResponseDto'
+      required:
+        - permissions
+    PermissionGroupResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        userCount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - permissions
+        - createdAt
+        - updatedAt
+    PermissionGroupListResponseDto:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionGroupResponseDto'
+        total:
+          type: number
+      required:
+        - groups
+        - total
+    CreatePermissionGroupDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          description: Permission keys from the catalog
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - permissions
+    UpdatePermissionGroupDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          description: Permission keys from the catalog (replaces the existing set)
+          type: array
+          items:
+            type: string
+    SetUserGroupsDto:
+      type: object
+      properties:
+        groupIds:
+          description: Permission group IDs the user should belong to (replaces all)
+          type: array
+          items:
+            type: string
+      required:
+        - groupIds
