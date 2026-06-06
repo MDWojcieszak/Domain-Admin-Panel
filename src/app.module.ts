@@ -33,6 +33,7 @@ import { ServerTransferModule } from './server-transfer/server-transfer.module';
 import { AstroObjectModule } from './astro-object/astro-object.module';
 import { PhotoEntryModule } from './photo-entry/photo-entry.module';
 import { PhotoStorageModule } from './photo-storage-service/photo-storage.module';
+import { ImmichModule } from './immich/immich.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { PhotoStorageModule } from './photo-storage-service/photo-storage.module
     ServerTransferModule,
     AstroObjectModule,
     PhotoEntryModule,
+    ImmichModule,
   ],
   providers: [
     {
