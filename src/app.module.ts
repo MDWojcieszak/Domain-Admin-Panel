@@ -7,7 +7,12 @@ import { ImageModule } from './image/image.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SessionModule } from './session/session.module';
 import { APP_GUARD } from '@nestjs/core';
-import { AutorizatonGuard, RolesGuard, TokenGuard } from './common/guards';
+import {
+  AutorizatonGuard,
+  PermissionsGuard,
+  RolesGuard,
+  TokenGuard,
+} from './common/guards';
 import { JwtModule } from '@nestjs/jwt';
 import { FileModule } from './file/file.module';
 import { ServerModule } from './server/server.module';
@@ -35,6 +40,7 @@ import { PhotoEntryModule } from './photo-entry/photo-entry.module';
 import { PhotoStorageModule } from './photo-storage-service/photo-storage.module';
 import { ImmichModule } from './immich/immich.module';
 import { ApiDocsModule } from './api-docs/api-docs.module';
+import { AclModule } from './acl/acl.module';
 
 @Module({
   imports: [
@@ -71,6 +77,7 @@ import { ApiDocsModule } from './api-docs/api-docs.module';
     PhotoEntryModule,
     ImmichModule,
     ApiDocsModule,
+    AclModule,
   ],
   providers: [
     {
@@ -80,6 +87,10 @@ import { ApiDocsModule } from './api-docs/api-docs.module';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
     {
       provide: APP_GUARD,
