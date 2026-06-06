@@ -16,7 +16,8 @@ import {
 } from '@nestjs/swagger';
 import { OcrService } from './ocr.service';
 import { OcrResponseDto } from './responses';
-import { Public } from '../common/decorators';
+import { RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import { ImageValidationPipe } from '../common/pipes/image-validation.pipe';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OcrOptionsDto } from './dto';
@@ -31,7 +32,7 @@ export class OcrController {
   @Post('recognize')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @Public()
+  @RequirePermissions(PERMISSIONS.OCR_USE)
   @HttpCode(200)
   @ApiOkResponse({ type: OcrResponseDto })
   async recognize(
@@ -46,7 +47,7 @@ export class OcrController {
   @ApiOperation({
     summary: 'Recognize, clean, and structure OCR into items and totals',
   })
-  @Public()
+  @RequirePermissions(PERMISSIONS.OCR_USE)
   @ApiConsumes('multipart/form-data')
   @HttpCode(200)
   @ApiOkResponse({ type: OcrStructuredResponseDto })

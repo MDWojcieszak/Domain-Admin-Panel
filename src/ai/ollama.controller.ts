@@ -1,21 +1,28 @@
 import { Controller, Get, Post, Body, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOkResponse,
+  ApiOperation,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 import { PullModelDto } from './dto';
 import { OllamaClient } from './clients';
-import { Public } from '../common/decorators';
+import { RequirePermissions } from '../common/decorators';
+import { PERMISSIONS } from '../common/acl/permissions';
 import {
   OllamaListModelsResponseDto,
   OllamaPullModelResponseDto,
 } from './responses';
 
 @ApiTags('AI / Ollama')
+@ApiBearerAuth()
 @Controller('ai/ollama')
 export class OllamaController {
   constructor(private readonly ollama: OllamaClient) {}
 
   @Get('models')
-  @Public()
+  @RequirePermissions(PERMISSIONS.AI_MANAGE)
   @ApiOperation({ summary: 'List of locally available models at Ollama' })
   @ApiOkResponse({
     description: 'Model array',
@@ -27,7 +34,7 @@ export class OllamaController {
 
   @Post('models/pull')
   @HttpCode(200)
-  @Public()
+  @RequirePermissions(PERMISSIONS.AI_MANAGE)
   @ApiOperation({
     summary: 'Download the model to your local Ollama repo (pull)',
   })

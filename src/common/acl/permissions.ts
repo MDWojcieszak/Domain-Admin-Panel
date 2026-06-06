@@ -37,6 +37,9 @@ export const PERMISSIONS = {
   ASTRO_OBJECT_READ: 'astroObject.read',
   ASTRO_OBJECT_MANAGE: 'astroObject.manage',
 
+  AI_MANAGE: 'ai.manage',
+  OCR_USE: 'ocr.use',
+
   ACL_MANAGE: 'acl.manage',
   ACL_ASSIGN: 'acl.assign',
 } as const;
@@ -93,6 +96,9 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
 
   { key: PERMISSIONS.ASTRO_OBJECT_READ, resource: 'astroObject', description: 'View astro objects' },
   { key: PERMISSIONS.ASTRO_OBJECT_MANAGE, resource: 'astroObject', description: 'Create and edit astro objects' },
+
+  { key: PERMISSIONS.AI_MANAGE, resource: 'ai', description: 'Manage Ollama models (list, pull)' },
+  { key: PERMISSIONS.OCR_USE, resource: 'ocr', description: 'Use the OCR endpoints' },
 
   { key: PERMISSIONS.ACL_MANAGE, resource: 'acl', description: 'Create and edit permission groups' },
   { key: PERMISSIONS.ACL_ASSIGN, resource: 'acl', description: 'Assign users to permission groups' },
