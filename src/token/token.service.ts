@@ -14,6 +14,12 @@ import { ConfigService } from '@nestjs/config';
 const algorithm = 'aes-256-gcm';
 const ivLength = 12;
 
+type EncryptedTokenPayload = {
+  cipher: string;
+  iv: string;
+  tag: string;
+};
+
 @Injectable()
 export class TokenService {
   private readonly key: Buffer;
@@ -42,7 +48,9 @@ export class TokenService {
         meta: true,
       },
     });
+
     if (!token) throw new NotFoundException('Token not found');
+
     return token;
   }
 
@@ -66,8 +74,10 @@ export class TokenService {
       }),
       this.prisma.apiKey.count({ where: { userId } }),
     ]);
+
     return { tokens, total, params };
   }
+
   async deleteToken(userId: string, id: string) {
     const token = await this.prisma.apiKey.findFirst({
       where: { id, userId },
@@ -83,9 +93,12 @@ export class TokenService {
       },
     });
 
-    if (!token)
+    if (!token) {
       throw new NotFoundException('Token not found or already deleted');
+    }
+
     await this.prisma.apiKey.delete({ where: { id } });
+
     return token;
   }
 
@@ -131,12 +144,13 @@ export class TokenService {
     const token = await this.prisma.apiKey.upsert({
       where: {
         userId_service_type: {
-          userId: userId,
+          userId,
           service: dto.service,
           type: ApiKeyType.EXTERNAL,
         },
       },
       update: {
+        name: dto.name,
         value: encryptedValue,
         meta: { service: dto.service },
       },
@@ -162,12 +176,90 @@ export class TokenService {
     };
   }
 
+  async getToken(
+    userId: string,
+    service: ConnectedServiceType,
+    type: ApiKeyType = ApiKeyType.EXTERNAL,
+  ) {
+    const token = await this.prisma.apiKey.findUnique({
+      where: {
+        userId_service_type: {
+          userId,
+          service,
+          type,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        value: true,
+        service: true,
+        type: true,
+        expiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+        meta: true,
+      },
+    });
+
+    if (!token) {
+      throw new NotFoundException(
+        `Token for service ${service} and type ${type} not found`,
+      );
+    }
+
+    if (type === ApiKeyType.EXTERNAL) {
+      const encrypted = this.parseEncryptedToken(token.value);
+      const value = this.decrypt(encrypted);
+
+      return {
+        ...token,
+        value,
+      };
+    }
+
+    return token;
+  }
+
+  private parseEncryptedToken(value: string): EncryptedTokenPayload {
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      throw new BadRequestException(
+        'Stored token has invalid encrypted format',
+      );
+    }
+
+    if (
+      !parsed ||
+      typeof parsed !== 'object' ||
+      !('cipher' in parsed) ||
+      !('iv' in parsed) ||
+      !('tag' in parsed)
+    ) {
+      throw new BadRequestException('Stored token payload is incomplete');
+    }
+
+    const encrypted = parsed as EncryptedTokenPayload;
+
+    if (!encrypted.cipher || !encrypted.iv || !encrypted.tag) {
+      throw new BadRequestException('Stored token payload is invalid');
+    }
+
+    return encrypted;
+  }
+
   private encrypt(text: string): { cipher: string; iv: string; tag: string } {
     const iv = randomBytes(ivLength);
     const cipher = createCipheriv(algorithm, this.key, iv);
+
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
+
     const tag = cipher.getAuthTag();
+
     return {
       cipher: encrypted,
       iv: iv.toString('hex'),
@@ -175,19 +267,18 @@ export class TokenService {
     };
   }
 
-  private decrypt(encrypted: {
-    cipher: string;
-    iv: string;
-    tag: string;
-  }): string {
+  private decrypt(encrypted: EncryptedTokenPayload): string {
     const decipher = createDecipheriv(
       algorithm,
       this.key,
       Buffer.from(encrypted.iv, 'hex'),
     );
+
     decipher.setAuthTag(Buffer.from(encrypted.tag, 'hex'));
+
     let decrypted = decipher.update(encrypted.cipher, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
+
     return decrypted;
   }
 }
