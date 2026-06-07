@@ -42,6 +42,7 @@ import { ApiDocsModule } from './api-docs/api-docs.module';
 import { AclModule } from './acl/acl.module';
 import { AclCoreModule } from './common/acl/acl-core.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { BlogModule } from './blog/blog.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AclModule,
     AclCoreModule,
     DashboardModule,
+    BlogModule,
   ],
   providers: [
     {
