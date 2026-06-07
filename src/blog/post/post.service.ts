@@ -12,6 +12,7 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
+import { VersioningService } from '../versioning/versioning.service';
 import {
   CreatePostDto,
   GetPostsQueryDto,
@@ -28,6 +29,7 @@ export class PostService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly localeResolver: LocaleResolver,
+    private readonly versioning: VersioningService,
   ) {}
 
   async list(query: GetPostsQueryDto): Promise<PostListResponse> {
@@ -153,7 +155,10 @@ export class PostService {
 
   async patch(id: string, dto: PatchPostDto): Promise<PostResponse> {
     const post = await this.getPostOrThrow(id);
-    const draftVersionId = this.requireDraftVersionId(post);
+    // First edit after publish lazily clones the live version into a new draft.
+    const { draftVersionId } = await this.versioning.ensureEditableDraft(
+      post.id,
+    );
 
     if (dto.slug !== undefined && dto.slug !== post.slug) {
       await this.assertSlugAvailable(dto.slug);
@@ -210,8 +215,7 @@ export class PostService {
     dto: UpsertPostTranslationDto,
   ): Promise<PostResponse> {
     await this.localeResolver.assertWritable(locale);
-    const post = await this.getPostOrThrow(id);
-    const draftVersionId = this.requireDraftVersionId(post);
+    const { draftVersionId } = await this.versioning.ensureEditableDraft(id);
 
     await this.prisma.blogPostVersionTranslation.upsert({
       where: { versionId_locale: { versionId: draftVersionId, locale } },
@@ -237,7 +241,7 @@ export class PostService {
       },
     });
 
-    return PostMapper.toResponse(post);
+    return PostMapper.toResponse(await this.getPostOrThrow(id));
   }
 
   async setAuthors(id: string, dto: SetPostAuthorsDto): Promise<PostResponse> {
@@ -336,15 +340,6 @@ export class PostService {
       throw new NotFoundException('Post not found');
     }
     return post;
-  }
-
-  private requireDraftVersionId(post: {
-    draftVersionId: string | null;
-  }): string {
-    if (!post.draftVersionId) {
-      throw new BadRequestException('Post has no draft version to edit');
-    }
-    return post.draftVersionId;
   }
 
   private async assertSlugAvailable(slug: string): Promise<void> {

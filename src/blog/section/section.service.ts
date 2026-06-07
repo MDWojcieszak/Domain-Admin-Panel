@@ -8,6 +8,10 @@ import { BlogSectionType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
 import {
+  EnsureDraftResult,
+  VersioningService,
+} from '../versioning/versioning.service';
+import {
   AddSectionImageDto,
   AddSectionListItemDto,
   CreateSectionDto,
@@ -33,6 +37,7 @@ export class SectionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly localeResolver: LocaleResolver,
+    private readonly versioning: VersioningService,
   ) {}
 
   // ----- sections -----
@@ -54,17 +59,20 @@ export class SectionService {
     postId: string,
     dto: CreateSectionDto,
   ): Promise<SectionResponse> {
-    const versionId = await this.getDraftVersionIdForPost(postId);
     assertNeutralFieldsForType(dto.type, dto);
+
+    // First edit after publish lazily clones the live version into a new draft.
+    const { draftVersionId } =
+      await this.versioning.ensureEditableDraft(postId);
 
     const locale = dto.locale ?? (await this.localeResolver.getDefaultCode());
     await this.localeResolver.assertWritable(locale);
 
-    const order = dto.order ?? (await this.nextSectionOrder(versionId));
+    const order = dto.order ?? (await this.nextSectionOrder(draftVersionId));
 
     const created = await this.prisma.blogSection.create({
       data: {
-        versionId,
+        versionId: draftVersionId,
         type: dto.type,
         order,
         minAccessTier: dto.minAccessTier,
@@ -96,7 +104,9 @@ export class SectionService {
     sectionId: string,
     dto: PatchSectionDto,
   ): Promise<SectionResponse> {
-    const section = await this.getSectionOrThrow(sectionId);
+    const { sectionId: id } =
+      await this.versioning.resolveEditableSection(sectionId);
+    const section = await this.getSectionOrThrow(id);
     assertNeutralFieldsForType(section.type, dto);
 
     const data: Prisma.BlogSectionUpdateInput = {};
@@ -115,13 +125,15 @@ export class SectionService {
       data.mobileStackOrder = dto.mobileStackOrder;
     }
 
-    await this.prisma.blogSection.update({ where: { id: sectionId }, data });
-    return this.loadSection(sectionId);
+    await this.prisma.blogSection.update({ where: { id }, data });
+    return this.loadSection(id);
   }
 
   async delete(sectionId: string): Promise<SectionResponse> {
-    const response = await this.loadSection(sectionId);
-    await this.prisma.blogSection.delete({ where: { id: sectionId } });
+    const { sectionId: id } =
+      await this.versioning.resolveEditableSection(sectionId);
+    const response = await this.loadSection(id);
+    await this.prisma.blogSection.delete({ where: { id } });
     return response;
   }
 
@@ -129,14 +141,16 @@ export class SectionService {
     postId: string,
     dto: ReorderDto,
   ): Promise<SectionListResponse> {
-    const versionId = await this.getDraftVersionIdForPost(postId);
     if (dto.items.length === 0) {
       return this.listForPost(postId);
     }
 
-    const ids = dto.items.map((item) => item.id);
+    const ensure = await this.versioning.ensureEditableDraft(postId);
+    const items = this.remapOrderItems(dto, ensure, 'sectionIdMap');
+
+    const ids = items.map((item) => item.id);
     const found = await this.prisma.blogSection.count({
-      where: { id: { in: ids }, versionId },
+      where: { id: { in: ids }, versionId: ensure.draftVersionId },
     });
     if (found !== new Set(ids).size) {
       throw new BadRequestException(
@@ -145,7 +159,7 @@ export class SectionService {
     }
 
     await this.prisma.$transaction(
-      dto.items.map((item) =>
+      items.map((item) =>
         this.prisma.blogSection.update({
           where: { id: item.id },
           data: { order: item.order },
@@ -162,13 +176,14 @@ export class SectionService {
     dto: UpsertSectionTranslationDto,
   ): Promise<SectionResponse> {
     await this.localeResolver.assertWritable(locale);
-    await this.getSectionOrThrow(sectionId);
+    const { sectionId: id } =
+      await this.versioning.resolveEditableSection(sectionId);
 
     await this.prisma.blogSectionTranslation.upsert({
-      where: { sectionId_locale: { sectionId, locale } },
+      where: { sectionId_locale: { sectionId: id, locale } },
       update: { title: dto.title, body: dto.body, keywords: dto.keywords },
       create: {
-        sectionId,
+        sectionId: id,
         locale,
         title: dto.title,
         body: dto.body,
@@ -176,7 +191,7 @@ export class SectionService {
       },
     });
 
-    return this.loadSection(sectionId);
+    return this.loadSection(id);
   }
 
   // ----- images -----
@@ -185,12 +200,14 @@ export class SectionService {
     sectionId: string,
     dto: AddSectionImageDto,
   ): Promise<SectionResponse> {
-    const section = await this.getSectionOrThrow(sectionId);
+    const { sectionId: id } =
+      await this.versioning.resolveEditableSection(sectionId);
+    const section = await this.getSectionOrThrow(id);
     assertImagesAllowed(section.type);
     await this.assertImageExists(dto.imageId);
 
     const existingCount = await this.prisma.blogSectionImage.count({
-      where: { sectionId },
+      where: { sectionId: id },
     });
     if (isSingleImageType(section.type) && existingCount > 0) {
       throw new BadRequestException(
@@ -199,7 +216,7 @@ export class SectionService {
     }
 
     const duplicate = await this.prisma.blogSectionImage.findUnique({
-      where: { sectionId_imageId: { sectionId, imageId: dto.imageId } },
+      where: { sectionId_imageId: { sectionId: id, imageId: dto.imageId } },
       select: { id: true },
     });
     if (duplicate) {
@@ -208,11 +225,11 @@ export class SectionService {
       );
     }
 
-    const order = dto.order ?? (await this.nextImageOrder(sectionId));
+    const order = dto.order ?? (await this.nextImageOrder(id));
 
     await this.prisma.blogSectionImage.create({
       data: {
-        sectionId,
+        sectionId: id,
         imageId: dto.imageId,
         order,
         size: dto.size,
@@ -225,14 +242,15 @@ export class SectionService {
       },
     });
 
-    return this.loadSection(sectionId);
+    return this.loadSection(id);
   }
 
   async patchImage(
     imageId: string,
     dto: PatchSectionImageDto,
   ): Promise<SectionResponse> {
-    const sectionId = await this.getImageSectionId(imageId);
+    const { imageId: id } = await this.versioning.resolveEditableImage(imageId);
+    const sectionId = await this.getImageSectionId(id);
 
     const data: Prisma.BlogSectionImageUpdateInput = {};
     if (dto.order !== undefined) data.order = dto.order;
@@ -248,13 +266,14 @@ export class SectionService {
       data.overlayBackdrop = dto.overlayBackdrop;
     }
 
-    await this.prisma.blogSectionImage.update({ where: { id: imageId }, data });
+    await this.prisma.blogSectionImage.update({ where: { id }, data });
     return this.loadSection(sectionId);
   }
 
   async deleteImage(imageId: string): Promise<SectionResponse> {
-    const sectionId = await this.getImageSectionId(imageId);
-    await this.prisma.blogSectionImage.delete({ where: { id: imageId } });
+    const { imageId: id } = await this.versioning.resolveEditableImage(imageId);
+    const sectionId = await this.getImageSectionId(id);
+    await this.prisma.blogSectionImage.delete({ where: { id } });
     return this.loadSection(sectionId);
   }
 
@@ -262,15 +281,17 @@ export class SectionService {
     sectionId: string,
     dto: ReorderDto,
   ): Promise<SectionResponse> {
-    await this.getSectionOrThrow(sectionId);
+    const { sectionId: id, ensure } =
+      await this.versioning.resolveEditableSection(sectionId);
+    const items = this.remapOrderItems(dto, ensure, 'imageIdMap');
     await this.assertChildrenBelong(
       'blogSectionImage',
-      sectionId,
-      dto.items.map((i) => i.id),
+      id,
+      items.map((i) => i.id),
     );
 
     await this.prisma.$transaction(
-      dto.items.map((item) =>
+      items.map((item) =>
         this.prisma.blogSectionImage.update({
           where: { id: item.id },
           data: { order: item.order },
@@ -278,7 +299,7 @@ export class SectionService {
       ),
     );
 
-    return this.loadSection(sectionId);
+    return this.loadSection(id);
   }
 
   async upsertImageTranslation(
@@ -287,17 +308,18 @@ export class SectionService {
     dto: UpsertSectionImageTranslationDto,
   ): Promise<SectionResponse> {
     await this.localeResolver.assertWritable(locale);
-    const sectionId = await this.getImageSectionId(imageId);
+    const { imageId: id } = await this.versioning.resolveEditableImage(imageId);
+    const sectionId = await this.getImageSectionId(id);
 
     await this.prisma.blogSectionImageTranslation.upsert({
-      where: { sectionImageId_locale: { sectionImageId: imageId, locale } },
+      where: { sectionImageId_locale: { sectionImageId: id, locale } },
       update: {
         caption: dto.caption,
         alt: dto.alt,
         overlayText: dto.overlayText,
       },
       create: {
-        sectionImageId: imageId,
+        sectionImageId: id,
         locale,
         caption: dto.caption,
         alt: dto.alt,
@@ -314,10 +336,12 @@ export class SectionService {
     sectionId: string,
     dto: AddSectionListItemDto,
   ): Promise<SectionResponse> {
-    const section = await this.getSectionOrThrow(sectionId);
+    const { sectionId: id } =
+      await this.versioning.resolveEditableSection(sectionId);
+    const section = await this.getSectionOrThrow(id);
     assertItemsAllowed(section.type);
 
-    const order = dto.order ?? (await this.nextItemOrder(sectionId));
+    const order = dto.order ?? (await this.nextItemOrder(id));
 
     let translationCreate:
       | Prisma.BlogSectionListItemTranslationCreateNestedManyWithoutItemInput
@@ -329,31 +353,30 @@ export class SectionService {
     }
 
     await this.prisma.blogSectionListItem.create({
-      data: { sectionId, order, translations: translationCreate },
+      data: { sectionId: id, order, translations: translationCreate },
     });
 
-    return this.loadSection(sectionId);
+    return this.loadSection(id);
   }
 
   async patchItem(
     itemId: string,
     dto: PatchSectionListItemDto,
   ): Promise<SectionResponse> {
-    const sectionId = await this.getItemSectionId(itemId);
+    const { itemId: id } = await this.versioning.resolveEditableItem(itemId);
+    const sectionId = await this.getItemSectionId(id);
 
     const data: Prisma.BlogSectionListItemUpdateInput = {};
     if (dto.order !== undefined) data.order = dto.order;
 
-    await this.prisma.blogSectionListItem.update({
-      where: { id: itemId },
-      data,
-    });
+    await this.prisma.blogSectionListItem.update({ where: { id }, data });
     return this.loadSection(sectionId);
   }
 
   async deleteItem(itemId: string): Promise<SectionResponse> {
-    const sectionId = await this.getItemSectionId(itemId);
-    await this.prisma.blogSectionListItem.delete({ where: { id: itemId } });
+    const { itemId: id } = await this.versioning.resolveEditableItem(itemId);
+    const sectionId = await this.getItemSectionId(id);
+    await this.prisma.blogSectionListItem.delete({ where: { id } });
     return this.loadSection(sectionId);
   }
 
@@ -361,15 +384,17 @@ export class SectionService {
     sectionId: string,
     dto: ReorderDto,
   ): Promise<SectionResponse> {
-    await this.getSectionOrThrow(sectionId);
+    const { sectionId: id, ensure } =
+      await this.versioning.resolveEditableSection(sectionId);
+    const items = this.remapOrderItems(dto, ensure, 'itemIdMap');
     await this.assertChildrenBelong(
       'blogSectionListItem',
-      sectionId,
-      dto.items.map((i) => i.id),
+      id,
+      items.map((i) => i.id),
     );
 
     await this.prisma.$transaction(
-      dto.items.map((item) =>
+      items.map((item) =>
         this.prisma.blogSectionListItem.update({
           where: { id: item.id },
           data: { order: item.order },
@@ -377,7 +402,7 @@ export class SectionService {
       ),
     );
 
-    return this.loadSection(sectionId);
+    return this.loadSection(id);
   }
 
   async upsertItemTranslation(
@@ -386,18 +411,41 @@ export class SectionService {
     dto: UpsertSectionListItemTranslationDto,
   ): Promise<SectionResponse> {
     await this.localeResolver.assertWritable(locale);
-    const sectionId = await this.getItemSectionId(itemId);
+    const { itemId: id } = await this.versioning.resolveEditableItem(itemId);
+    const sectionId = await this.getItemSectionId(id);
 
     await this.prisma.blogSectionListItemTranslation.upsert({
-      where: { itemId_locale: { itemId, locale } },
+      where: { itemId_locale: { itemId: id, locale } },
       update: { content: dto.content },
-      create: { itemId, locale, content: dto.content },
+      create: { itemId: id, locale, content: dto.content },
     });
 
     return this.loadSection(sectionId);
   }
 
   // ----- helpers -----
+
+  /**
+   * Remaps reorder ids to their cloned counterparts when a lazy-clone happened
+   * during this request (the client still holds the pre-clone ids).
+   */
+  private remapOrderItems(
+    dto: ReorderDto,
+    ensure: EnsureDraftResult,
+    mapKey: keyof Pick<
+      EnsureDraftResult,
+      'sectionIdMap' | 'imageIdMap' | 'itemIdMap'
+    >,
+  ): Array<{ id: string; order: number }> {
+    if (!ensure.cloned) {
+      return dto.items;
+    }
+    const map = ensure[mapKey];
+    return dto.items.map((item) => ({
+      id: map.get(item.id) ?? item.id,
+      order: item.order,
+    }));
+  }
 
   private async getDraftVersionIdForPost(postId: string): Promise<string> {
     const post = await this.prisma.blogPost.findUnique({
