@@ -287,6 +287,16 @@ model User {
   placeMember       PlaceMember[]
 
   permissionGroups PermissionGroup[] @relation("UserPermissionGroups")
+
+  createdPosts          BlogPost[]
+  blogAuthorships       BlogPostAuthor[]
+  blogLikes             BlogPostLike[]
+  blogViews             BlogPostView[]
+  blogFeedback          BlogPostFeedback[]
+  blogEditorialComments BlogEditorialComment[]
+  accessGrants          AccessGrant[]
+  appDevices            AppDevice[]
+  redeemedCodes         RedeemCode[]
 }
 
 model PermissionGroup {
@@ -709,6 +719,15 @@ model Image {
   dimensions   Dimensions? @relation(fields: [dimensionsId], references: [id], onDelete: Cascade)
   dimensionsId String?     @unique
   avatar       User?
+
+  blogVersionCovers   BlogPostVersion[]  @relation("VersionCover")
+  blogVersionOgImages BlogPostVersion[]  @relation("VersionOgImage")
+  blogSectionImages   BlogSectionImage[]
+  poiCovers           Poi[]              @relation("PoiCover")
+  poiImages           PoiImage[]
+  poiCollectionCovers PoiCollection[]
+  blogSeriesCovers    BlogSeries[]
+  homeBlockImages     HomeBlock[]
 }
 
 model Dimensions {
@@ -759,7 +778,7 @@ model ServerCommand {
   serverCategoryId String
   name             String?
   value            String
-  status           CommandStatus @default(DISABLED)
+  status           CommandStatus  @default(DISABLED)
   type             CommandType
 
   progressMarkers CommandProgressMarker[]
@@ -767,8 +786,8 @@ model ServerCommand {
 }
 
 model CommandProgressMarker {
-  id        String          @id @default(uuid())
-  command   ServerCommand   @relation(fields: [commandId], references: [id], onDelete: Cascade)
+  id        String        @id @default(uuid())
+  command   ServerCommand @relation(fields: [commandId], references: [id], onDelete: Cascade)
   commandId String
 
   label         String?
@@ -1007,4 +1026,961 @@ model PhotoEntryImmichAlbum {
   updatedAt DateTime @updatedAt
 
   @@index([albumId])
+}
+
+// ============================================================
+// BLOG / CMS
+// ============================================================
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+// Rola w byline: autorzy i współautorzy (oba mnogie)
+enum BlogAuthorRole {
+  AUTHOR
+  CO_AUTHOR
+}
+
+// Oś dostępu czytelnika (NIE ACL personelu). PUBLIC < REGISTERED < PREMIUM.
+enum BlogAccessTier {
+  PUBLIC
+  REGISTERED
+  PREMIUM
+}
+
+enum VersionState {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BlogSectionType {
+  HEADING
+  PARAGRAPH
+  QUOTE
+  CALLOUT
+  LIST
+  IMAGE
+  GALLERY
+  MEDIA_TEXT // zdjęcie obok tekstu (split)
+  MAP
+  PLACE
+  EMBED
+  DIVIDER
+}
+
+// Układ bloku MEDIA_TEXT.
+enum BlogMediaPosition {
+  LEFT
+  RIGHT
+}
+
+// Linia podziału kolumn MEDIA_TEXT — udział kolumny ze zdjęciem (desktop).
+enum BlogMediaSplit {
+  ONE_THIRD // foto 33% / tekst 67%
+  TWO_FIFTHS // foto 40% / tekst 60%
+  HALF // 50 / 50 (domyślne)
+  THREE_FIFTHS // foto 60% / tekst 40%
+  TWO_THIRDS // foto 67% / tekst 33%
+}
+
+// Kolejność stackowania MEDIA_TEXT na mobile (split rządzi tylko desktopem; mobile = pełna szerokość).
+enum BlogMobileStackOrder {
+  MEDIA_FIRST
+  TEXT_FIRST
+}
+
+// Feedback czytelnika „czy post przydatny?".
+enum BlogFeedbackRating {
+  HELPFUL
+  NOT_HELPFUL
+}
+
+enum CalloutVariant {
+  INFO
+  TIP
+  WARNING
+  SUCCESS
+}
+
+enum EmbedProvider {
+  YOUTUBE
+  VIMEO
+  SPOTIFY
+  X
+  OTHER
+}
+
+enum GalleryLayout {
+  GRID
+  CAROUSEL
+  MASONRY
+  FULLWIDTH
+}
+
+// Prezentacja zdjęcia per-użycie (NIE px — semantyczny rozmiar; FE renderuje responsywnie).
+enum BlogImageSize {
+  SMALL
+  MEDIUM
+  LARGE
+  FULL
+  FULL_BLEED
+}
+
+// Proporcje kadru (otypowane; FE mapuje na realny stosunek). ORIGINAL = naturalne proporcje zdjęcia.
+enum BlogAspectRatio {
+  ORIGINAL
+  SQUARE // 1:1
+  RATIO_4_3 // poziome
+  RATIO_3_2 // poziome (klasyka aparatu)
+  RATIO_16_9 // poziome (szerokie)
+  RATIO_21_9 // panorama / kino
+  RATIO_65_24 // panoramiczne (ultra-szerokie)
+  RATIO_3_4 // pionowe
+  RATIO_2_3 // pionowe
+  RATIO_4_5 // pionowe (social)
+  RATIO_9_16 // pionowe (story)
+}
+
+// Pozycja tekstu na zdjęciu — siatka 9-punktowa.
+enum BlogOverlayPosition {
+  TOP_LEFT
+  TOP_CENTER
+  TOP_RIGHT
+  MIDDLE_LEFT
+  MIDDLE_CENTER
+  MIDDLE_RIGHT
+  BOTTOM_LEFT
+  BOTTOM_CENTER
+  BOTTOM_RIGHT
+}
+
+// Kolor/kontrast tekstu overlay.
+enum BlogOverlayTheme {
+  LIGHT
+  DARK
+}
+
+// Tło pod tekstem na zdjęciu dla czytelności.
+enum BlogOverlayBackdrop {
+  NONE // sam tekst (z cieniem)
+  SCRIM // przyciemniona warstwa
+  GRADIENT // gradient od krawędzi
+  GLASS // efekt szkła (frosted/glassmorphism)
+}
+
+enum CategoryKind {
+  POST
+  ATTRACTION
+}
+
+// POI (wspólna encja podróżnicza blog ↔ apka-planer)
+enum PoiPriceLevel {
+  FREE
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum PoiSeason {
+  SPRING
+  SUMMER
+  AUTUMN
+  WINTER
+}
+
+enum Weekday {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+// Trudność trasy/aktywności (trekkingi, podejścia górskie)
+enum PoiDifficulty {
+  EASY
+  MODERATE
+  HARD
+  EXPERT
+}
+
+// Wewnętrzna ocena twórców „czy nam się podobało" (prywatna, do planowania tras — NIE publiczna)
+enum PoiVerdict {
+  LOVED
+  LIKED
+  MIXED
+  DISLIKED
+  SKIP // nie warto / pomijamy w trasach
+}
+
+enum PoiStatus {
+  ACTIVE
+  TEMPORARILY_CLOSED
+  PERMANENTLY_CLOSED
+}
+
+// Źródło przyznania dostępu: zakup apki / subskrypcja → tier dostępu (paywall bloga)
+enum AccessGrantSource {
+  APP_PURCHASE
+  SUBSCRIPTION
+  MANUAL
+  REDEEM_CODE
+}
+
+enum AppPlatform {
+  IOS
+  ANDROID
+}
+
+enum HomeBlockType {
+  HERO
+  FEATURED_POSTS
+  CATEGORY_ROW
+  POST_GRID
+  MAP
+  TEXT
+}
+
+model BlogPost {
+  id              String         @id @default(uuid())
+  slug            String         @unique
+  status          BlogPostStatus @default(DRAFT)
+  accessTier      BlogAccessTier @default(PUBLIC) // bramka całego posta (globalna, nie wersjonowana)
+  order           Int?
+  viewCount       Int            @default(0)
+  likeCount       Int            @default(0)
+  helpfulCount    Int            @default(0)
+  notHelpfulCount Int            @default(0)
+
+  // kto utworzył wpis (system/owner, do „moich postów"); byline (autorzy + współautorzy) w `authors`
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+
+  series      BlogSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  seriesId    String?
+  seriesOrder Int? // pozycja w serii (cz. 1/2/3)
+
+  firstPublishedAt DateTime?
+  lastPublishedAt  DateTime?
+  scheduledFor     DateTime?
+  archivedAt       DateTime? // „usuń post" = archiwizacja (soft, odzyskiwalne); brak twardego purge
+
+  // draft = aktualnie edytowana, published = widoczna publicznie.
+  // hasUnpublishedChanges = draftVersionId !== publishedVersionId
+  draftVersion       BlogPostVersion? @relation("DraftVersion", fields: [draftVersionId], references: [id])
+  draftVersionId     String?          @unique
+  publishedVersion   BlogPostVersion? @relation("PublishedVersion", fields: [publishedVersionId], references: [id])
+  publishedVersionId String?          @unique
+
+  versions          BlogPostVersion[]      @relation("AllVersions")
+  authors           BlogPostAuthor[]
+  likes             BlogPostLike[]
+  views             BlogPostView[]
+  feedback          BlogPostFeedback[]
+  homeBlockPosts    HomeBlockPost[]
+  editorialComments BlogEditorialComment[]
+  searchDocuments   BlogSearchDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, firstPublishedAt])
+  @@index([status, scheduledFor]) // cron publikujący zaplanowane
+  @@index([createdById]) // „moje posty"
+  @@index([order])
+}
+
+model BlogPostVersion {
+  id            String       @id @default(uuid())
+  post          BlogPost     @relation("AllVersions", fields: [postId], references: [id], onDelete: Cascade)
+  postId        String
+  versionNumber Int
+  state         VersionState @default(DRAFT)
+
+  // treść TEKSTOWA (title/subtitle/excerpt/seoKeywords/meta/reading) → BlogPostVersionTranslation (per locale)
+  coverImage   Image?  @relation("VersionCover", fields: [coverImageId], references: [id], onDelete: SetNull)
+  coverImageId String?
+  ogImage      Image?  @relation("VersionOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+  ogImageId    String? // obraz do social share (og:image); językowo-neutralny domyślny
+
+  country String? // canonical, językowo-neutralne (filtr listy)
+  region  String?
+
+  translations BlogPostVersionTranslation[]
+  sections     BlogSection[]
+  categories   BlogVersionCategory[]
+
+  publishedAt DateTime?
+  archivedAt  DateTime? // gdy stara PUBLISHED → ARCHIVED przy republikacji; tylko ARCHIVED można prune'ować
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  draftOfPost     BlogPost? @relation("DraftVersion")
+  publishedOfPost BlogPost? @relation("PublishedVersion")
+
+  @@unique([postId, versionNumber])
+  @@index([postId, state])
+}
+
+model BlogSection {
+  id        String          @id @default(uuid())
+  version   BlogPostVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId String
+  type      BlogSectionType
+  order     Int
+
+  // bramka per-sekcja: teaser PUBLIC + reszta REGISTERED/PREMIUM
+  minAccessTier BlogAccessTier @default(PUBLIC)
+
+  // treść TEKSTOWA (title/body-markdown/keywords) → BlogSectionTranslation (per locale)
+
+  // scalary per-typ (single-table inheritance) — językowo-neutralne (layout)
+  headingLevel   Int?
+  quoteAuthor    String? // nazwa autora cytatu (proper noun, wspólna)
+  calloutVariant CalloutVariant?
+  galleryLayout  GalleryLayout?
+  embedUrl       String?
+  embedProvider  EmbedProvider?
+
+  // MEDIA_TEXT: zdjęcie z `images`, tekst z `body`
+  mediaPosition    BlogMediaPosition?
+  mediaSplit       BlogMediaSplit? // linia podziału na desktopie; null = HALF
+  mobileStackOrder BlogMobileStackOrder?
+
+  translations BlogSectionTranslation[]
+  images       BlogSectionImage[]
+  items        BlogSectionListItem[]
+  pois         SectionPoi[]
+
+  editorialComments BlogEditorialComment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([versionId, order])
+}
+
+model BlogSectionImage {
+  id        String      @id @default(uuid())
+  section   BlogSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+  image     Image       @relation(fields: [imageId], references: [id])
+  imageId   String
+  order     Int         @default(0)
+
+  // tekst (caption/alt/overlayText) → BlogSectionImageTranslation (per locale)
+
+  // --- prezentacja (deklaratywna intencja; FE renderuje, brak px w bazie) ---
+  size        BlogImageSize   @default(LARGE)
+  aspectRatio BlogAspectRatio @default(ORIGINAL)
+  focalX      Float? // 0..1 punkt ostrości do responsywnego kadru; null = środek
+  focalY      Float?
+
+  // --- układ tekstu na zdjęciu (sam tekst w tłumaczeniach) ---
+  overlayPosition BlogOverlayPosition?
+  overlayTheme    BlogOverlayTheme? // kolor tekstu: jasny/ciemny
+  overlayBackdrop BlogOverlayBackdrop? // tło pod tekstem (m.in. GLASS)
+
+  translations BlogSectionImageTranslation[]
+
+  @@unique([sectionId, imageId])
+  @@index([sectionId, order])
+}
+
+model BlogSectionListItem {
+  id        String      @id @default(uuid())
+  section   BlogSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+  order     Int         @default(0)
+
+  // treść (content) → BlogSectionListItemTranslation (per locale)
+  translations BlogSectionListItemTranslation[]
+
+  @@index([sectionId, order])
+}
+
+model SectionPoi {
+  id        String      @id @default(uuid())
+  section   BlogSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+  poi       Poi         @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  poiId     String
+  order     Int         @default(0)
+
+  @@unique([sectionId, poiId])
+}
+
+// Point of Interest — WSPÓŁDZIELONA encja podróżnicza (seam blog ↔ apka-planer).
+// Blog: sekcje wskazują POI; apka: buduje z nich trasy/dni. Tekst (name override/description) w PoiTranslation.
+model Poi {
+  id        String  @id @default(uuid())
+  name      String // canonical / identyfikator (proper noun, np. "Skógafoss")
+  country   String?
+  region    String?
+  city      String?
+  address   String?
+  latitude  Float
+  longitude Float
+  timezone  String? // IANA, np. "Atlantic/Reykjavik" — apka „otwarte teraz?" wg strefy miejsca
+
+  // Nawigacja działa po latitude/longitude (uniwersalne deep-linki: Apple/Google/Waze
+  // budowane app-side wg preferencji usera). Poniższe ID = TYLKO opcjonalne wzbogacenie/dedup,
+  // NIE mechanizm otwierania map. Apple nie ma publicznego place-id, stąd brak appleMapsId.
+  googlePlaceId String? @unique
+  osmId         String?
+
+  // atrybuty podróżnicze (apka-planer)
+  visitDurationMin Int? // sugerowany czas na miejscu (min)
+  creatorRating    Int? // 1–5: jak bardzo „warto zobaczyć" (publiczna waga dla AI przy doborze tras)
+  creatorVerdict   PoiVerdict? // WEWNĘTRZNA ocena „czy nam się podobało" (prywatna, planowanie)
+  internalNote     String? // WEWNĘTRZNA notatka twórców (prywatna, NIE publiczna)
+  priceLevel       PoiPriceLevel?
+  bestSeasons      PoiSeason[]
+  websiteUrl       String?
+  bookingUrl       String?
+  mapsUrl          String?
+
+  // dla tras/aktywności (trasa górska itp.); null = zwykły punkt
+  difficulty     PoiDifficulty?
+  distanceKm     Float?
+  elevationGainM Int?
+
+  status PoiStatus @default(ACTIVE) // ACTIVE / TEMPORARILY_CLOSED / PERMANENTLY_CLOSED
+
+  coverImage   Image?  @relation("PoiCover", fields: [coverImageId], references: [id], onDelete: SetNull)
+  coverImageId String?
+
+  // localized name override + description → PoiTranslation (per locale)
+  translations PoiTranslation[]
+  hours        PoiHours[]
+  images       PoiImage[] // galeria zdjęć miejsca (uporządkowana)
+  categories   PoiCategory[] // wiele kategorii (wodospad + punkt widokowy)
+  collections  PoiCollectionItem[] // rankowane listy „top miejsc"
+  sections     SectionPoi[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PoiCategory {
+  id         String   @id @default(uuid())
+  poi        Poi      @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  poiId      String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  @@unique([poiId, categoryId])
+  @@index([categoryId])
+}
+
+model PoiImage {
+  id      String @id @default(uuid())
+  poi     Poi    @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  poiId   String
+  image   Image  @relation(fields: [imageId], references: [id])
+  imageId String
+  order   Int    @default(0)
+
+  @@unique([poiId, imageId])
+  @@index([poiId, order])
+}
+
+model PoiHours {
+  id       String  @id @default(uuid())
+  poi      Poi     @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  poiId    String
+  weekday  Weekday
+  opensAt  String? // "HH:mm"
+  closesAt String? // "HH:mm"
+  closed   Boolean @default(false)
+
+  @@unique([poiId, weekday])
+}
+
+model Category {
+  id       String       @id @default(uuid())
+  kind     CategoryKind
+  key      String // canonical, np. "food", "waterfall"
+  icon     String?
+  color    String?
+  isSystem Boolean      @default(false)
+  order    Int?
+
+  // label → CategoryTranslation (per locale)
+  translations CategoryTranslation[]
+  posts        BlogVersionCategory[]
+  pois         PoiCategory[]
+  blocks       HomeBlock[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([kind, key])
+}
+
+model BlogVersionCategory {
+  id         String          @id @default(uuid())
+  version    BlogPostVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId  String
+  category   Category        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  @@unique([versionId, categoryId])
+  @@index([categoryId]) // filtr „posty w kategorii X"
+}
+
+model BlogPostLike {
+  id        String   @id @default(uuid())
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model BlogPostView {
+  id        String   @id @default(uuid())
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+}
+
+model HomeLayout {
+  id       String      @id @default(uuid())
+  name     String
+  isActive Boolean     @default(false)
+  blocks   HomeBlock[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HomeBlock {
+  id       String        @id @default(uuid())
+  layout   HomeLayout    @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  layoutId String
+  type     HomeBlockType
+  order    Int
+
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId String?
+  image      Image?    @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  imageId    String?
+  limit      Int?
+
+  // title/body → HomeBlockTranslation (per locale)
+  translations HomeBlockTranslation[]
+  posts        HomeBlockPost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([layoutId, order])
+}
+
+model HomeBlockPost {
+  id      String    @id @default(uuid())
+  block   HomeBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  blockId String
+  post    BlogPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId  String
+  order   Int       @default(0)
+
+  @@unique([blockId, postId])
+}
+
+// Wewnętrzne komentarze redakcyjne (jak piny w Figmie). Nigdy widoczne publicznie.
+// Kotwica: post (sectionId = null → wątek ogólny) lub sekcja + opcjonalny fragment tekstu.
+model BlogEditorialComment {
+  id     String   @id @default(uuid())
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+
+  section     BlogSection? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId   String?
+  anchorStart Int?
+  anchorEnd   Int?
+  quote       String?
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+  body     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([sectionId])
+}
+
+// Preset palety edytora: gotowy układ wstawiający jeden lub kilka skonfigurowanych bloków.
+// W pełni relacyjny (bez JSON) — domyślne wartości layoutu jako otypowane kolumny.
+model BlogSectionTemplate {
+  id          String  @id @default(uuid())
+  key         String  @unique // stabilny klucz, np. "media-text-left", "hero"
+  name        String
+  description String?
+  icon        String?
+  group       String? // grupowanie w palecie, np. "Media", "Tekst"
+  isSystem    Boolean @default(false)
+  order       Int?
+
+  blocks    BlogSectionTemplateBlock[]
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
+}
+
+model BlogSectionTemplateBlock {
+  id         String              @id @default(uuid())
+  template   BlogSectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId String
+  type       BlogSectionType
+  order      Int
+
+  // domyślne wartości layoutu (mirror kluczowych pól sekcji)
+  headingLevel     Int?
+  calloutVariant   CalloutVariant?
+  galleryLayout    GalleryLayout?
+  mediaPosition    BlogMediaPosition?
+  mediaSplit       BlogMediaSplit?
+  mobileStackOrder BlogMobileStackOrder?
+  imageSize        BlogImageSize?
+  aspectRatio      BlogAspectRatio?
+  overlayPosition  BlogOverlayPosition?
+
+  // placeholdery treści wstawiane do nowej sekcji
+  placeholderTitle String?
+  placeholderBody  String?
+
+  @@index([templateId, order])
+}
+
+// Feedback czytelnika na końcu posta („czy przydatny?"). Agregat widoczny po stronie admina.
+model BlogPostFeedback {
+  id      String             @id @default(uuid())
+  post    BlogPost           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId  String
+  user    User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId  String?
+  rating  BlogFeedbackRating
+  comment String? // opcjonalny krótki komentarz
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId]) // jeden feedback per zalogowany user (NULL = anonim, wiele)
+  @@index([postId, rating])
+}
+
+// ============================================================
+// I18N — rejestr języków + tabele tłumaczeń (per pole, wspólna struktura)
+// Struktura/layout/zdjęcia są językowo-neutralne; tu żyje tylko TEKST per locale.
+// Publikacja: wszystkie locale wersji idą razem (klonują się z wersją). Fallback → locale domyślny (app).
+// `locale` = kod BCP-47 walidowany aplikacyjnie względem BlogLocale.
+// ============================================================
+
+model BlogLocale {
+  code      String   @id // BCP-47: "pl", "en", "de"
+  name      String
+  isDefault Boolean  @default(false) // jeden domyślny = fallback (app-enforced)
+  enabled   Boolean  @default(true)
+  order     Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BlogPostVersionTranslation {
+  id        String          @id @default(uuid())
+  version   BlogPostVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId String
+  locale    String
+
+  title       String?
+  subtitle    String?
+  excerpt     String?
+  seoKeywords String[]
+
+  // SEO/meta per locale
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String? // URL różni się per język (hreflang); override gdy treść republikowana
+
+  // liczone przy publikacji (per locale — tekst różni się językowo)
+  wordCount      Int?
+  readingMinutes Int?
+
+  @@unique([versionId, locale])
+  @@index([locale])
+}
+
+model BlogSectionTranslation {
+  id        String      @id @default(uuid())
+  section   BlogSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+  locale    String
+
+  title    String?
+  body     String? // markdown per locale
+  keywords String[]
+
+  @@unique([sectionId, locale])
+  @@index([locale])
+}
+
+model BlogSectionImageTranslation {
+  id             String           @id @default(uuid())
+  sectionImage   BlogSectionImage @relation(fields: [sectionImageId], references: [id], onDelete: Cascade)
+  sectionImageId String
+  locale         String
+
+  caption     String?
+  alt         String?
+  overlayText String?
+
+  @@unique([sectionImageId, locale])
+  @@index([locale])
+}
+
+model BlogSectionListItemTranslation {
+  id     String              @id @default(uuid())
+  item   BlogSectionListItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+  locale String
+
+  content String?
+
+  @@unique([itemId, locale])
+  @@index([locale])
+}
+
+model PoiTranslation {
+  id     String @id @default(uuid())
+  poi    Poi    @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  poiId  String
+  locale String
+
+  name        String? // lokalizowany override nazwy (canonical na Poi.name)
+  description String?
+
+  @@unique([poiId, locale])
+  @@index([locale])
+}
+
+model CategoryTranslation {
+  id         String   @id @default(uuid())
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+  locale     String
+
+  label String?
+
+  @@unique([categoryId, locale])
+  @@index([locale])
+}
+
+model HomeBlockTranslation {
+  id      String    @id @default(uuid())
+  block   HomeBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  blockId String
+  locale  String
+
+  title String?
+  body  String?
+
+  @@unique([blockId, locale])
+  @@index([locale])
+}
+
+// ============================================================
+// SEARCH — Postgres FTS. Zdenormalizowany dokument per (post, locale),
+// zasilany przy PUBLIKACJI z opublikowanej wersji (drafty nieindeksowane).
+// WAŻNE (paywall): indeksujemy TYLKO treść PUBLIC (post accessTier=PUBLIC +
+// sekcje minAccessTier=PUBLIC) — inaczej snippet wyciekłby premium niepłacącym.
+// searchVector = to_tsvector(regconfig zależny od locale, title+body+keywords),
+// utrzymywany raw SQL przy upsert; GIN index dla szybkich zapytań @@ to_tsquery.
+// Zapytania: prisma.$queryRaw z ts_rank. Usuwany przy unpublish/archive.
+// ============================================================
+model BlogSearchDocument {
+  id     String   @id @default(uuid())
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  locale String
+
+  // zdenormalizowany tekst z OPUBLIKOWANEJ wersji (per locale)
+  title    String?
+  excerpt  String?
+  body     String? // sklejone body sekcji + listy + caption/alt
+  keywords String[]
+
+  searchVector Unsupported("tsvector")?
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([postId, locale])
+  @@index([locale])
+  @@index([searchVector], type: Gin)
+}
+
+// ============================================================
+// ACCESS GRANT — przyznanie dostępu, wspólne dla ekosystemu (blog + apka-planer).
+// Zakup apki / subskrypcja → przyznany tier (zwykle PREMIUM). Blog gatinguje
+// sekcje wg max(aktywne granty, bazowy tier z roli/logowania). Apka wystawia po zakupie.
+// ============================================================
+model AccessGrant {
+  id     String            @id @default(uuid())
+  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  tier   BlogAccessTier // przyznany poziom (zwykle PREMIUM)
+  source AccessGrantSource // APP_PURCHASE / SUBSCRIPTION / MANUAL
+
+  startedAt DateTime  @default(now())
+  expiresAt DateTime? // null = bezterminowo
+  reference String? // id zakupu / paragonu (store, Stripe itp.)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, tier])
+  @@index([expiresAt])
+}
+
+// Aktywowane urządzenie apki (offline-first). Limit ≤2 aktywne (revokedAt = null) per user.
+// Zarządzane z konta na blogu/stronie. Licencja = podpisany token na urządzeniu (offline),
+// serwer odnawia online; tu trzymamy tylko metadane + okno ważności do egzekwowania/odwołania.
+model AppDevice {
+  id               String      @id @default(uuid())
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  installationId   String // stabilne per instalacja
+  platform         AppPlatform
+  name             String?
+  activatedAt      DateTime    @default(now())
+  lastSeenAt       DateTime?
+  revokedAt        DateTime? // null = aktywne (liczy się do limitu 2)
+  licenseExpiresAt DateTime? // koniec okna offline; serwer przedłuża online
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, installationId])
+  @@index([userId])
+}
+
+// Kod do wykorzystania (sprzedaż poza sklepem / prezenty). Wykorzystanie → tworzy AccessGrant.
+model RedeemCode {
+  id           String         @id @default(uuid())
+  code         String         @unique
+  tier         BlogAccessTier @default(PREMIUM)
+  durationDays Int? // długość dostępu po wykorzystaniu; null = bezterminowo
+
+  redeemedBy   User?     @relation(fields: [redeemedById], references: [id])
+  redeemedById String?
+  redeemedAt   DateTime?
+  expiresAt    DateTime? // do kiedy kod można wykorzystać
+  revokedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([redeemedById])
+}
+
+// ============================================================
+// WSPÓŁAUTORSTWO, SERIE, KOLEKCJE „TOP MIEJSC"
+// ============================================================
+
+// Byline posta: autorzy i współautorzy (oba mnogie, rola + kolejność). Jeden user = jeden wpis na post.
+model BlogPostAuthor {
+  id     String         @id @default(uuid())
+  post   BlogPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  role   BlogAuthorRole @default(AUTHOR)
+  order  Int            @default(0)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+// Seria postów (np. „Islandia cz. 1/2/3"). Tytuł/opis lokalizowane.
+model BlogSeries {
+  id           String  @id @default(uuid())
+  slug         String  @unique
+  coverImage   Image?  @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
+  coverImageId String?
+
+  posts        BlogPost[]
+  translations BlogSeriesTranslation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BlogSeriesTranslation {
+  id       String     @id @default(uuid())
+  series   BlogSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  seriesId String
+  locale   String
+
+  title       String?
+  description String?
+
+  @@unique([seriesId, locale])
+  @@index([locale])
+}
+
+// Rankowana kolekcja POI: „top miejsca w kolejności" (per kraj/wycieczka/temat).
+// Wśród LOVED rozstrzyga ręczny `rank`. Używana w blogu i apce (priorytet).
+model PoiCollection {
+  id           String  @id @default(uuid())
+  slug         String  @unique
+  country      String? // opcjonalny scope „top dla kraju"
+  region       String?
+  isPublic     Boolean @default(true) // publiczna (blog) vs wewnętrzna (planowanie)
+  coverImage   Image?  @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
+  coverImageId String?
+
+  items        PoiCollectionItem[]
+  translations PoiCollectionTranslation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PoiCollectionItem {
+  id           String        @id @default(uuid())
+  collection   PoiCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String
+  poi          Poi           @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  poiId        String
+  rank         Int // 1 = najważniejsze
+
+  @@unique([collectionId, poiId])
+  @@index([collectionId, rank])
+}
+
+model PoiCollectionTranslation {
+  id           String        @id @default(uuid())
+  collection   PoiCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String
+  locale       String
+
+  title       String?
+  description String?
+
+  @@unique([collectionId, locale])
+  @@index([locale])
 }

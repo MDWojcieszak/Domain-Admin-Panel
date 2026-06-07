@@ -44,6 +44,16 @@ export const PERMISSIONS = {
 
   DASHBOARD_READ: 'dashboard.read',
 
+  BLOG_READ: 'blog.read',
+  BLOG_READ_DRAFT: 'blog.read.draft',
+  BLOG_WRITE: 'blog.write',
+  BLOG_PUBLISH: 'blog.publish',
+  BLOG_VERSION_PRUNE: 'blog.version.prune',
+  BLOG_CATEGORY_MANAGE: 'blog.category.manage',
+  BLOG_PLACE_MANAGE: 'blog.place.manage',
+  BLOG_HOME_MANAGE: 'blog.home.manage',
+  BLOG_ANALYTICS: 'blog.analytics',
+
   ACL_MANAGE: 'acl.manage',
   ACL_ASSIGN: 'acl.assign',
 } as const;
@@ -215,6 +225,53 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
     key: PERMISSIONS.DASHBOARD_READ,
     resource: 'dashboard',
     description: 'View the system dashboard',
+  },
+
+  {
+    key: PERMISSIONS.BLOG_READ,
+    resource: 'blog',
+    description: 'View published blog posts',
+  },
+  {
+    key: PERMISSIONS.BLOG_READ_DRAFT,
+    resource: 'blog',
+    description: 'Preview draft / unpublished post versions',
+  },
+  {
+    key: PERMISSIONS.BLOG_WRITE,
+    resource: 'blog',
+    description: 'Create and edit post content (drafts and sections)',
+  },
+  {
+    key: PERMISSIONS.BLOG_PUBLISH,
+    resource: 'blog',
+    description:
+      'Publish, schedule, unpublish, archive/restore posts and roll back versions',
+  },
+  {
+    key: PERMISSIONS.BLOG_VERSION_PRUNE,
+    resource: 'blog',
+    description: 'Permanently delete ARCHIVED versions from history',
+  },
+  {
+    key: PERMISSIONS.BLOG_CATEGORY_MANAGE,
+    resource: 'blog',
+    description: 'Create and edit blog categories',
+  },
+  {
+    key: PERMISSIONS.BLOG_PLACE_MANAGE,
+    resource: 'blog',
+    description: 'Create and edit blog places (map points)',
+  },
+  {
+    key: PERMISSIONS.BLOG_HOME_MANAGE,
+    resource: 'blog',
+    description: 'Manage the homepage layout and blocks',
+  },
+  {
+    key: PERMISSIONS.BLOG_ANALYTICS,
+    resource: 'blog',
+    description: 'View post analytics (likes, views, usefulness feedback)',
   },
 
   {
