@@ -16,10 +16,12 @@ import { SectionService } from './section.service';
 import {
   AddSectionImageDto,
   AddSectionListItemDto,
+  AddSectionPoiDto,
   CreateSectionDto,
   PatchSectionDto,
   PatchSectionImageDto,
   PatchSectionListItemDto,
+  PatchSectionPoiDto,
   ReorderDto,
   UpsertSectionImageTranslationDto,
   UpsertSectionListItemTranslationDto,
@@ -214,5 +216,55 @@ export class SectionController {
     @Body() dto: UpsertSectionListItemTranslationDto,
   ): Promise<SectionResponse> {
     return this.sectionService.upsertItemTranslation(itemId, locale, dto);
+  }
+
+  // ----- section POIs (MAP / PLACE) -----
+
+  @RequirePermissions(PERMISSIONS.BLOG_WRITE)
+  @Post('sections/:id/pois')
+  @ApiOkResponse({
+    description: 'Attached POI to section',
+    type: SectionResponse,
+  })
+  async addPoi(
+    @Param('id') id: string,
+    @Body() dto: AddSectionPoiDto,
+  ): Promise<SectionResponse> {
+    return this.sectionService.addPoi(id, dto);
+  }
+
+  @RequirePermissions(PERMISSIONS.BLOG_WRITE)
+  @Patch('sections/:id/pois/reorder')
+  @ApiOkResponse({
+    description: 'Reordered section POIs',
+    type: SectionResponse,
+  })
+  async reorderPois(
+    @Param('id') id: string,
+    @Body() dto: ReorderDto,
+  ): Promise<SectionResponse> {
+    return this.sectionService.reorderPois(id, dto);
+  }
+
+  @RequirePermissions(PERMISSIONS.BLOG_WRITE)
+  @Patch('section-pois/:poiLinkId')
+  @ApiOkResponse({
+    description: 'Patched section POI link',
+    type: SectionResponse,
+  })
+  async patchPoi(
+    @Param('poiLinkId') poiLinkId: string,
+    @Body() dto: PatchSectionPoiDto,
+  ): Promise<SectionResponse> {
+    return this.sectionService.patchPoi(poiLinkId, dto);
+  }
+
+  @RequirePermissions(PERMISSIONS.BLOG_WRITE)
+  @Delete('section-pois/:poiLinkId')
+  @ApiOkResponse({ description: 'Detached section POI', type: SectionResponse })
+  async deletePoi(
+    @Param('poiLinkId') poiLinkId: string,
+  ): Promise<SectionResponse> {
+    return this.sectionService.deletePoi(poiLinkId);
   }
 }

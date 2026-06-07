@@ -13,6 +13,10 @@ import {
   CalloutVariant,
   EmbedProvider,
   GalleryLayout,
+  PoiDifficulty,
+  PoiPriceLevel,
+  PoiSeason,
+  PoiStatus,
   VersionState,
 } from '@prisma/client';
 import {
@@ -76,6 +80,90 @@ export class ResolvedSectionListItemResponse {
   content: string | null;
 }
 
+/** A section POI resolved to a single locale (public POI fields only). */
+export class ResolvedSectionPoiResponse {
+  @IsString()
+  id: string;
+
+  @IsString()
+  poiId: string;
+
+  @IsNumber({ type: 'integer' })
+  order: number;
+
+  @IsString()
+  name: string;
+
+  @IsString({ optional: true, nullable: true })
+  description: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  country: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  region: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  city: string | null;
+
+  @IsNumber()
+  latitude: number;
+
+  @IsNumber()
+  longitude: number;
+
+  @IsString({ optional: true, nullable: true })
+  timezone: string | null;
+
+  @IsEnum({ enum: { PoiStatus } })
+  status: PoiStatus;
+
+  @IsString({ optional: true, nullable: true })
+  coverImageId: string | null;
+
+  @IsString({ isArray: true })
+  categoryIds: string[];
+
+  @IsNumber({ type: 'integer', optional: true, nullable: true })
+  creatorRating: number | null;
+
+  @IsEnum({ enum: { PoiPriceLevel }, optional: true, nullable: true })
+  priceLevel: PoiPriceLevel | null;
+
+  @IsEnum({ enum: { PoiSeason }, isArray: true })
+  bestSeasons: PoiSeason[];
+
+  @IsEnum({ enum: { PoiDifficulty }, optional: true, nullable: true })
+  difficulty: PoiDifficulty | null;
+
+  @IsNumber({ optional: true, nullable: true })
+  distanceKm: number | null;
+
+  @IsNumber({ type: 'integer', optional: true, nullable: true })
+  elevationGainM: number | null;
+
+  @IsNumber({ type: 'integer', optional: true, nullable: true })
+  visitDurationMin: number | null;
+
+  @IsString({ optional: true, nullable: true })
+  websiteUrl: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  bookingUrl: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  mapsUrl: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  googlePlaceId: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  osmId: string | null;
+
+  @IsBoolean()
+  untranslated: boolean;
+}
+
 /** A section resolved to a single locale (layout fields + localized text). */
 export class ResolvedSectionResponse {
   @IsString()
@@ -135,6 +223,9 @@ export class ResolvedSectionResponse {
 
   @IsNested({ type: ResolvedSectionListItemResponse, isArray: true })
   items: ResolvedSectionListItemResponse[];
+
+  @IsNested({ type: ResolvedSectionPoiResponse, isArray: true })
+  pois: ResolvedSectionPoiResponse[];
 }
 
 /** Full draft version assembled for one locale (staff preview, no paywall). */

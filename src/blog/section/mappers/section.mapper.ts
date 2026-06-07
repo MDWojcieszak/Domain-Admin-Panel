@@ -2,11 +2,32 @@ import { Prisma } from '@prisma/client';
 
 import { SectionResponse } from '../responses';
 
+/**
+ * Explicit POI select for the embedded section snapshot. Omits internal fields
+ * (internalNote, creatorVerdict) so they never leave the DB on section reads.
+ */
+export const SECTION_EMBEDDED_POI_SELECT = {
+  id: true,
+  name: true,
+  country: true,
+  region: true,
+  city: true,
+  latitude: true,
+  longitude: true,
+  status: true,
+  coverImageId: true,
+  categories: { select: { categoryId: true } },
+} satisfies Prisma.PoiSelect;
+
 /** Prisma include that loads a section with all locales and children. */
 export const SECTION_INCLUDE = {
   translations: true,
   images: { orderBy: { order: 'asc' }, include: { translations: true } },
   items: { orderBy: { order: 'asc' }, include: { translations: true } },
+  pois: {
+    orderBy: { order: 'asc' },
+    include: { poi: { select: SECTION_EMBEDDED_POI_SELECT } },
+  },
 } satisfies Prisma.BlogSectionInclude;
 
 export type SectionWithRelations = Prisma.BlogSectionGetPayload<{
@@ -61,6 +82,23 @@ export class SectionMapper {
           locale: t.locale,
           content: t.content,
         })),
+      })),
+      pois: section.pois.map((sp) => ({
+        id: sp.id,
+        poiId: sp.poiId,
+        order: sp.order,
+        poi: {
+          id: sp.poi.id,
+          name: sp.poi.name,
+          country: sp.poi.country,
+          region: sp.poi.region,
+          city: sp.poi.city,
+          latitude: sp.poi.latitude,
+          longitude: sp.poi.longitude,
+          status: sp.poi.status,
+          coverImageId: sp.poi.coverImageId,
+          categoryIds: sp.poi.categories.map((c) => c.categoryId),
+        },
       })),
       createdAt: section.createdAt,
       updatedAt: section.updatedAt,

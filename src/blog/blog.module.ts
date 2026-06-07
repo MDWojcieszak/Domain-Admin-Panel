@@ -4,6 +4,9 @@ import { BlogCommonModule } from './common/blog-common.module';
 import { PostModule } from './post/post.module';
 import { SectionModule } from './section/section.module';
 import { VersioningModule } from './versioning/versioning.module';
+import { PoiModule } from './poi/poi.module';
+import { CategoryModule } from './category/category.module';
+import { CollectionModule } from './collection/collection.module';
 import { BlogSeedService } from './seed/blog-seed.service';
 
 /**
@@ -12,7 +15,15 @@ import { BlogSeedService } from './seed/blog-seed.service';
  * add poi/category/home/template/interaction/insights/search sub-modules.
  */
 @Module({
-  imports: [BlogCommonModule, PostModule, SectionModule, VersioningModule],
+  imports: [
+    BlogCommonModule,
+    PostModule,
+    SectionModule,
+    VersioningModule,
+    PoiModule,
+    CategoryModule,
+    CollectionModule,
+  ],
   providers: [BlogSeedService],
 })
 export class BlogModule {}

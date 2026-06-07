@@ -12,6 +12,37 @@ import {
 
 type PostWithAuthors = BlogPost & { authors?: BlogPostAuthor[] };
 
+/**
+ * Explicit POI select for the resolved draft view. Omits internal fields and
+ * loads localized name/description + category ids.
+ */
+const DRAFT_EMBEDDED_POI_SELECT = {
+  id: true,
+  name: true,
+  country: true,
+  region: true,
+  city: true,
+  latitude: true,
+  longitude: true,
+  timezone: true,
+  status: true,
+  coverImageId: true,
+  creatorRating: true,
+  priceLevel: true,
+  bestSeasons: true,
+  difficulty: true,
+  distanceKm: true,
+  elevationGainM: true,
+  visitDurationMin: true,
+  websiteUrl: true,
+  bookingUrl: true,
+  mapsUrl: true,
+  googlePlaceId: true,
+  osmId: true,
+  translations: { select: { locale: true, name: true, description: true } },
+  categories: { select: { categoryId: true } },
+} satisfies Prisma.PoiSelect;
+
 /** Prisma include that loads a full version with all nested translations. */
 export const DRAFT_VERSION_INCLUDE = {
   translations: true,
@@ -21,6 +52,10 @@ export const DRAFT_VERSION_INCLUDE = {
       translations: true,
       images: { orderBy: { order: 'asc' }, include: { translations: true } },
       items: { orderBy: { order: 'asc' }, include: { translations: true } },
+      pois: {
+        orderBy: { order: 'asc' },
+        include: { poi: { select: DRAFT_EMBEDDED_POI_SELECT } },
+      },
     },
   },
 } satisfies Prisma.BlogPostVersionInclude;
@@ -156,6 +191,38 @@ export class PostMapper {
           id: item.id,
           order: item.order,
           content: lt?.content ?? null,
+        };
+      }),
+      pois: section.pois.map((sp) => {
+        const pt = pickTranslation(sp.poi.translations, locale, defaultLocale);
+        return {
+          id: sp.id,
+          poiId: sp.poiId,
+          order: sp.order,
+          name: pt?.name ?? sp.poi.name,
+          description: pt?.description ?? null,
+          country: sp.poi.country,
+          region: sp.poi.region,
+          city: sp.poi.city,
+          latitude: sp.poi.latitude,
+          longitude: sp.poi.longitude,
+          timezone: sp.poi.timezone,
+          status: sp.poi.status,
+          coverImageId: sp.poi.coverImageId,
+          categoryIds: sp.poi.categories.map((c) => c.categoryId),
+          creatorRating: sp.poi.creatorRating,
+          priceLevel: sp.poi.priceLevel,
+          bestSeasons: sp.poi.bestSeasons,
+          difficulty: sp.poi.difficulty,
+          distanceKm: sp.poi.distanceKm,
+          elevationGainM: sp.poi.elevationGainM,
+          visitDurationMin: sp.poi.visitDurationMin,
+          websiteUrl: sp.poi.websiteUrl,
+          bookingUrl: sp.poi.bookingUrl,
+          mapsUrl: sp.poi.mapsUrl,
+          googlePlaceId: sp.poi.googlePlaceId,
+          osmId: sp.poi.osmId,
+          untranslated: isFallbackTranslation(pt, locale),
         };
       }),
     };

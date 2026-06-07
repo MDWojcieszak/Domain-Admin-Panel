@@ -14,10 +14,12 @@ import {
 import {
   AddSectionImageDto,
   AddSectionListItemDto,
+  AddSectionPoiDto,
   CreateSectionDto,
   PatchSectionDto,
   PatchSectionImageDto,
   PatchSectionListItemDto,
+  PatchSectionPoiDto,
   ReorderDto,
   UpsertSectionImageTranslationDto,
   UpsertSectionListItemTranslationDto,
@@ -29,7 +31,9 @@ import {
   assertImagesAllowed,
   assertItemsAllowed,
   assertNeutralFieldsForType,
+  assertPoisAllowed,
   isSingleImageType,
+  isSinglePoiType,
 } from './section-field-rules';
 
 @Injectable()
@@ -423,6 +427,94 @@ export class SectionService {
     return this.loadSection(sectionId);
   }
 
+  // ----- POIs (MAP / PLACE) -----
+
+  async addPoi(
+    sectionId: string,
+    dto: AddSectionPoiDto,
+  ): Promise<SectionResponse> {
+    const { sectionId: id } =
+      await this.versioning.resolveEditableSection(sectionId);
+    const section = await this.getSectionOrThrow(id);
+    assertPoisAllowed(section.type);
+    await this.assertPoiExists(dto.poiId);
+
+    const existingCount = await this.prisma.sectionPoi.count({
+      where: { sectionId: id },
+    });
+    if (isSinglePoiType(section.type) && existingCount > 0) {
+      throw new BadRequestException(
+        `Section type ${section.type} accepts only one POI`,
+      );
+    }
+
+    const duplicate = await this.prisma.sectionPoi.findUnique({
+      where: { sectionId_poiId: { sectionId: id, poiId: dto.poiId } },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new BadRequestException('POI is already attached to this section');
+    }
+
+    const order = dto.order ?? (await this.nextPoiOrder(id));
+    await this.prisma.sectionPoi.create({
+      data: { sectionId: id, poiId: dto.poiId, order },
+    });
+
+    return this.loadSection(id);
+  }
+
+  async patchPoi(
+    poiLinkId: string,
+    dto: PatchSectionPoiDto,
+  ): Promise<SectionResponse> {
+    const { poiLinkId: id } =
+      await this.versioning.resolveEditableSectionPoi(poiLinkId);
+    const sectionId = await this.getPoiLinkSectionId(id);
+
+    if (dto.order !== undefined) {
+      await this.prisma.sectionPoi.update({
+        where: { id },
+        data: { order: dto.order },
+      });
+    }
+
+    return this.loadSection(sectionId);
+  }
+
+  async deletePoi(poiLinkId: string): Promise<SectionResponse> {
+    const { poiLinkId: id } =
+      await this.versioning.resolveEditableSectionPoi(poiLinkId);
+    const sectionId = await this.getPoiLinkSectionId(id);
+    await this.prisma.sectionPoi.delete({ where: { id } });
+    return this.loadSection(sectionId);
+  }
+
+  async reorderPois(
+    sectionId: string,
+    dto: ReorderDto,
+  ): Promise<SectionResponse> {
+    const { sectionId: id, ensure } =
+      await this.versioning.resolveEditableSection(sectionId);
+    const items = this.remapOrderItems(dto, ensure, 'sectionPoiIdMap');
+    await this.assertChildrenBelong(
+      'sectionPoi',
+      id,
+      items.map((i) => i.id),
+    );
+
+    await this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.sectionPoi.update({
+          where: { id: item.id },
+          data: { order: item.order },
+        }),
+      ),
+    );
+
+    return this.loadSection(id);
+  }
+
   // ----- helpers -----
 
   /**
@@ -434,7 +526,7 @@ export class SectionService {
     ensure: EnsureDraftResult,
     mapKey: keyof Pick<
       EnsureDraftResult,
-      'sectionIdMap' | 'imageIdMap' | 'itemIdMap'
+      'sectionIdMap' | 'imageIdMap' | 'itemIdMap' | 'sectionPoiIdMap'
     >,
   ): Array<{ id: string; order: number }> {
     if (!ensure.cloned) {
@@ -518,7 +610,7 @@ export class SectionService {
   }
 
   private async assertChildrenBelong(
-    model: 'blogSectionImage' | 'blogSectionListItem',
+    model: 'blogSectionImage' | 'blogSectionListItem' | 'sectionPoi',
     sectionId: string,
     ids: string[],
   ): Promise<void> {
@@ -526,14 +618,15 @@ export class SectionService {
       return;
     }
     const uniqueIds = new Set(ids);
-    const found =
-      model === 'blogSectionImage'
-        ? await this.prisma.blogSectionImage.count({
-            where: { sectionId, id: { in: ids } },
-          })
-        : await this.prisma.blogSectionListItem.count({
-            where: { sectionId, id: { in: ids } },
-          });
+    const where = { sectionId, id: { in: ids } };
+    let found: number;
+    if (model === 'blogSectionImage') {
+      found = await this.prisma.blogSectionImage.count({ where });
+    } else if (model === 'blogSectionListItem') {
+      found = await this.prisma.blogSectionListItem.count({ where });
+    } else {
+      found = await this.prisma.sectionPoi.count({ where });
+    }
     if (found !== uniqueIds.size) {
       throw new BadRequestException(
         'One or more children do not belong to this section',
@@ -563,5 +656,34 @@ export class SectionService {
       _max: { order: true },
     });
     return (agg._max.order ?? -1) + 1;
+  }
+
+  private async nextPoiOrder(sectionId: string): Promise<number> {
+    const agg = await this.prisma.sectionPoi.aggregate({
+      where: { sectionId },
+      _max: { order: true },
+    });
+    return (agg._max.order ?? -1) + 1;
+  }
+
+  private async getPoiLinkSectionId(poiLinkId: string): Promise<string> {
+    const link = await this.prisma.sectionPoi.findUnique({
+      where: { id: poiLinkId },
+      select: { sectionId: true },
+    });
+    if (!link) {
+      throw new NotFoundException('Section POI link not found');
+    }
+    return link.sectionId;
+  }
+
+  private async assertPoiExists(poiId: string): Promise<void> {
+    const poi = await this.prisma.poi.findUnique({
+      where: { id: poiId },
+      select: { id: true },
+    });
+    if (!poi) {
+      throw new BadRequestException('POI not found');
+    }
   }
 }

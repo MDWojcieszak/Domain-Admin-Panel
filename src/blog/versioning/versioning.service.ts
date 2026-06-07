@@ -19,6 +19,7 @@ export interface CloneMaps {
   sectionIdMap: Map<string, string>;
   imageIdMap: Map<string, string>;
   itemIdMap: Map<string, string>;
+  sectionPoiIdMap: Map<string, string>;
 }
 
 export interface EnsureDraftResult extends CloneMaps {
@@ -34,6 +35,7 @@ function emptyMaps(): CloneMaps {
     sectionIdMap: new Map(),
     imageIdMap: new Map(),
     itemIdMap: new Map(),
+    sectionPoiIdMap: new Map(),
   };
 }
 
@@ -99,6 +101,7 @@ export class VersioningService {
       sectionIdMap: clone.sectionIdMap,
       imageIdMap: clone.imageIdMap,
       itemIdMap: clone.itemIdMap,
+      sectionPoiIdMap: clone.sectionPoiIdMap,
     };
   }
 
@@ -128,6 +131,15 @@ export class VersioningService {
     const effectiveId = ensure.cloned
       ? (ensure.sectionIdMap.get(sectionId) ?? sectionId)
       : sectionId;
+    const eff = await this.prisma.blogSection.findUnique({
+      where: { id: effectiveId },
+      select: { versionId: true },
+    });
+    this.assertStillEditable(
+      eff?.versionId,
+      ensure.draftVersionId,
+      'Section is not on the editable draft; reload the draft',
+    );
     return { sectionId: effectiveId, ensure };
   }
 
@@ -157,6 +169,15 @@ export class VersioningService {
     const effectiveId = ensure.cloned
       ? (ensure.imageIdMap.get(imageId) ?? imageId)
       : imageId;
+    const eff = await this.prisma.blogSectionImage.findUnique({
+      where: { id: effectiveId },
+      select: { section: { select: { versionId: true } } },
+    });
+    this.assertStillEditable(
+      eff?.section.versionId,
+      ensure.draftVersionId,
+      'Image is not on the editable draft; reload the draft',
+    );
     return { imageId: effectiveId, ensure };
   }
 
@@ -186,7 +207,71 @@ export class VersioningService {
     const effectiveId = ensure.cloned
       ? (ensure.itemIdMap.get(itemId) ?? itemId)
       : itemId;
+    const eff = await this.prisma.blogSectionListItem.findUnique({
+      where: { id: effectiveId },
+      select: { section: { select: { versionId: true } } },
+    });
+    this.assertStillEditable(
+      eff?.section.versionId,
+      ensure.draftVersionId,
+      'List item is not on the editable draft; reload the draft',
+    );
     return { itemId: effectiveId, ensure };
+  }
+
+  async resolveEditableSectionPoi(
+    poiLinkId: string,
+  ): Promise<{ poiLinkId: string; ensure: EnsureDraftResult }> {
+    const link = await this.prisma.sectionPoi.findUnique({
+      where: { id: poiLinkId },
+      select: {
+        section: {
+          select: { versionId: true, version: { select: { postId: true } } },
+        },
+      },
+    });
+    if (!link) {
+      throw new NotFoundException('Section POI link not found');
+    }
+
+    const post = await this.getPostPointers(link.section.version.postId);
+    if (link.section.versionId !== post.draftVersionId) {
+      throw new BadRequestException(
+        'POI link is not on the editable draft; reload the draft',
+      );
+    }
+
+    const ensure = await this.ensureEditableDraft(link.section.version.postId);
+    const effectiveId = ensure.cloned
+      ? (ensure.sectionPoiIdMap.get(poiLinkId) ?? poiLinkId)
+      : poiLinkId;
+    const eff = await this.prisma.sectionPoi.findUnique({
+      where: { id: effectiveId },
+      select: { section: { select: { versionId: true } } },
+    });
+    this.assertStillEditable(
+      eff?.section.versionId,
+      ensure.draftVersionId,
+      'POI link is not on the editable draft; reload the draft',
+    );
+    return { poiLinkId: effectiveId, ensure };
+  }
+
+  /**
+   * Guards against a TOCTOU race: a concurrent request may clone the draft
+   * between the initial staleness check and ensureEditableDraft, leaving the
+   * resolved id pointing at the now-published version. Re-checking the effective
+   * entity against the freshly resolved draft converts that into a clean
+   * "reload the draft" error instead of a silent edit of live content.
+   */
+  private assertStillEditable(
+    versionId: string | undefined,
+    draftVersionId: string,
+    message: string,
+  ): void {
+    if (!versionId || versionId !== draftVersionId) {
+      throw new BadRequestException(message);
+    }
   }
 
   // ===== publication lifecycle =====
@@ -550,6 +635,7 @@ export class VersioningService {
     const sectionIdMap = new Map<string, string>();
     const imageIdMap = new Map<string, string>();
     const itemIdMap = new Map<string, string>();
+    const sectionPoiIdMap = new Map<string, string>();
 
     const sectionData = src.sections.map((s) => {
       const id = randomUUID();
@@ -655,17 +741,28 @@ export class VersioningService {
     }
 
     const poiData = src.sections.flatMap((s) =>
-      s.pois.map((p) => ({
-        sectionId: sectionIdMap.get(s.id)!,
-        poiId: p.poiId,
-        order: p.order,
-      })),
+      s.pois.map((p) => {
+        const id = randomUUID();
+        sectionPoiIdMap.set(p.id, id);
+        return {
+          id,
+          sectionId: sectionIdMap.get(s.id)!,
+          poiId: p.poiId,
+          order: p.order,
+        };
+      }),
     );
     if (poiData.length) {
       await tx.sectionPoi.createMany({ data: poiData });
     }
 
-    return { newVersionId, sectionIdMap, imageIdMap, itemIdMap };
+    return {
+      newVersionId,
+      sectionIdMap,
+      imageIdMap,
+      itemIdMap,
+      sectionPoiIdMap,
+    };
   }
 
   /** Recomputes wordCount/readingMinutes per locale for a version (at publish). */

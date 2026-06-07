@@ -53,11 +53,14 @@ const SINGLE_IMAGE_TYPES: BlogSectionType[] = [
 /** Section types that may carry BlogSectionListItem children. */
 const LIST_TYPES: BlogSectionType[] = [BlogSectionType.LIST];
 
-/** Section types that may carry SectionPoi children (Phase 3). */
+/** Section types that may carry SectionPoi children. */
 const POI_TYPES: BlogSectionType[] = [
   BlogSectionType.MAP,
   BlogSectionType.PLACE,
 ];
+
+/** Section types limited to a single POI. */
+const SINGLE_POI_TYPES: BlogSectionType[] = [BlogSectionType.PLACE];
 
 /**
  * Rejects any neutral field set on `fields` that is not valid for `type`.
@@ -101,4 +104,8 @@ export function assertPoisAllowed(type: BlogSectionType): void {
   if (!POI_TYPES.includes(type)) {
     throw new BadRequestException(`Section type ${type} cannot have POIs`);
   }
+}
+
+export function isSinglePoiType(type: BlogSectionType): boolean {
+  return SINGLE_POI_TYPES.includes(type);
 }

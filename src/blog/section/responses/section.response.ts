@@ -12,6 +12,7 @@ import {
   CalloutVariant,
   EmbedProvider,
   GalleryLayout,
+  PoiStatus,
 } from '@prisma/client';
 import {
   IsDate,
@@ -103,6 +104,53 @@ export class SectionListItemResponse {
   translations: SectionListItemTranslationResponse[];
 }
 
+/** POI snapshot embedded in a section (editor). Internal fields are excluded. */
+export class SectionPoiTargetResponse {
+  @IsString()
+  id: string;
+
+  @IsString()
+  name: string;
+
+  @IsString({ optional: true, nullable: true })
+  country: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  region: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  city: string | null;
+
+  @IsNumber()
+  latitude: number;
+
+  @IsNumber()
+  longitude: number;
+
+  @IsEnum({ enum: { PoiStatus } })
+  status: PoiStatus;
+
+  @IsString({ optional: true, nullable: true })
+  coverImageId: string | null;
+
+  @IsString({ isArray: true })
+  categoryIds: string[];
+}
+
+export class SectionPoiResponse {
+  @IsString()
+  id: string;
+
+  @IsString()
+  poiId: string;
+
+  @IsNumber({ type: 'integer' })
+  order: number;
+
+  @IsNested({ type: SectionPoiTargetResponse })
+  poi: SectionPoiTargetResponse;
+}
+
 /**
  * Raw section for the editor — all locales and children included, no locale
  * resolution or paywall cutting (that happens in the read views).
@@ -158,6 +206,9 @@ export class SectionResponse {
 
   @IsNested({ type: SectionListItemResponse, isArray: true })
   items: SectionListItemResponse[];
+
+  @IsNested({ type: SectionPoiResponse, isArray: true })
+  pois: SectionPoiResponse[];
 
   @IsDate({ format: 'date-time' })
   createdAt: Date;
