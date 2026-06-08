@@ -6,10 +6,12 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
-import { GetCurrentUser } from '../../common/decorators';
+import { GetCurrentUser, Throttle } from '../../common/decorators';
+import { ThrottleGuard } from '../../common/guards';
 import { DeviceService } from './device.service';
 import { GetDevicesQueryDto, RegisterDeviceDto } from './dto';
 import {
@@ -26,6 +28,8 @@ import {
 export class DeviceController {
   constructor(private readonly deviceService: DeviceService) {}
 
+  @UseGuards(ThrottleGuard)
+  @Throttle(5, 60_000) // 5 device registrations / minute / user
   @Post('register')
   @ApiOkResponse({
     description: 'Activated/renewed device + fresh license',

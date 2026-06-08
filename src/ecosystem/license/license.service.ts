@@ -65,6 +65,12 @@ export class LicenseService {
       this.publicKey = pubPem
         ? createPublicKey(pubPem)
         : createPublicKey(this.privateKey);
+    } else if (process.env.NODE_ENV === 'production') {
+      // Refuse to boot in production with an ephemeral key — it would silently
+      // invalidate every issued license on each restart and can't be pinned.
+      throw new Error(
+        'BLOG_LICENSE_PRIVATE_KEY is required in production (refusing to start with an ephemeral license key).',
+      );
     } else {
       // DEV-ONLY: ephemeral keypair regenerated each startup (not persisted).
       const { privateKey, publicKey } = generateKeyPairSync('ed25519');

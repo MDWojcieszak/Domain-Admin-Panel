@@ -6,3 +6,4 @@ export * from './token.decorator';
 export * from './outbound-message.decorator';
 export * from './reply-type.decorator';
 export * from './require-permissions.decorator';
+export * from './throttle.decorator';

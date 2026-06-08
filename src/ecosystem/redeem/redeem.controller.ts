@@ -6,10 +6,16 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
-import { GetCurrentUser, RequirePermissions } from '../../common/decorators';
+import {
+  GetCurrentUser,
+  RequirePermissions,
+  Throttle,
+} from '../../common/decorators';
+import { ThrottleGuard } from '../../common/guards';
 import { PERMISSIONS } from '../../common/acl/permissions';
 import { RedeemService } from './redeem.service';
 import { CreateCodeDto, GetCodesQueryDto, RedeemCodeDto } from './dto';
@@ -27,6 +33,8 @@ export class RedeemController {
 
   // ----- user redeem (any authenticated user) -----
 
+  @UseGuards(ThrottleGuard)
+  @Throttle(10, 60_000) // 10 redeem attempts / minute / user — anti brute-force
   @Post('redeem')
   @ApiOkResponse({ description: 'Redeemed a code', type: RedeemResultResponse })
   async redeem(
