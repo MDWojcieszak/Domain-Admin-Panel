@@ -3,6 +3,7 @@ import { BlogAccessTier, BlogPostStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
+import { tierSatisfies } from '../../ecosystem/access/access-tier';
 import { SearchQueryDto } from './dto';
 import { SearchResultsResponse } from './responses';
 import { regconfigFor, sanitizeForTsvector } from './search-regconfig';
@@ -45,11 +46,12 @@ export class SearchService {
   }
 
   /**
-   * Rebuilds the search index for a post from its PUBLISHED version. Indexes
-   * ONLY public content: writes nothing unless post.accessTier===PUBLIC, and
-   * only includes sections with minAccessTier===PUBLIC. Always clears first, so
-   * a demoted post/section drops out of the index. Runs inside the caller's
-   * publish transaction.
+   * Rebuilds the search index for a post from its PUBLISHED version. Premium-
+   * aware: indexes EVERY published post regardless of tier (and all of its
+   * sections), so entitled viewers can find premium content. Tier gating happens
+   * at QUERY time — `search()` withholds the excerpt for results above the
+   * viewer's tier and the body is never returned at all. Always clears first, so
+   * an unpublished post drops out. Runs inside the caller's publish transaction.
    */
   async feed(tx: Prisma.TransactionClient, postId: string): Promise<void> {
     await this.clear(tx, postId);
@@ -61,10 +63,9 @@ export class SearchService {
     if (
       !post ||
       post.status !== BlogPostStatus.PUBLISHED ||
-      !post.publishedVersionId ||
-      post.accessTier !== BlogAccessTier.PUBLIC
+      !post.publishedVersionId
     ) {
-      return; // premium/non-published posts are never indexed
+      return; // only published posts are indexed (any tier)
     }
 
     const version = await tx.blogPostVersion.findUnique({
@@ -73,17 +74,13 @@ export class SearchService {
     });
     if (!version) return;
 
-    const publicSections = version.sections.filter(
-      (s) => s.minAccessTier === BlogAccessTier.PUBLIC,
-    );
-
     const enabled = await this.localeResolver.listEnabled();
     for (const { code: locale } of enabled) {
       const vt = version.translations.find((t) => t.locale === locale);
       if (!vt) continue; // index only locales that actually have a version translation
 
       const bodyParts: string[] = [];
-      for (const section of publicSections) {
+      for (const section of version.sections) {
         const st = section.translations.find((t) => t.locale === locale);
         if (st) {
           if (st.title) bodyParts.push(st.title);
@@ -131,7 +128,15 @@ export class SearchService {
     await tx.blogSearchDocument.deleteMany({ where: { postId } });
   }
 
-  async search(dto: SearchQueryDto): Promise<SearchResultsResponse> {
+  /**
+   * Premium-aware full-text search. All published posts (any tier) are matched;
+   * a result above the viewer's effective tier comes back as a LOCKED teaser —
+   * title/slug/tier only, excerpt withheld. The indexed body is never returned.
+   */
+  async search(
+    dto: SearchQueryDto,
+    viewerTier: BlogAccessTier,
+  ): Promise<SearchResultsResponse> {
     const locale = await this.localeResolver.resolve(dto.locale);
     const regconfig = await this.safeRegconfig(locale);
     const take = Math.min(Math.max(dto.take ?? 20, 1), 100);
@@ -143,19 +148,20 @@ export class SearchService {
         slug: string;
         title: string | null;
         excerpt: string | null;
+        accessTier: BlogAccessTier;
         rank: number;
       }>
     >`
       SELECT d."postId",
-             p."slug"    AS slug,
-             d."title"   AS title,
-             d."excerpt" AS excerpt,
+             p."slug"       AS slug,
+             d."title"      AS title,
+             d."excerpt"    AS excerpt,
+             p."accessTier" AS "accessTier",
              ts_rank(d."searchVector", websearch_to_tsquery(${regconfig}::regconfig, ${dto.q})) AS rank
       FROM "BlogSearchDocument" d
       JOIN "BlogPost" p ON p."id" = d."postId"
       WHERE d."locale" = ${locale}
         AND p."status" = 'PUBLISHED'
-        AND p."accessTier" = 'PUBLIC'
         AND d."searchVector" @@ websearch_to_tsquery(${regconfig}::regconfig, ${dto.q})
       ORDER BY rank DESC, p."firstPublishedAt" DESC
       LIMIT ${take} OFFSET ${skip};
@@ -167,17 +173,21 @@ export class SearchService {
       JOIN "BlogPost" p ON p."id" = d."postId"
       WHERE d."locale" = ${locale}
         AND p."status" = 'PUBLISHED'
-        AND p."accessTier" = 'PUBLIC'
         AND d."searchVector" @@ websearch_to_tsquery(${regconfig}::regconfig, ${dto.q});
     `;
 
     return {
-      results: rows.map((r) => ({
-        postSlug: r.slug,
-        title: r.title,
-        excerpt: r.excerpt,
-        rank: Number(r.rank),
-      })),
+      results: rows.map((r) => {
+        const locked = !tierSatisfies(viewerTier, r.accessTier);
+        return {
+          postSlug: r.slug,
+          title: r.title,
+          excerpt: locked ? null : r.excerpt, // withhold teaser when above viewer tier
+          accessTier: r.accessTier,
+          locked,
+          rank: Number(r.rank),
+        };
+      }),
       total: Number(totalRows[0]?.count ?? 0),
       locale,
     };

@@ -1,4 +1,11 @@
-import { IsNested, IsNumber, IsString } from 'nestjs-swagger-dto';
+import { BlogAccessTier } from '@prisma/client';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNested,
+  IsNumber,
+  IsString,
+} from 'nestjs-swagger-dto';
 
 export class SearchResultResponse {
   @IsString()
@@ -7,8 +14,17 @@ export class SearchResultResponse {
   @IsString({ optional: true, nullable: true })
   title: string | null;
 
+  /** Teaser excerpt. NULL when the result is locked (viewer below the post tier). */
   @IsString({ optional: true, nullable: true })
   excerpt: string | null;
+
+  /** Reader-access tier required to open the post. */
+  @IsEnum({ enum: { BlogAccessTier } })
+  accessTier: BlogAccessTier;
+
+  /** True when the viewer's tier is below `accessTier` (excerpt withheld). */
+  @IsBoolean()
+  locked: boolean;
 
   @IsNumber()
   rank: number;
