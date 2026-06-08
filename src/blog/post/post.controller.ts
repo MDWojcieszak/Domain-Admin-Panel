@@ -28,9 +28,11 @@ import {
   PublicPostsQueryDto,
   ReorderPostsDto,
   SetPostAuthorsDto,
+  SetPostCategoriesDto,
   UpsertPostTranslationDto,
 } from './dto';
 import {
+  PostCategoriesResponse,
   PostDraftResponse,
   PostListResponse,
   PostResponse,
@@ -156,5 +158,30 @@ export class PostController {
     @Body() dto: SetPostAuthorsDto,
   ): Promise<PostResponse> {
     return this.postService.setAuthors(id, dto);
+  }
+
+  @RequirePermissions(PERMISSIONS.BLOG_READ_DRAFT)
+  @Get(':id/categories/draft')
+  @ApiOkResponse({
+    description: 'Editable draft post categories',
+    type: PostCategoriesResponse,
+  })
+  async getDraftCategories(
+    @Param('id') id: string,
+  ): Promise<PostCategoriesResponse> {
+    return this.postService.getDraftCategories(id);
+  }
+
+  @RequirePermissions(PERMISSIONS.BLOG_WRITE)
+  @Put(':id/categories')
+  @ApiOkResponse({
+    description: 'Set draft post categories (SET semantics)',
+    type: PostCategoriesResponse,
+  })
+  async setCategories(
+    @Param('id') id: string,
+    @Body() dto: SetPostCategoriesDto,
+  ): Promise<PostCategoriesResponse> {
+    return this.postService.setCategories(id, dto);
   }
 }

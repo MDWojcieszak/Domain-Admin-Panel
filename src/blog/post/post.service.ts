@@ -7,6 +7,7 @@ import {
   BlogAccessTier,
   BlogAuthorRole,
   BlogPostStatus,
+  CategoryKind,
   Prisma,
   VersionState,
 } from '@prisma/client';
@@ -16,6 +17,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
 import { blogBaseUrl, buildCanonicalUrl } from '../common/blog-url.config';
 import { VersioningService } from '../versioning/versioning.service';
+import { CATEGORY_INCLUDE, CategoryMapper } from '../category/mappers';
 import {
   CreatePostDto,
   GetPostsQueryDto,
@@ -23,9 +25,11 @@ import {
   PublicPostsQueryDto,
   ReorderPostsDto,
   SetPostAuthorsDto,
+  SetPostCategoriesDto,
   UpsertPostTranslationDto,
 } from './dto';
 import {
+  PostCategoriesResponse,
   PostDraftResponse,
   PostListResponse,
   PostResponse,
@@ -425,6 +429,73 @@ export class PostService {
     });
 
     return PostMapper.toResponse(updated);
+  }
+
+  /** SET semantics: replace the draft version's POST categories (lazy-clone aware). */
+  async setCategories(
+    id: string,
+    dto: SetPostCategoriesDto,
+  ): Promise<PostCategoriesResponse> {
+    await this.getPostOrThrow(id);
+    const ids = [...new Set(dto.categoryIds)];
+
+    if (ids.length) {
+      const found = await this.prisma.category.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, kind: true },
+      });
+      const kindById = new Map(found.map((c) => [c.id, c.kind]));
+      const invalid = ids.filter(
+        (cid) => kindById.get(cid) !== CategoryKind.POST,
+      );
+      if (invalid.length) {
+        throw new BadRequestException(
+          `Not POST categories or not found: ${invalid.join(', ')}`,
+        );
+      }
+    }
+
+    // Lazy-clone gate — only the editable draft version is mutated.
+    const { draftVersionId } = await this.versioning.ensureEditableDraft(id);
+
+    await this.prisma.$transaction([
+      this.prisma.blogVersionCategory.deleteMany({
+        where: { versionId: draftVersionId },
+      }),
+      ...(ids.length
+        ? [
+            this.prisma.blogVersionCategory.createMany({
+              data: ids.map((categoryId) => ({
+                versionId: draftVersionId,
+                categoryId,
+              })),
+              skipDuplicates: true,
+            }),
+          ]
+        : []),
+    ]);
+
+    return this.getDraftCategories(id);
+  }
+
+  async getDraftCategories(id: string): Promise<PostCategoriesResponse> {
+    const post = await this.getPostOrThrow(id);
+    if (!post.draftVersionId) {
+      throw new BadRequestException('Post has no draft version');
+    }
+
+    const links = await this.prisma.blogVersionCategory.findMany({
+      where: { versionId: post.draftVersionId },
+      include: { category: { include: CATEGORY_INCLUDE } },
+      orderBy: { category: { order: 'asc' } },
+    });
+    const defaultLocale = await this.localeResolver.getDefaultCode();
+
+    return {
+      categories: links.map((l) =>
+        CategoryMapper.toResolved(l.category, defaultLocale, defaultLocale),
+      ),
+    };
   }
 
   async reorder(dto: ReorderPostsDto): Promise<PostListResponse> {
