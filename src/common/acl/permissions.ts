@@ -53,6 +53,7 @@ export const PERMISSIONS = {
   BLOG_PLACE_MANAGE: 'blog.place.manage',
   BLOG_HOME_MANAGE: 'blog.home.manage',
   BLOG_ANALYTICS: 'blog.analytics',
+  BLOG_GRANT_MANAGE: 'blog.grant.manage',
 
   ACL_MANAGE: 'acl.manage',
   ACL_ASSIGN: 'acl.assign',
@@ -272,6 +273,12 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
     key: PERMISSIONS.BLOG_ANALYTICS,
     resource: 'blog',
     description: 'View post analytics (likes, views, usefulness feedback)',
+  },
+  {
+    key: PERMISSIONS.BLOG_GRANT_MANAGE,
+    resource: 'blog',
+    description:
+      'Issue/revoke access grants and create/revoke redeem codes (entitlement admin)',
   },
 
   {
