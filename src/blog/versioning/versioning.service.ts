@@ -773,6 +773,18 @@ export class VersioningService {
       await tx.sectionPoi.createMany({ data: poiData });
     }
 
+    // Re-anchor internal editorial comments onto the freshly cloned sections so
+    // they follow the editable draft. Post-level comments (sectionId = null) are
+    // never matched (null !== oldId) and stay anchored to the post. Anchors
+    // (anchorStart/End/quote) are best-effort and kept as-is. Old section ids are
+    // unique to this post, so filtering by sectionId alone is safe.
+    for (const [oldId, newId] of sectionIdMap.entries()) {
+      await tx.blogEditorialComment.updateMany({
+        where: { sectionId: oldId },
+        data: { sectionId: newId },
+      });
+    }
+
     return {
       newVersionId,
       sectionIdMap,
