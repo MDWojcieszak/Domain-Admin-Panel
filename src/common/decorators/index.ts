@@ -1,4 +1,5 @@
 export * from './get-current-user.decorator';
+export * from './get-optional-user.decorator';
 export * from './public.decorator';
 export * from './get-token-user';
 export * from './token.decorator';

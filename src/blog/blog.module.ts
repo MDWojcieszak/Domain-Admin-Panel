@@ -7,6 +7,8 @@ import { VersioningModule } from './versioning/versioning.module';
 import { PoiModule } from './poi/poi.module';
 import { CategoryModule } from './category/category.module';
 import { CollectionModule } from './collection/collection.module';
+import { SearchModule } from './search/search.module';
+import { SeoModule } from './seo/seo.module';
 import { BlogSeedService } from './seed/blog-seed.service';
 
 /**
@@ -23,6 +25,8 @@ import { BlogSeedService } from './seed/blog-seed.service';
     PoiModule,
     CategoryModule,
     CollectionModule,
+    SearchModule,
+    SeoModule,
   ],
   providers: [BlogSeedService],
 })

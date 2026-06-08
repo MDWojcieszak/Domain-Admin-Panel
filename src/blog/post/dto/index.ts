@@ -4,3 +4,4 @@ export * from './upsert-post-translation.dto';
 export * from './set-post-authors.dto';
 export * from './reorder-posts.dto';
 export * from './get-posts-query.dto';
+export * from './public-posts-query.dto';

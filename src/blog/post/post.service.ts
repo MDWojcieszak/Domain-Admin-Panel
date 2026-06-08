@@ -4,25 +4,39 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BlogAccessTier,
   BlogAuthorRole,
   BlogPostStatus,
   Prisma,
   VersionState,
 } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
+import { blogBaseUrl, buildCanonicalUrl } from '../common/blog-url.config';
 import { VersioningService } from '../versioning/versioning.service';
 import {
   CreatePostDto,
   GetPostsQueryDto,
   PatchPostDto,
+  PublicPostsQueryDto,
   ReorderPostsDto,
   SetPostAuthorsDto,
   UpsertPostTranslationDto,
 } from './dto';
-import { PostDraftResponse, PostListResponse, PostResponse } from './responses';
-import { DRAFT_VERSION_INCLUDE, PostMapper } from './mappers';
+import {
+  PostDraftResponse,
+  PostListResponse,
+  PostResponse,
+  PublicPostListResponse,
+  PublicPostResponse,
+} from './responses';
+import {
+  DRAFT_VERSION_INCLUDE,
+  PUBLIC_CARD_VERSION_INCLUDE,
+  PostMapper,
+} from './mappers';
 
 @Injectable()
 export class PostService {
@@ -30,6 +44,7 @@ export class PostService {
     private readonly prisma: PrismaService,
     private readonly localeResolver: LocaleResolver,
     private readonly versioning: VersioningService,
+    private readonly config: ConfigService,
   ) {}
 
   async list(query: GetPostsQueryDto): Promise<PostListResponse> {
@@ -86,6 +101,123 @@ export class PostService {
     const defaultLocale = await this.localeResolver.getDefaultCode();
 
     return PostMapper.toDraftResponse(post, version, locale, defaultLocale);
+  }
+
+  // ----- public read / feed -----
+
+  async getPublicBySlug(
+    slug: string,
+    requestedLocale: string | undefined,
+    viewerTier: BlogAccessTier,
+  ): Promise<PublicPostResponse> {
+    const locale = await this.localeResolver.resolve(requestedLocale);
+    const defaultLocale = await this.localeResolver.getDefaultCode();
+
+    const post = await this.prisma.blogPost.findFirst({
+      where: {
+        slug,
+        status: BlogPostStatus.PUBLISHED,
+        publishedVersionId: { not: null },
+      },
+      include: { authors: true },
+    });
+    if (!post || !post.publishedVersionId) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const version = await this.prisma.blogPostVersion.findUnique({
+      where: { id: post.publishedVersionId }, // NEVER the draft
+      include: DRAFT_VERSION_INCLUDE,
+    });
+    if (!version) {
+      throw new NotFoundException('Published version not found');
+    }
+
+    const baseUrl = blogBaseUrl(this.config);
+    const hreflangs = version.translations.map((t) => ({
+      locale: t.locale,
+      canonicalUrl:
+        t.canonicalUrl ??
+        buildCanonicalUrl(baseUrl, post.slug, t.locale, defaultLocale),
+    }));
+    const canonicalUrl = buildCanonicalUrl(
+      baseUrl,
+      post.slug,
+      locale,
+      defaultLocale,
+    );
+
+    return PostMapper.toPublicResponse(
+      post,
+      version,
+      locale,
+      defaultLocale,
+      viewerTier,
+      hreflangs,
+      canonicalUrl,
+    );
+  }
+
+  async listPublic(
+    query: PublicPostsQueryDto,
+  ): Promise<PublicPostListResponse> {
+    const locale = await this.localeResolver.resolve(query.locale);
+    const defaultLocale = await this.localeResolver.getDefaultCode();
+
+    const versionFilter: Prisma.BlogPostVersionWhereInput = {};
+    if (query.region) {
+      versionFilter.region = { equals: query.region, mode: 'insensitive' };
+    }
+    if (query.category) {
+      versionFilter.categories = {
+        some: {
+          category: { OR: [{ id: query.category }, { key: query.category }] },
+        },
+      };
+    }
+
+    const where: Prisma.BlogPostWhereInput = {
+      status: BlogPostStatus.PUBLISHED,
+      publishedVersionId: { not: null },
+      ...(Object.keys(versionFilter).length
+        ? { publishedVersion: { is: versionFilter } }
+        : {}),
+      ...(query.series
+        ? {
+            series: {
+              is: { OR: [{ id: query.series }, { slug: query.series }] },
+            },
+          }
+        : {}),
+    };
+
+    const [posts, total] = await this.prisma.$transaction([
+      this.prisma.blogPost.findMany({
+        where,
+        include: {
+          authors: true,
+          publishedVersion: { include: PUBLIC_CARD_VERSION_INCLUDE },
+        },
+        orderBy: { firstPublishedAt: 'desc' },
+        take: query.take,
+        skip: query.skip,
+      }),
+      this.prisma.blogPost.count({ where }),
+    ]);
+
+    return {
+      total,
+      posts: posts
+        .filter((p) => p.publishedVersion)
+        .map((p) =>
+          PostMapper.toPublicCard(
+            p,
+            p.publishedVersion!,
+            locale,
+            defaultLocale,
+          ),
+        ),
+    };
   }
 
   async create(userId: string, dto: CreatePostDto): Promise<PostResponse> {

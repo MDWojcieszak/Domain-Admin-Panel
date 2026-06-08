@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { SearchModule } from '../search/search.module';
 import { VersionController } from './version.controller';
 import { VersioningService } from './versioning.service';
 
@@ -9,6 +10,7 @@ import { VersioningService } from './versioning.service';
  * modules. The cron that publishes due SCHEDULED posts lives here too.
  */
 @Module({
+  imports: [SearchModule],
   controllers: [VersionController],
   providers: [VersioningService],
   exports: [VersioningService],

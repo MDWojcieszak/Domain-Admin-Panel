@@ -1,5 +1,11 @@
-import { BlogPost, BlogPostAuthor, Prisma } from '@prisma/client';
+import {
+  BlogAccessTier,
+  BlogPost,
+  BlogPostAuthor,
+  Prisma,
+} from '@prisma/client';
 
+import { maxTier, tierSatisfies } from '../../common/blog-access-tier';
 import {
   isFallbackTranslation,
   pickTranslation,
@@ -7,10 +13,23 @@ import {
 import {
   PostDraftResponse,
   PostResponse,
+  PublicPostCardResponse,
+  PublicPostResponse,
+  PublicSectionResponse,
   ResolvedSectionResponse,
 } from '../responses';
 
 type PostWithAuthors = BlogPost & { authors?: BlogPostAuthor[] };
+
+/** Prisma include for a public list card (published version translation + categories). */
+export const PUBLIC_CARD_VERSION_INCLUDE = {
+  translations: true,
+  categories: true,
+} satisfies Prisma.BlogPostVersionInclude;
+
+type CardVersion = Prisma.BlogPostVersionGetPayload<{
+  include: typeof PUBLIC_CARD_VERSION_INCLUDE;
+}>;
 
 /**
  * Explicit POI select for the resolved draft view. Omits internal fields and
@@ -225,6 +244,116 @@ export class PostMapper {
           untranslated: isFallbackTranslation(pt, locale),
         };
       }),
+    };
+  }
+
+  /**
+   * Public read with paywall cutting. Gated sections become locked placeholders
+   * that carry NO content (built as fresh literals — never spread from the
+   * resolved section), so premium text/structure can never reach the response.
+   */
+  static toPublicResponse(
+    post: PostWithAuthors,
+    version: VersionWithContent,
+    locale: string,
+    defaultLocale: string,
+    viewerTier: BlogAccessTier,
+    hreflangs: Array<{ locale: string; canonicalUrl: string }>,
+    canonicalUrl: string | null,
+  ): PublicPostResponse {
+    const isTeaser = !tierSatisfies(viewerTier, post.accessTier);
+    const vt = pickTranslation(version.translations, locale, defaultLocale);
+
+    const sections: PublicSectionResponse[] = version.sections.map(
+      (section) => {
+        const lockedBySection = !tierSatisfies(
+          viewerTier,
+          section.minAccessTier,
+        );
+        const lockedByPost =
+          isTeaser && section.minAccessTier !== BlogAccessTier.PUBLIC;
+        if (lockedBySection || lockedByPost) {
+          // Fresh literal — exactly these fields, nothing gated.
+          return {
+            id: section.id,
+            type: section.type,
+            order: section.order,
+            minAccessTier: section.minAccessTier,
+            requiredTier: maxTier(post.accessTier, section.minAccessTier),
+            locked: true as const,
+          };
+        }
+        return {
+          ...this.toResolvedSection(section, locale, defaultLocale),
+          locked: false as const,
+        };
+      },
+    );
+
+    return {
+      postId: post.id,
+      slug: post.slug,
+      status: post.status,
+      accessTier: post.accessTier,
+      locale,
+      isTeaser,
+      versionId: version.id,
+      country: version.country,
+      region: version.region,
+      coverImageId: version.coverImageId,
+      ogImageId: version.ogImageId,
+      title: vt?.title ?? null,
+      subtitle: vt?.subtitle ?? null,
+      excerpt: vt?.excerpt ?? null,
+      readingMinutes: vt?.readingMinutes ?? null,
+      metaTitle: vt?.metaTitle ?? null,
+      metaDescription: vt?.metaDescription ?? null,
+      canonicalUrl: vt?.canonicalUrl ?? canonicalUrl,
+      seoKeywords: vt?.seoKeywords ?? [],
+      untranslated: isFallbackTranslation(vt, locale),
+      hreflangs,
+      authors: (post.authors ?? [])
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .map((a) => ({
+          id: a.id,
+          userId: a.userId,
+          role: a.role,
+          order: a.order,
+        })),
+      firstPublishedAt: post.firstPublishedAt,
+      lastPublishedAt: post.lastPublishedAt,
+      sections,
+    };
+  }
+
+  static toPublicCard(
+    post: PostWithAuthors,
+    version: CardVersion,
+    locale: string,
+    defaultLocale: string,
+  ): PublicPostCardResponse {
+    const vt = pickTranslation(version.translations, locale, defaultLocale);
+    return {
+      id: post.id,
+      slug: post.slug,
+      title: vt?.title ?? null,
+      excerpt: vt?.excerpt ?? null,
+      coverImageId: version.coverImageId,
+      accessTier: post.accessTier,
+      readingMinutes: vt?.readingMinutes ?? null,
+      categoryIds: version.categories.map((c) => c.categoryId),
+      untranslated: isFallbackTranslation(vt, locale),
+      authors: (post.authors ?? [])
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .map((a) => ({
+          id: a.id,
+          userId: a.userId,
+          role: a.role,
+          order: a.order,
+        })),
+      firstPublishedAt: post.firstPublishedAt,
     };
   }
 }

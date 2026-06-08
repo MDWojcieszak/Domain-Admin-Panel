@@ -7,27 +7,78 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
-import { GetCurrentUser, RequirePermissions } from '../../common/decorators';
+import {
+  GetCurrentUser,
+  GetOptionalUser,
+  Public,
+  RequirePermissions,
+} from '../../common/decorators';
+import { OptionalAuthGuard } from '../../common/guards';
 import { PERMISSIONS } from '../../common/acl/permissions';
+import { AccessTierResolver } from '../common/access-tier-resolver.service';
 import { PostService } from './post.service';
 import {
   CreatePostDto,
   GetPostsQueryDto,
   PatchPostDto,
+  PublicPostsQueryDto,
   ReorderPostsDto,
   SetPostAuthorsDto,
   UpsertPostTranslationDto,
 } from './dto';
-import { PostDraftResponse, PostListResponse, PostResponse } from './responses';
+import {
+  PostDraftResponse,
+  PostListResponse,
+  PostResponse,
+  PublicPostListResponse,
+  PublicPostResponse,
+} from './responses';
 
 @Controller('blog/posts')
 @ApiTags('Blog · Posts')
 @ApiBearerAuth()
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(
+    private readonly postService: PostService,
+    private readonly accessTierResolver: AccessTierResolver,
+  ) {}
+
+  // ----- public (no auth; optional token for paywall tier) -----
+
+  @Public()
+  @UseGuards(OptionalAuthGuard)
+  @Get('public')
+  @ApiOkResponse({
+    description: 'Public post feed',
+    type: PublicPostListResponse,
+  })
+  async listPublic(
+    @Query() query: PublicPostsQueryDto,
+  ): Promise<PublicPostListResponse> {
+    return this.postService.listPublic(query);
+  }
+
+  @Public()
+  @UseGuards(OptionalAuthGuard)
+  @Get('public/:slug')
+  @ApiOkResponse({
+    description: 'Public post read (paywall-gated)',
+    type: PublicPostResponse,
+  })
+  async getPublic(
+    @Param('slug') slug: string,
+    @GetOptionalUser('sub') userId: string | null,
+    @Query('locale') locale?: string,
+  ): Promise<PublicPostResponse> {
+    const viewerTier = await this.accessTierResolver.effectiveTier(userId);
+    return this.postService.getPublicBySlug(slug, locale, viewerTier);
+  }
+
+  // ----- staff -----
 
   @RequirePermissions(PERMISSIONS.BLOG_READ)
   @Get()

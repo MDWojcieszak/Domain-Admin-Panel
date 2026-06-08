@@ -12,6 +12,7 @@ import { BlogPostStatus, Prisma, VersionState } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PostMapper } from '../post/mappers';
 import { PostResponse } from '../post/responses';
+import { SearchService } from '../search/search.service';
 import { ScheduleDto } from './dto';
 import { VersionListResponse } from './responses';
 
@@ -59,7 +60,10 @@ function countWords(...texts: Array<string | null | undefined>): number {
 export class VersioningService {
   private readonly logger = new Logger(VersioningService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly search: SearchService,
+  ) {}
 
   // ===== lazy-clone (edit guard) =====
 
@@ -317,6 +321,9 @@ export class VersioningService {
           archivedAt: null,
         },
       });
+
+      // (Re)build the public search index from the now-published version.
+      await this.search.feed(tx, postId);
     });
 
     return this.loadPostResponse(postId);
@@ -351,6 +358,9 @@ export class VersioningService {
         where: { id: postId },
         data: { status: BlogPostStatus.DRAFT, publishedVersionId: null },
       });
+
+      // No longer public — drop it from the search index.
+      await this.search.clear(tx, postId);
     });
 
     return this.loadPostResponse(postId);
@@ -380,9 +390,13 @@ export class VersioningService {
 
   async archive(postId: string): Promise<PostResponse> {
     await this.getPostPointers(postId); // ensure exists
-    await this.prisma.blogPost.update({
-      where: { id: postId },
-      data: { status: BlogPostStatus.ARCHIVED, archivedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.blogPost.update({
+        where: { id: postId },
+        data: { status: BlogPostStatus.ARCHIVED, archivedAt: new Date() },
+      });
+      // Archived posts are not public — remove them from the search index.
+      await this.search.clear(tx, postId);
     });
     return this.loadPostResponse(postId);
   }
@@ -456,6 +470,9 @@ export class VersioningService {
           lastPublishedAt: now,
         },
       });
+
+      // Rebuild the index from the rolled-back (now-published) version.
+      await this.search.feed(tx, postId);
     });
 
     return this.loadPostResponse(postId);
