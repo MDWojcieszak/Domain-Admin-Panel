@@ -43,6 +43,7 @@ import { AclModule } from './acl/acl.module';
 import { AclCoreModule } from './common/acl/acl-core.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { BlogModule } from './blog/blog.module';
+import { EcosystemModule } from './ecosystem/ecosystem.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { BlogModule } from './blog/blog.module';
     AclCoreModule,
     DashboardModule,
     BlogModule,
+    EcosystemModule,
   ],
   providers: [
     {

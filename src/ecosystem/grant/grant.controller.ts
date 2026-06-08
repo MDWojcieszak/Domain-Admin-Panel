@@ -15,8 +15,8 @@ import { GrantService } from './grant.service';
 import { CreateGrantDto, GetGrantsQueryDto } from './dto';
 import { GrantListResponse, GrantResponse } from './responses';
 
-@Controller('blog/grants')
-@ApiTags('Blog · Access grants')
+@Controller('ecosystem/grants')
+@ApiTags('Ecosystem · Access grants')
 @ApiBearerAuth()
 export class GrantController {
   constructor(private readonly grantService: GrantService) {}

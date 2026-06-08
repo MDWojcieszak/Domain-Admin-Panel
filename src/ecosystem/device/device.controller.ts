@@ -20,8 +20,8 @@ import {
 } from './responses';
 
 /** All routes are the caller's OWN devices (authenticated; no special permission). */
-@Controller('blog/devices')
-@ApiTags('Blog · App devices')
+@Controller('ecosystem/devices')
+@ApiTags('Ecosystem · App devices')
 @ApiBearerAuth()
 export class DeviceController {
   constructor(private readonly deviceService: DeviceService) {}

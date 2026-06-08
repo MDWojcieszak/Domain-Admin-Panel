@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BlogAccessTier } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { maxTier } from './blog-access-tier';
+import { maxTier } from './access-tier';
 
 /**
  * Computes a viewer's effective reader-access tier (paywall axis, independent

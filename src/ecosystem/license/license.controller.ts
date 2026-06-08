@@ -5,8 +5,8 @@ import { Public } from '../../common/decorators';
 import { LicenseService } from './license.service';
 import { PublicKeyResponse } from './responses';
 
-@Controller('blog/license')
-@ApiTags('Blog · License')
+@Controller('ecosystem/license')
+@ApiTags('Ecosystem · License')
 export class LicenseController {
   constructor(private readonly licenseService: LicenseService) {}
 

@@ -5,7 +5,7 @@ import {
   Prisma,
 } from '@prisma/client';
 
-import { maxTier, tierSatisfies } from '../../common/blog-access-tier';
+import { maxTier, tierSatisfies } from '../../../ecosystem/access/access-tier';
 import {
   isFallbackTranslation,
   pickTranslation,

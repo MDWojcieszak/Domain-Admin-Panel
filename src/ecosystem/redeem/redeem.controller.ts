@@ -19,8 +19,8 @@ import {
   RedeemResultResponse,
 } from './responses';
 
-@Controller('blog')
-@ApiTags('Blog · Redeem codes')
+@Controller('ecosystem')
+@ApiTags('Ecosystem · Redeem codes')
 @ApiBearerAuth()
 export class RedeemController {
   constructor(private readonly redeemService: RedeemService) {}

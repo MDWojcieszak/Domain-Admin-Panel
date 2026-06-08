@@ -13,10 +13,6 @@ import { HomeModule } from './home/home.module';
 import { TemplateModule } from './template/template.module';
 import { CommentModule } from './comment/comment.module';
 import { InteractionModule } from './interaction/interaction.module';
-import { LicenseModule } from './license/license.module';
-import { GrantModule } from './grant/grant.module';
-import { RedeemModule } from './redeem/redeem.module';
-import { DeviceModule } from './device/device.module';
 import { BlogSeedService } from './seed/blog-seed.service';
 
 /**
@@ -39,10 +35,6 @@ import { BlogSeedService } from './seed/blog-seed.service';
     TemplateModule,
     CommentModule,
     InteractionModule,
-    LicenseModule,
-    GrantModule,
-    RedeemModule,
-    DeviceModule,
   ],
   providers: [BlogSeedService],
 })

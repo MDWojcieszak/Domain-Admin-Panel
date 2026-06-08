@@ -6,7 +6,7 @@ import {
 import { AppDevice } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { AccessTierResolver } from '../common/access-tier-resolver.service';
+import { AccessTierResolver } from '../access/access-tier-resolver.service';
 import { LicenseService } from '../license/license.service';
 import { GetDevicesQueryDto, RegisterDeviceDto } from './dto';
 import {

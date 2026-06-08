@@ -19,7 +19,7 @@ import {
 } from '../../common/decorators';
 import { OptionalAuthGuard } from '../../common/guards';
 import { PERMISSIONS } from '../../common/acl/permissions';
-import { AccessTierResolver } from '../common/access-tier-resolver.service';
+import { AccessTierResolver } from '../../ecosystem/access/access-tier-resolver.service';
 import { PostService } from './post.service';
 import {
   CreatePostDto,

@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 
-import { AccessTierResolver } from './access-tier-resolver.service';
 import { LocaleResolver } from './locale-resolver.service';
 import { LocaleController } from './locale.controller';
 
 /**
- * Shared blog plumbing (locale + access-tier resolution) reused across blog
- * sub-modules. PrismaModule is global, so no import is needed here.
+ * Shared blog plumbing (locale resolution) reused across blog sub-modules.
+ * Access-tier resolution lives in the ecosystem AccessModule (shared entitlement
+ * domain). PrismaModule is global, so no import is needed here.
  */
 @Module({
   controllers: [LocaleController],
-  providers: [LocaleResolver, AccessTierResolver],
-  exports: [LocaleResolver, AccessTierResolver],
+  providers: [LocaleResolver],
+  exports: [LocaleResolver],
 })
 export class BlogCommonModule {}
