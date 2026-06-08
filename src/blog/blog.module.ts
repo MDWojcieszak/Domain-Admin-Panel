@@ -13,6 +13,7 @@ import { HomeModule } from './home/home.module';
 import { TemplateModule } from './template/template.module';
 import { CommentModule } from './comment/comment.module';
 import { InteractionModule } from './interaction/interaction.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
 import { BlogSeedService } from './seed/blog-seed.service';
 
 /**
@@ -35,6 +36,7 @@ import { BlogSeedService } from './seed/blog-seed.service';
     TemplateModule,
     CommentModule,
     InteractionModule,
+    MaintenanceModule,
   ],
   providers: [BlogSeedService],
 })
