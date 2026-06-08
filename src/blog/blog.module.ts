@@ -12,6 +12,7 @@ import { SeoModule } from './seo/seo.module';
 import { HomeModule } from './home/home.module';
 import { TemplateModule } from './template/template.module';
 import { CommentModule } from './comment/comment.module';
+import { InteractionModule } from './interaction/interaction.module';
 import { BlogSeedService } from './seed/blog-seed.service';
 
 /**
@@ -33,6 +34,7 @@ import { BlogSeedService } from './seed/blog-seed.service';
     HomeModule,
     TemplateModule,
     CommentModule,
+    InteractionModule,
   ],
   providers: [BlogSeedService],
 })
