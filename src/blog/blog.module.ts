@@ -9,6 +9,7 @@ import { CategoryModule } from './category/category.module';
 import { CollectionModule } from './collection/collection.module';
 import { SearchModule } from './search/search.module';
 import { SeoModule } from './seo/seo.module';
+import { HomeModule } from './home/home.module';
 import { BlogSeedService } from './seed/blog-seed.service';
 
 /**
@@ -27,6 +28,7 @@ import { BlogSeedService } from './seed/blog-seed.service';
     CollectionModule,
     SearchModule,
     SeoModule,
+    HomeModule,
   ],
   providers: [BlogSeedService],
 })
