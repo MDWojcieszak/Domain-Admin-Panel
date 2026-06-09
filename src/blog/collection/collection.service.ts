@@ -217,14 +217,17 @@ export class CollectionService {
       );
     }
 
-    await this.prisma.$transaction(
-      dto.items.map((item) =>
-        this.prisma.poiCollectionItem.update({
+    await this.prisma.$transaction(async (tx) => {
+      // Serialize concurrent reorders of the SAME collection so two editors can't
+      // interleave and leave tied ranks (rank has no DB uniqueness — see audit H2).
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${id}), hashtext('blog-collection-reorder'))`;
+      for (const item of dto.items) {
+        await tx.poiCollectionItem.update({
           where: { id: item.id },
           data: { rank: item.rank },
-        }),
-      ),
-    );
+        });
+      }
+    });
 
     return this.loadAdmin(id);
   }
