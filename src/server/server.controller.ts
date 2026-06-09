@@ -16,7 +16,7 @@ import {
 import { PERMISSIONS } from '../common/acl/permissions';
 import { MessagePattern } from '@nestjs/microservices';
 import {
-  CreateCategoryDto,
+  CreateServerCategoryDto,
   HeartbeatDto,
   PatchDiskDto,
   RegisterServerDto,
@@ -30,7 +30,7 @@ import {
 } from './responses';
 import { PaginationDto } from '../common/dto';
 import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
-import { PatchCategoryDto } from './dto/patch-category.dto';
+import { PatchServerCategoryDto } from './dto/patch-category.dto';
 import { ServerPowerService } from './server-power.service';
 
 @ApiTags('Server')
@@ -114,7 +114,7 @@ export class ServerController {
   @ApiOkResponse({ description: 'Changed correctly' })
   async createCategory(
     @Param('serverId') serverId: string,
-    @Body() dto: CreateCategoryDto,
+    @Body() dto: CreateServerCategoryDto,
   ) {
     return this.serverService.handleCreateCategory(serverId, dto);
   }
@@ -123,7 +123,7 @@ export class ServerController {
   @RequirePermissions(PERMISSIONS.SERVER_CATEGORY_MANAGE)
   @Patch('category/:id')
   @ApiOkResponse({ description: 'Changed correctly' })
-  async patchCategory(@Param('id') id: string, @Body() dto: PatchCategoryDto) {
+  async patchCategory(@Param('id') id: string, @Body() dto: PatchServerCategoryDto) {
     return this.serverService.handlePatchCategory(id, dto);
   }
 

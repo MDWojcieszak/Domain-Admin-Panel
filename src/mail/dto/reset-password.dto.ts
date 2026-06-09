@@ -1,6 +1,6 @@
 import { IsString } from 'nestjs-swagger-dto';
 
-export class ResetPasswordDto {
+export class ResetPasswordMailDto {
   @IsString({ isEmail: true })
   email: string;
 

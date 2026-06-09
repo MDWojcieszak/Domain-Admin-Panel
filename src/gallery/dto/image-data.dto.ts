@@ -1,6 +1,6 @@
 import { IsString, IsDate } from 'nestjs-swagger-dto';
 
-export class ImageDataDto {
+export class GalleryImageDataDto {
   @IsString({ optional: true })
   title?: string;
 

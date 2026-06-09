@@ -1,7 +1,7 @@
 import { CategoryKind } from '@prisma/client';
 import { IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
 
-export class CreateCategoryDto {
+export class CreateBlogCategoryDto {
   @IsEnum({ enum: { CategoryKind } })
   kind: CategoryKind;
 

@@ -1,7 +1,7 @@
 import { IsNumber, IsString } from 'nestjs-swagger-dto';
 
 /** Patches neutral fields. `kind` and `isSystem` are immutable (absent here). */
-export class PatchCategoryDto {
+export class PatchBlogCategoryDto {
   @IsString({ optional: true, description: 'Blocked for system categories.' })
   key?: string;
 

@@ -10,9 +10,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
 import {
   CategoryListView,
-  CreateCategoryDto,
+  CreateBlogCategoryDto,
   GetCategoriesQueryDto,
-  PatchCategoryDto,
+  PatchBlogCategoryDto,
   UpsertCategoryTranslationDto,
 } from './dto';
 import {
@@ -63,7 +63,7 @@ export class CategoryService {
     return CategoryMapper.toResponse(await this.getCategoryOrThrow(id));
   }
 
-  async create(dto: CreateCategoryDto): Promise<CategoryResponse> {
+  async create(dto: CreateBlogCategoryDto): Promise<CategoryResponse> {
     const key = this.normalizeKey(dto.key);
 
     let locale: string | undefined;
@@ -97,7 +97,7 @@ export class CategoryService {
     }
   }
 
-  async patch(id: string, dto: PatchCategoryDto): Promise<CategoryResponse> {
+  async patch(id: string, dto: PatchBlogCategoryDto): Promise<CategoryResponse> {
     const category = await this.getCategoryOrThrow(id);
 
     if (category.isSystem && dto.key !== undefined) {

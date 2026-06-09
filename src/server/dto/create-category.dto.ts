@@ -1,6 +1,6 @@
 import { IsString } from 'nestjs-swagger-dto';
 
-export class CreateCategoryDto {
+export class CreateServerCategoryDto {
   @IsString({ optional: true })
   name?: string;
 

@@ -2,7 +2,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
 import {
   ResetPasswordConfirmationDto,
-  ResetPasswordDto,
+  ResetPasswordMailDto,
   WelcomeEmailDto,
 } from './dto';
 
@@ -20,7 +20,7 @@ export class MailService {
     return res;
   }
 
-  async sendUserResetPassword(dto: ResetPasswordDto) {
+  async sendUserResetPassword(dto: ResetPasswordMailDto) {
     const res = await this.mailerService.sendMail({
       to: dto.email,
       subject: 'Reset Your password.',

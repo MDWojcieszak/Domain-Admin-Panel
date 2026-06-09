@@ -1,12 +1,12 @@
 import { IsNested, IsString } from 'nestjs-swagger-dto';
-import { ImageDataDto } from './image-data.dto';
+import { GalleryImageDataDto } from './image-data.dto';
 import { DimensionsDto } from './dimentions.dto';
-export class ImageDto {
+export class GalleryImageDto {
   @IsString()
   id: string;
 
-  @IsNested({ type: ImageDataDto, optional: true })
-  data?: ImageDataDto;
+  @IsNested({ type: GalleryImageDataDto, optional: true })
+  data?: GalleryImageDataDto;
 
   @IsNested({ type: DimensionsDto, optional: true })
   dimensions?: DimensionsDto;

@@ -15,9 +15,9 @@ import { RequirePermissions } from '../../common/decorators';
 import { PERMISSIONS } from '../../common/acl/permissions';
 import { CategoryService } from './category.service';
 import {
-  CreateCategoryDto,
+  CreateBlogCategoryDto,
   GetCategoriesQueryDto,
-  PatchCategoryDto,
+  PatchBlogCategoryDto,
   UpsertCategoryTranslationDto,
 } from './dto';
 import {
@@ -51,7 +51,7 @@ export class CategoryController {
   @RequirePermissions(PERMISSIONS.BLOG_CATEGORY_MANAGE)
   @Post()
   @ApiOkResponse({ description: 'Created category', type: CategoryResponse })
-  async create(@Body() dto: CreateCategoryDto): Promise<CategoryResponse> {
+  async create(@Body() dto: CreateBlogCategoryDto): Promise<CategoryResponse> {
     return this.categoryService.create(dto);
   }
 
@@ -60,7 +60,7 @@ export class CategoryController {
   @ApiOkResponse({ description: 'Patched category', type: CategoryResponse })
   async patch(
     @Param('id') id: string,
-    @Body() dto: PatchCategoryDto,
+    @Body() dto: PatchBlogCategoryDto,
   ): Promise<CategoryResponse> {
     return this.categoryService.patch(id, dto);
   }

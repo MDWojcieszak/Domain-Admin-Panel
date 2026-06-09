@@ -1,6 +1,6 @@
 import { IsString } from 'nestjs-swagger-dto';
 
-export class PatchCategoryDto {
+export class PatchServerCategoryDto {
   @IsString({ optional: true })
   name?: string;
 }
