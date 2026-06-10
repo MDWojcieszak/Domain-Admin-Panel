@@ -50,6 +50,7 @@ export const PERMISSIONS = {
   BLOG_PUBLISH: 'blog.publish',
   BLOG_VERSION_PRUNE: 'blog.version.prune',
   BLOG_CATEGORY_MANAGE: 'blog.category.manage',
+  BLOG_MEDIA_MANAGE: 'blog.media.manage',
   BLOG_PLACE_MANAGE: 'blog.place.manage',
   BLOG_HOME_MANAGE: 'blog.home.manage',
   BLOG_ANALYTICS: 'blog.analytics',
@@ -258,6 +259,12 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
     key: PERMISSIONS.BLOG_CATEGORY_MANAGE,
     resource: 'blog',
     description: 'Create and edit blog categories',
+  },
+  {
+    key: PERMISSIONS.BLOG_MEDIA_MANAGE,
+    resource: 'blog',
+    description:
+      'Upload and manage blog media (image library and albums); separate from the personal gallery',
   },
   {
     key: PERMISSIONS.BLOG_PLACE_MANAGE,
