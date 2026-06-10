@@ -4,6 +4,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ImageScope } from '@prisma/client';
 import * as sharp from 'sharp';
 import * as path from 'path';
 import { existsSync, mkdirSync, unlink, writeFileSync } from 'fs';
@@ -47,7 +48,11 @@ export class FileService {
     }
   }
 
-  async uploadImage(image: Express.Multer.File) {
+  async uploadImage(
+    image: Express.Multer.File,
+    scope: ImageScope = ImageScope.GALLERY,
+    uploadedById?: string,
+  ) {
     const imageId = uuid();
 
     const originalPath = this.createPath(
@@ -88,6 +93,8 @@ export class FileService {
           coverUrl: coverPath,
           lowResUrl: lowResPath,
           dimensionsId: dimensions.id,
+          scope,
+          uploadedById,
         },
         select: { id: true },
       });

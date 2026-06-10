@@ -7,6 +7,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ImageDataDto, ImageDto, ImageSizeType } from './dto';
+import { ImageScope } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReadStream, createReadStream, existsSync } from 'fs';
 import { FileService } from '../file/file.service';
@@ -51,8 +52,10 @@ export class ImageService {
   }
 
   async getMultiple(dto: PaginationDto) {
-    const total = await this.prisma.imageData.count();
+    const where = { image: { scope: ImageScope.GALLERY } };
+    const total = await this.prisma.imageData.count({ where });
     const images = await this.prisma.imageData.findMany({
+      where,
       take: dto.take,
       skip: dto.skip,
       select: {

@@ -256,8 +256,9 @@ model User {
   creatorOfImages ImageData[]   @relation("creator")
   socialMedia     SocialMedia[]
 
-  avatar         Image?             @relation(fields: [avatarId], references: [id])
+  avatar         Image?             @relation("UserAvatar", fields: [avatarId], references: [id])
   avatarId       String?            @unique
+  uploadedImages Image[]            @relation("ImageUploader")
   serverSessions Process[]
   startedServers ServerProperties[] @relation("StartedBy")
   stoppedServers ServerProperties[] @relation("StoppedBy")
@@ -297,6 +298,7 @@ model User {
   accessGrants          AccessGrant[]
   appDevices            AppDevice[]
   redeemedCodes         RedeemCode[]
+  blogMediaAlbums       BlogMediaAlbum[]
 }
 
 model PermissionGroup {
@@ -710,6 +712,11 @@ model ImageData {
   imageId String @unique
 }
 
+enum ImageScope {
+  GALLERY
+  BLOG
+}
+
 model Image {
   id           String      @id @default(uuid())
   originalUrl  String
@@ -718,16 +725,26 @@ model Image {
   data         ImageData?
   dimensions   Dimensions? @relation(fields: [dimensionsId], references: [id], onDelete: Cascade)
   dimensionsId String?     @unique
-  avatar       User?
+  avatar       User?       @relation("UserAvatar")
 
-  blogVersionCovers   BlogPostVersion[]  @relation("VersionCover")
-  blogVersionOgImages BlogPostVersion[]  @relation("VersionOgImage")
+  // Hard partition between the owner's personal gallery and blog media.
+  scope        ImageScope @default(GALLERY)
+  uploadedBy   User?      @relation("ImageUploader", fields: [uploadedById], references: [id])
+  uploadedById String?
+  createdAt    DateTime   @default(now())
+
+  blogVersionCovers   BlogPostVersion[]    @relation("VersionCover")
+  blogVersionOgImages BlogPostVersion[]    @relation("VersionOgImage")
   blogSectionImages   BlogSectionImage[]
-  poiCovers           Poi[]              @relation("PoiCover")
+  poiCovers           Poi[]                @relation("PoiCover")
   poiImages           PoiImage[]
   poiCollectionCovers PoiCollection[]
   blogSeriesCovers    BlogSeries[]
   homeBlockImages     HomeBlock[]
+  blogAlbumItems      BlogMediaAlbumItem[]
+  blogAlbumCovers     BlogMediaAlbum[]     @relation("BlogAlbumCover")
+
+  @@index([scope])
 }
 
 model Dimensions {
@@ -735,6 +752,41 @@ model Dimensions {
   width  String
   height String
   image  Image?
+}
+
+/// Reusable blog photo set ("zbiór fotek"). Groups BLOG-scoped images for reuse
+/// across posts; kept separate from the owner's personal gallery.
+model BlogMediaAlbum {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  coverImage   Image?  @relation("BlogAlbumCover", fields: [coverImageId], references: [id])
+  coverImageId String?
+
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items BlogMediaAlbumItem[]
+
+  @@index([createdById])
+}
+
+model BlogMediaAlbumItem {
+  id      String         @id @default(uuid())
+  album   BlogMediaAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  albumId String
+  image   Image          @relation(fields: [imageId], references: [id]) // app-enforced scope=BLOG
+  imageId String
+  order   Int            @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([albumId, imageId])
+  @@index([albumId, order])
 }
 
 model Server {

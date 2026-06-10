@@ -7,6 +7,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ImageScope } from '@prisma/client';
 import { PHOTO_SIZE } from './dto';
 import { createReadStream, existsSync, ReadStream } from 'fs';
 import { GalleryResponseDto } from './responses';
@@ -17,6 +18,7 @@ export class GalleryService {
   async getAll(): Promise<GalleryResponseDto> {
     try {
       const images = await this.prisma.image.findMany({
+        where: { scope: ImageScope.GALLERY },
         select: {
           id: true,
           dimensions: { select: { height: true, width: true } },
