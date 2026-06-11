@@ -5,7 +5,9 @@ import {
   BlogMediaPosition,
   BlogMediaSplit,
   BlogMobileStackOrder,
+  BlogOverlayBackdrop,
   BlogOverlayPosition,
+  BlogOverlayTheme,
   CalloutVariant,
   EmbedProvider,
   GalleryLayout,
@@ -74,6 +76,20 @@ export class DocumentBlockDto {
   })
   caption?: string | null;
 
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'Alt text for a single-image block (per-locale).',
+  })
+  alt?: string | null;
+
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'Overlay text rendered on the image (per-locale).',
+  })
+  overlayText?: string | null;
+
   // --- neutral / relations ---
   @IsEnum({ enum: { CalloutVariant }, optional: true })
   variant?: CalloutVariant;
@@ -93,8 +109,30 @@ export class DocumentBlockDto {
   @IsEnum({ enum: { BlogAspectRatio }, optional: true })
   aspectRatio?: BlogAspectRatio;
 
+  @IsNumber({
+    optional: true,
+    min: 0,
+    max: 1,
+    description: 'Focal point X, 0..1 (left→right). image/mediaText only.',
+  })
+  focalX?: number;
+
+  @IsNumber({
+    optional: true,
+    min: 0,
+    max: 1,
+    description: 'Focal point Y, 0..1 (top→bottom).',
+  })
+  focalY?: number;
+
   @IsEnum({ enum: { BlogOverlayPosition }, optional: true })
   overlayPosition?: BlogOverlayPosition;
+
+  @IsEnum({ enum: { BlogOverlayTheme }, optional: true })
+  overlayTheme?: BlogOverlayTheme;
+
+  @IsEnum({ enum: { BlogOverlayBackdrop }, optional: true })
+  overlayBackdrop?: BlogOverlayBackdrop;
 
   @IsEnum({ enum: { BlogMediaPosition }, optional: true })
   mediaPosition?: BlogMediaPosition;

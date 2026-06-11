@@ -6,7 +6,9 @@ import {
   BlogMediaPosition,
   BlogMediaSplit,
   BlogMobileStackOrder,
+  BlogOverlayBackdrop,
   BlogOverlayPosition,
+  BlogOverlayTheme,
   BlogSectionType,
   CalloutVariant,
   EmbedProvider,
@@ -27,8 +29,14 @@ interface MappedImage {
   imageId: string;
   size?: BlogImageSize;
   aspectRatio?: BlogAspectRatio;
+  focalX?: number;
+  focalY?: number;
   overlayPosition?: BlogOverlayPosition;
+  overlayTheme?: BlogOverlayTheme;
+  overlayBackdrop?: BlogOverlayBackdrop;
   caption?: string | null;
+  alt?: string | null;
+  overlayText?: string | null;
 }
 
 interface NeutralFields {
@@ -205,8 +213,14 @@ export class DocumentService {
         imageId: b.imageId!,
         size: b.imageSize,
         aspectRatio: b.aspectRatio,
+        focalX: b.focalX,
+        focalY: b.focalY,
         overlayPosition: b.overlayPosition,
+        overlayTheme: b.overlayTheme,
+        overlayBackdrop: b.overlayBackdrop,
         caption: b.caption,
+        alt: b.alt,
+        overlayText: b.overlayText,
       },
     ];
 
@@ -449,36 +463,44 @@ export class DocumentService {
 
     for (let i = 0; i < desired.length; i++) {
       const d = desired[i];
+      const presentation = {
+        size: d.size,
+        aspectRatio: d.aspectRatio,
+        focalX: d.focalX,
+        focalY: d.focalY,
+        overlayPosition: d.overlayPosition,
+        overlayTheme: d.overlayTheme,
+        overlayBackdrop: d.overlayBackdrop,
+      };
       let sectionImageId = idByImageId.get(d.imageId);
       if (sectionImageId) {
         await tx.blogSectionImage.update({
           where: { id: sectionImageId },
-          data: {
-            order: i,
-            size: d.size,
-            aspectRatio: d.aspectRatio,
-            overlayPosition: d.overlayPosition,
-          },
+          data: { order: i, ...presentation },
         });
       } else {
         const row = await tx.blogSectionImage.create({
-          data: {
-            sectionId,
-            imageId: d.imageId,
-            order: i,
-            size: d.size,
-            aspectRatio: d.aspectRatio,
-            overlayPosition: d.overlayPosition,
-          },
+          data: { sectionId, imageId: d.imageId, order: i, ...presentation },
           select: { id: true },
         });
         sectionImageId = row.id;
       }
-      if (d.caption !== undefined) {
+
+      // Per-locale image text (caption/alt/overlayText) — only touch fields the
+      // block actually carries, so other locales and unset fields are preserved.
+      const text: {
+        caption?: string | null;
+        alt?: string | null;
+        overlayText?: string | null;
+      } = {};
+      if (d.caption !== undefined) text.caption = d.caption;
+      if (d.alt !== undefined) text.alt = d.alt;
+      if (d.overlayText !== undefined) text.overlayText = d.overlayText;
+      if (Object.keys(text).length > 0) {
         await tx.blogSectionImageTranslation.upsert({
           where: { sectionImageId_locale: { sectionImageId, locale } },
-          update: { caption: d.caption },
-          create: { sectionImageId, locale, caption: d.caption },
+          update: text,
+          create: { sectionImageId, locale, ...text },
         });
       }
     }
