@@ -8,11 +8,17 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 
 import { GetCurrentUser, RequirePermissions } from '../../common/decorators';
 import { PERMISSIONS } from '../../common/acl/permissions';
+import { toBoolean } from '../../common/helpers/cast.helper';
 import { CommentService } from './comment.service';
 import { CreateCommentDto, PatchCommentDto } from './dto';
 import { CommentListResponse, EditorialCommentResponse } from './responses';
@@ -38,12 +44,28 @@ export class CommentController {
   }
 
   @Get(':postId/comments')
+  @ApiQuery({
+    name: 'sectionId',
+    required: false,
+    description: 'Filter to one section thread; omit for the whole post.',
+  })
+  @ApiQuery({
+    name: 'global',
+    required: false,
+    type: Boolean,
+    description:
+      'true → only post-level (global) comments. Ignored if sectionId is set.',
+  })
   @ApiOkResponse({ description: 'List comments', type: CommentListResponse })
   async list(
     @Param('postId') postId: string,
     @Query('sectionId') sectionId?: string,
+    @Query('global') global?: string,
   ): Promise<CommentListResponse> {
-    return this.commentService.list(postId, sectionId);
+    return this.commentService.list(postId, {
+      sectionId,
+      global: toBoolean(global),
+    });
   }
 
   @Get(':postId/comments/:commentId')

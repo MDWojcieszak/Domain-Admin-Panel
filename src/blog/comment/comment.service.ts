@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCommentDto, PatchCommentDto } from './dto';
@@ -40,12 +40,29 @@ export class CommentService {
     return CommentMapper.toResponse(comment);
   }
 
-  async list(postId: string, sectionId?: string): Promise<CommentListResponse> {
+  /**
+   * Lists a post's editorial comments oldest-first (thread order). With no
+   * filter returns the whole post (global + every section); `sectionId` narrows
+   * to one section thread; `global` returns only post-level (sectionId IS NULL).
+   * `sectionId` wins if both are given.
+   */
+  async list(
+    postId: string,
+    opts: { sectionId?: string; global?: boolean } = {},
+  ): Promise<CommentListResponse> {
     await this.assertPostExists(postId);
+
+    const where: Prisma.BlogEditorialCommentWhereInput = { postId };
+    if (opts.sectionId !== undefined) {
+      where.sectionId = opts.sectionId;
+    } else if (opts.global) {
+      where.sectionId = null;
+    }
+
     const comments = await this.prisma.blogEditorialComment.findMany({
-      where: { postId, ...(sectionId !== undefined ? { sectionId } : {}) },
+      where,
       include: COMMENT_INCLUDE,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
     return {
       total: comments.length,
