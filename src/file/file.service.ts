@@ -111,11 +111,11 @@ export class FileService {
   }
 
   unlinkFile(path: string) {
-    try {
-      unlink(path, (f) => f.message && Logger.log(f.message));
-    } catch (e) {
-      console.error('Unlink file', e);
-    }
+    // err is null on success; the callback runs on the FS thread so a throw here
+    // would be uncaught (the surrounding try/catch cannot catch it).
+    unlink(path, (err) => {
+      if (err) Logger.log(err.message);
+    });
   }
 
   createPath(
