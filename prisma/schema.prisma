@@ -1118,32 +1118,12 @@ enum BlogSectionType {
   LIST
   IMAGE
   GALLERY
-  MEDIA_TEXT // zdjęcie obok tekstu (split)
   MAP
   PLACE
   EMBED
   DIVIDER
-}
-
-// Układ bloku MEDIA_TEXT.
-enum BlogMediaPosition {
-  LEFT
-  RIGHT
-}
-
-// Linia podziału kolumn MEDIA_TEXT — udział kolumny ze zdjęciem (desktop).
-enum BlogMediaSplit {
-  ONE_THIRD // foto 33% / tekst 67%
-  TWO_FIFTHS // foto 40% / tekst 60%
-  HALF // 50 / 50 (domyślne)
-  THREE_FIFTHS // foto 60% / tekst 40%
-  TWO_THIRDS // foto 67% / tekst 33%
-}
-
-// Kolejność stackowania MEDIA_TEXT na mobile (split rządzi tylko desktopem; mobile = pełna szerokość).
-enum BlogMobileStackOrder {
-  MEDIA_FIRST
-  TEXT_FIRST
+  COLUMNS // kontener layoutu kolumn (nestuje COLUMN)
+  COLUMN // pojedyncza kolumna (nestuje bloki-liście)
 }
 
 // Feedback czytelnika „czy post przydatny?".
@@ -1401,10 +1381,11 @@ model BlogSection {
   embedUrl       String?
   embedProvider  EmbedProvider?
 
-  // MEDIA_TEXT: zdjęcie z `images`, tekst z `body`
-  mediaPosition    BlogMediaPosition?
-  mediaSplit       BlogMediaSplit? // linia podziału na desktopie; null = HALF
-  mobileStackOrder BlogMobileStackOrder?
+  // Layout kolumn (1 poziom): COLUMNS → COLUMN(columnWidth) → bloki-liście.
+  parent      BlogSection?  @relation("SectionChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId    String?
+  children    BlogSection[] @relation("SectionChildren")
+  columnWidth Float? // udział kolumny, 0..1 (względny; front normalizuje)
 
   translations BlogSectionTranslation[]
   images       BlogSectionImage[]
@@ -1417,6 +1398,7 @@ model BlogSection {
   updatedAt DateTime @updatedAt
 
   @@index([versionId, order])
+  @@index([parentId, order])
 }
 
 model BlogSectionImage {
@@ -1676,48 +1658,6 @@ model BlogEditorialComment {
 
   @@index([postId])
   @@index([sectionId])
-}
-
-// Preset palety edytora: gotowy układ wstawiający jeden lub kilka skonfigurowanych bloków.
-// W pełni relacyjny (bez JSON) — domyślne wartości layoutu jako otypowane kolumny.
-model BlogSectionTemplate {
-  id          String  @id @default(uuid())
-  key         String  @unique // stabilny klucz, np. "media-text-left", "hero"
-  name        String
-  description String?
-  icon        String?
-  group       String? // grupowanie w palecie, np. "Media", "Tekst"
-  isSystem    Boolean @default(false)
-  order       Int?
-
-  blocks    BlogSectionTemplateBlock[]
-  createdAt DateTime                   @default(now())
-  updatedAt DateTime                   @updatedAt
-}
-
-model BlogSectionTemplateBlock {
-  id         String              @id @default(uuid())
-  template   BlogSectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  templateId String
-  type       BlogSectionType
-  order      Int
-
-  // domyślne wartości layoutu (mirror kluczowych pól sekcji)
-  headingLevel     Int?
-  calloutVariant   CalloutVariant?
-  galleryLayout    GalleryLayout?
-  mediaPosition    BlogMediaPosition?
-  mediaSplit       BlogMediaSplit?
-  mobileStackOrder BlogMobileStackOrder?
-  imageSize        BlogImageSize?
-  aspectRatio      BlogAspectRatio?
-  overlayPosition  BlogOverlayPosition?
-
-  // placeholdery treści wstawiane do nowej sekcji
-  placeholderTitle String?
-  placeholderBody  String?
-
-  @@index([templateId, order])
 }
 
 // Feedback czytelnika na końcu posta („czy przydatny?"). Agregat widoczny po stronie admina.

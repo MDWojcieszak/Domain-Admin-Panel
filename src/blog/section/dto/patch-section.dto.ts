@@ -1,8 +1,5 @@
 import {
   BlogAccessTier,
-  BlogMediaPosition,
-  BlogMediaSplit,
-  BlogMobileStackOrder,
   CalloutVariant,
   EmbedProvider,
   GalleryLayout,
@@ -38,13 +35,4 @@ export class PatchSectionDto {
 
   @IsEnum({ enum: { EmbedProvider }, optional: true, nullable: true })
   embedProvider?: EmbedProvider | null;
-
-  @IsEnum({ enum: { BlogMediaPosition }, optional: true, nullable: true })
-  mediaPosition?: BlogMediaPosition | null;
-
-  @IsEnum({ enum: { BlogMediaSplit }, optional: true, nullable: true })
-  mediaSplit?: BlogMediaSplit | null;
-
-  @IsEnum({ enum: { BlogMobileStackOrder }, optional: true, nullable: true })
-  mobileStackOrder?: BlogMobileStackOrder | null;
 }

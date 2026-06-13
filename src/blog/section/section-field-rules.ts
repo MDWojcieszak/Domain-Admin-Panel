@@ -15,9 +15,7 @@ const ALL_NEUTRAL_FIELDS = [
   'galleryLayout',
   'embedUrl',
   'embedProvider',
-  'mediaPosition',
-  'mediaSplit',
-  'mobileStackOrder',
+  'columnWidth',
 ] as const;
 
 type NeutralField = (typeof ALL_NEUTRAL_FIELDS)[number];
@@ -30,25 +28,22 @@ const NEUTRAL_FIELDS_BY_TYPE: Record<BlogSectionType, NeutralField[]> = {
   LIST: [],
   IMAGE: [],
   GALLERY: ['galleryLayout'],
-  MEDIA_TEXT: ['mediaPosition', 'mediaSplit', 'mobileStackOrder'],
   MAP: [],
   PLACE: [],
   EMBED: ['embedUrl', 'embedProvider'],
   DIVIDER: [],
+  COLUMNS: [],
+  COLUMN: ['columnWidth'],
 };
 
 /** Section types that may carry BlogSectionImage children. */
 const IMAGE_TYPES: BlogSectionType[] = [
   BlogSectionType.IMAGE,
   BlogSectionType.GALLERY,
-  BlogSectionType.MEDIA_TEXT,
 ];
 
 /** Section types limited to a single image. */
-const SINGLE_IMAGE_TYPES: BlogSectionType[] = [
-  BlogSectionType.IMAGE,
-  BlogSectionType.MEDIA_TEXT,
-];
+const SINGLE_IMAGE_TYPES: BlogSectionType[] = [BlogSectionType.IMAGE];
 
 /** Section types that may carry BlogSectionListItem children. */
 const LIST_TYPES: BlogSectionType[] = [BlogSectionType.LIST];

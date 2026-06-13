@@ -1,8 +1,5 @@
 import {
   BlogAccessTier,
-  BlogMediaPosition,
-  BlogMediaSplit,
-  BlogMobileStackOrder,
   BlogSectionType,
   CalloutVariant,
   EmbedProvider,
@@ -47,15 +44,6 @@ export class CreateSectionDto {
 
   @IsEnum({ enum: { EmbedProvider }, optional: true })
   embedProvider?: EmbedProvider;
-
-  @IsEnum({ enum: { BlogMediaPosition }, optional: true })
-  mediaPosition?: BlogMediaPosition;
-
-  @IsEnum({ enum: { BlogMediaSplit }, optional: true })
-  mediaSplit?: BlogMediaSplit;
-
-  @IsEnum({ enum: { BlogMobileStackOrder }, optional: true })
-  mobileStackOrder?: BlogMobileStackOrder;
 
   // --- optional initial translation ---
   @IsString({

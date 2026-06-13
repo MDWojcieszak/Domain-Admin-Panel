@@ -48,9 +48,8 @@ export class SectionMapper {
       galleryLayout: section.galleryLayout,
       embedUrl: section.embedUrl,
       embedProvider: section.embedProvider,
-      mediaPosition: section.mediaPosition,
-      mediaSplit: section.mediaSplit,
-      mobileStackOrder: section.mobileStackOrder,
+      parentId: section.parentId,
+      columnWidth: section.columnWidth,
       translations: section.translations.map((t) => ({
         locale: t.locale,
         title: t.title,

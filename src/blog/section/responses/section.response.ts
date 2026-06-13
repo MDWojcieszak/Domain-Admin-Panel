@@ -2,9 +2,6 @@ import {
   BlogAccessTier,
   BlogAspectRatio,
   BlogImageSize,
-  BlogMediaPosition,
-  BlogMediaSplit,
-  BlogMobileStackOrder,
   BlogOverlayBackdrop,
   BlogOverlayPosition,
   BlogOverlayTheme,
@@ -189,14 +186,20 @@ export class SectionResponse {
   @IsEnum({ enum: { EmbedProvider }, optional: true, nullable: true })
   embedProvider: EmbedProvider | null;
 
-  @IsEnum({ enum: { BlogMediaPosition }, optional: true, nullable: true })
-  mediaPosition: BlogMediaPosition | null;
+  @IsString({
+    optional: true,
+    nullable: true,
+    description:
+      'Parent section id (COLUMNS→COLUMN→block nesting); null at top level.',
+  })
+  parentId: string | null;
 
-  @IsEnum({ enum: { BlogMediaSplit }, optional: true, nullable: true })
-  mediaSplit: BlogMediaSplit | null;
-
-  @IsEnum({ enum: { BlogMobileStackOrder }, optional: true, nullable: true })
-  mobileStackOrder: BlogMobileStackOrder | null;
+  @IsNumber({
+    optional: true,
+    nullable: true,
+    description: 'COLUMN width share, 0..1 (relative).',
+  })
+  columnWidth: number | null;
 
   @IsNested({ type: SectionTranslationResponse, isArray: true })
   translations: SectionTranslationResponse[];

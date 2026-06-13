@@ -86,9 +86,6 @@ export class SectionService {
         galleryLayout: dto.galleryLayout,
         embedUrl: dto.embedUrl,
         embedProvider: dto.embedProvider,
-        mediaPosition: dto.mediaPosition,
-        mediaSplit: dto.mediaSplit,
-        mobileStackOrder: dto.mobileStackOrder,
         translations: {
           create: {
             locale,
@@ -123,11 +120,6 @@ export class SectionService {
     if (dto.galleryLayout !== undefined) data.galleryLayout = dto.galleryLayout;
     if (dto.embedUrl !== undefined) data.embedUrl = dto.embedUrl;
     if (dto.embedProvider !== undefined) data.embedProvider = dto.embedProvider;
-    if (dto.mediaPosition !== undefined) data.mediaPosition = dto.mediaPosition;
-    if (dto.mediaSplit !== undefined) data.mediaSplit = dto.mediaSplit;
-    if (dto.mobileStackOrder !== undefined) {
-      data.mobileStackOrder = dto.mobileStackOrder;
-    }
 
     await this.prisma.blogSection.update({ where: { id }, data });
     return this.loadSection(id);

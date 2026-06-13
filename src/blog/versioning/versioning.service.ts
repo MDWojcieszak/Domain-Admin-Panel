@@ -669,13 +669,30 @@ export class VersioningService {
         galleryLayout: s.galleryLayout,
         embedUrl: s.embedUrl,
         embedProvider: s.embedProvider,
-        mediaPosition: s.mediaPosition,
-        mediaSplit: s.mediaSplit,
-        mobileStackOrder: s.mobileStackOrder,
+        columnWidth: s.columnWidth,
       };
     });
     if (sectionData.length) {
       await tx.blogSection.createMany({ data: sectionData });
+    }
+
+    // Re-parent cloned sections (COLUMNS→COLUMN→block nesting). Done after the
+    // createMany so the referenced parent rows already exist (self-FK).
+    const childrenByNewParent = new Map<string, string[]>();
+    for (const s of src.sections) {
+      if (!s.parentId) continue;
+      const newParent = sectionIdMap.get(s.parentId);
+      const newChild = sectionIdMap.get(s.id);
+      if (!newParent || !newChild) continue;
+      const arr = childrenByNewParent.get(newParent);
+      if (arr) arr.push(newChild);
+      else childrenByNewParent.set(newParent, [newChild]);
+    }
+    for (const [newParent, children] of childrenByNewParent) {
+      await tx.blogSection.updateMany({
+        where: { id: { in: children } },
+        data: { parentId: newParent },
+      });
     }
 
     const sectionTranslations = src.sections.flatMap((s) =>

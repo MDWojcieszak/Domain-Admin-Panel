@@ -2,9 +2,6 @@ import {
   BlogAccessTier,
   BlogAspectRatio,
   BlogImageSize,
-  BlogMediaPosition,
-  BlogMediaSplit,
-  BlogMobileStackOrder,
   BlogOverlayBackdrop,
   BlogOverlayPosition,
   BlogOverlayTheme,
@@ -16,8 +13,9 @@ import { IsEnum, IsNested, IsNumber, IsString } from 'nestjs-swagger-dto';
 
 /**
  * Provider-neutral block type (NOT BlockNote JSON). Maps 1:1 to BlogSectionType
- * server-side. Under the "prose = Markdown in PARAGRAPH" model the editor emits
- * headings/lists/quotes as `prose`, but all 12 types are accepted.
+ * server-side. Under "prose = Markdown in PARAGRAPH" the editor emits
+ * headings/lists/quotes as `prose`, but all types are accepted. `columns` is a
+ * layout container (see DocumentColumnDto).
  */
 export enum DocumentBlockType {
   prose = 'prose',
@@ -25,13 +23,13 @@ export enum DocumentBlockType {
   divider = 'divider',
   image = 'image',
   gallery = 'gallery',
-  mediaText = 'mediaText',
   embed = 'embed',
   map = 'map',
   place = 'place',
   list = 'list',
   heading = 'heading',
   quote = 'quote',
+  columns = 'columns',
 }
 
 export class DocumentListItemInputDto {
@@ -40,11 +38,11 @@ export class DocumentListItemInputDto {
 }
 
 /**
- * One document block. Permissive shape (all fields optional bar `type`); the
- * service validates the per-type required fields and maps to a relational
- * section. Text fields are written for `?locale`; everything else is neutral.
+ * A leaf block — everything except `columns`. Used both at the top level and
+ * inside a column. Permissive shape; the service validates per-type and maps to
+ * a relational section. Text fields are written for `?locale`; the rest neutral.
  */
-export class DocumentBlockDto {
+export class DocumentLeafBlockDto {
   @IsString({ optional: true, description: 'Existing sectionId (update).' })
   id?: string;
 
@@ -58,36 +56,24 @@ export class DocumentBlockDto {
   @IsString({
     optional: true,
     nullable: true,
-    description: 'Markdown body (prose/callout/mediaText/quote).',
+    description: 'Markdown body (prose/callout/quote).',
   })
   markdown?: string | null;
 
-  @IsString({
-    optional: true,
-    nullable: true,
-    description: 'Heading text (heading block).',
-  })
+  @IsString({ optional: true, nullable: true, description: 'Heading text.' })
   text?: string | null;
 
   @IsString({
     optional: true,
     nullable: true,
-    description: 'Caption for a single-image block (image/mediaText).',
+    description: 'Caption for a single-image block (image).',
   })
   caption?: string | null;
 
-  @IsString({
-    optional: true,
-    nullable: true,
-    description: 'Alt text for a single-image block (per-locale).',
-  })
+  @IsString({ optional: true, nullable: true })
   alt?: string | null;
 
-  @IsString({
-    optional: true,
-    nullable: true,
-    description: 'Overlay text rendered on the image (per-locale).',
-  })
+  @IsString({ optional: true, nullable: true })
   overlayText?: string | null;
 
   // --- neutral / relations ---
@@ -109,20 +95,10 @@ export class DocumentBlockDto {
   @IsEnum({ enum: { BlogAspectRatio }, optional: true })
   aspectRatio?: BlogAspectRatio;
 
-  @IsNumber({
-    optional: true,
-    min: 0,
-    max: 1,
-    description: 'Focal point X, 0..1 (left→right). image/mediaText only.',
-  })
+  @IsNumber({ optional: true, min: 0, max: 1 })
   focalX?: number;
 
-  @IsNumber({
-    optional: true,
-    min: 0,
-    max: 1,
-    description: 'Focal point Y, 0..1 (top→bottom).',
-  })
+  @IsNumber({ optional: true, min: 0, max: 1 })
   focalY?: number;
 
   @IsEnum({ enum: { BlogOverlayPosition }, optional: true })
@@ -133,15 +109,6 @@ export class DocumentBlockDto {
 
   @IsEnum({ enum: { BlogOverlayBackdrop }, optional: true })
   overlayBackdrop?: BlogOverlayBackdrop;
-
-  @IsEnum({ enum: { BlogMediaPosition }, optional: true })
-  mediaPosition?: BlogMediaPosition;
-
-  @IsEnum({ enum: { BlogMediaSplit }, optional: true })
-  mediaSplit?: BlogMediaSplit;
-
-  @IsEnum({ enum: { BlogMobileStackOrder }, optional: true })
-  mobileStackOrder?: BlogMobileStackOrder;
 
   @IsEnum({ enum: { EmbedProvider }, optional: true })
   provider?: EmbedProvider;
@@ -170,6 +137,32 @@ export class DocumentBlockDto {
     description: 'Per-section paywall tier (defaults to PUBLIC on create).',
   })
   minAccessTier?: BlogAccessTier;
+}
+
+/** One column: a relative width and the leaf blocks it holds (no nested columns). */
+export class DocumentColumnDto {
+  @IsString({ optional: true })
+  id?: string;
+
+  @IsString({ optional: true })
+  clientKey?: string;
+
+  @IsNumber({
+    optional: true,
+    min: 0,
+    max: 1,
+    description: 'Column width share, 0..1 (relative; FE normalizes).',
+  })
+  width?: number;
+
+  @IsNested({ type: DocumentLeafBlockDto, isArray: true })
+  blocks: DocumentLeafBlockDto[];
+}
+
+/** A top-level block: a leaf, or a `columns` layout carrying its columns. */
+export class DocumentBlockDto extends DocumentLeafBlockDto {
+  @IsNested({ type: DocumentColumnDto, isArray: true, optional: true })
+  columns?: DocumentColumnDto[];
 }
 
 export class SaveDocumentDto {

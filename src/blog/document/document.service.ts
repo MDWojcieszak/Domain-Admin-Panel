@@ -3,9 +3,6 @@ import {
   BlogAccessTier,
   BlogAspectRatio,
   BlogImageSize,
-  BlogMediaPosition,
-  BlogMediaSplit,
-  BlogMobileStackOrder,
   BlogOverlayBackdrop,
   BlogOverlayPosition,
   BlogOverlayTheme,
@@ -19,10 +16,19 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
-import { VersioningService } from '../versioning/versioning.service';
+import {
+  EnsureDraftResult,
+  VersioningService,
+} from '../versioning/versioning.service';
 import { SECTION_INCLUDE, SectionMapper } from '../section/mappers';
 import { SectionResponse } from '../section/responses';
-import { DocumentBlockDto, DocumentBlockType, SaveDocumentDto } from './dto';
+import {
+  DocumentBlockDto,
+  DocumentBlockType,
+  DocumentColumnDto,
+  DocumentLeafBlockDto,
+  SaveDocumentDto,
+} from './dto';
 import { CreatedBlockRefResponse, SaveDocumentResponse } from './responses';
 
 interface MappedImage {
@@ -46,12 +52,11 @@ interface NeutralFields {
   galleryLayout?: GalleryLayout | null;
   embedUrl?: string | null;
   embedProvider?: EmbedProvider | null;
-  mediaPosition?: BlogMediaPosition | null;
-  mediaSplit?: BlogMediaSplit | null;
-  mobileStackOrder?: BlogMobileStackOrder | null;
+  columnWidth?: number | null;
 }
 
-interface MappedBlock {
+/** Section-level mapping of a single block (no nesting). */
+interface MappedSection {
   sectionType: BlogSectionType;
   neutral: NeutralFields;
   minAccessTier?: BlogAccessTier;
@@ -61,13 +66,28 @@ interface MappedBlock {
   items: { content: string | null }[];
 }
 
-const BLOCK_TYPE_MAP: Record<DocumentBlockType, BlogSectionType> = {
+/** A node in the document tree: a leaf, or a COLUMNS container with columns. */
+interface MappedNode {
+  block: DocumentLeafBlockDto;
+  m: MappedSection;
+  columns?: MappedColumn[];
+}
+
+interface MappedColumn {
+  input: DocumentColumnDto;
+  width?: number;
+  children: MappedNode[];
+}
+
+const LEAF_TYPE_MAP: Record<
+  Exclude<DocumentBlockType, DocumentBlockType.columns>,
+  BlogSectionType
+> = {
   [DocumentBlockType.prose]: BlogSectionType.PARAGRAPH,
   [DocumentBlockType.callout]: BlogSectionType.CALLOUT,
   [DocumentBlockType.divider]: BlogSectionType.DIVIDER,
   [DocumentBlockType.image]: BlogSectionType.IMAGE,
   [DocumentBlockType.gallery]: BlogSectionType.GALLERY,
-  [DocumentBlockType.mediaText]: BlogSectionType.MEDIA_TEXT,
   [DocumentBlockType.embed]: BlogSectionType.EMBED,
   [DocumentBlockType.map]: BlogSectionType.MAP,
   [DocumentBlockType.place]: BlogSectionType.PLACE,
@@ -79,11 +99,6 @@ const BLOCK_TYPE_MAP: Record<DocumentBlockType, BlogSectionType> = {
 const IMAGE_SECTION_TYPES: BlogSectionType[] = [
   BlogSectionType.IMAGE,
   BlogSectionType.GALLERY,
-  BlogSectionType.MEDIA_TEXT,
-];
-const POI_SECTION_TYPES: BlogSectionType[] = [
-  BlogSectionType.MAP,
-  BlogSectionType.PLACE,
 ];
 
 @Injectable()
@@ -96,7 +111,8 @@ export class DocumentService {
 
   /**
    * Upserts a whole post document: reconciles the draft's relational sections
-   * against an ordered list of provider-neutral blocks, in one transaction.
+   * (including COLUMNS→COLUMN→block nesting) against an ordered, provider-neutral
+   * block tree, in one transaction.
    */
   async save(
     postId: string,
@@ -106,15 +122,11 @@ export class DocumentService {
     const locale = localeParam ?? (await this.localeResolver.getDefaultCode());
     await this.localeResolver.assertWritable(locale);
 
-    // 1. Map + validate every block up front (no writes yet → clean 400s).
-    const mapped = dto.blocks.map((block, index) => ({
-      block,
-      index,
-      m: this.mapBlock(block),
-    }));
+    // 1. Map + validate the whole tree up front (no writes yet → clean 400s).
+    const nodes = this.mapTopNodes(dto.blocks);
 
-    // 2. Validate all relation references (existence + image scope) once.
-    await this.validateReferences(mapped.map((x) => x.m));
+    // 2. Validate every relation reference once (existence + image scope).
+    await this.validateReferences(this.flattenSections(nodes));
 
     // 3. Make the draft editable (lazy-clone after publish remaps ids).
     const ensure = await this.versioning.ensureEditableDraft(postId);
@@ -125,7 +137,6 @@ export class DocumentService {
     // 4. Reconcile in a single transaction (all-or-nothing).
     await this.prisma.$transaction(
       async (tx) => {
-        // Race guard: a concurrent publish/clone may have moved the draft.
         const post = await tx.blogPost.findUnique({
           where: { id: postId },
           select: { draftVersionId: true },
@@ -141,35 +152,16 @@ export class DocumentService {
         const existingType = new Map(existing.map((s) => [s.id, s.type]));
         const keptIds = new Set<string>();
 
-        for (const { block, index, m } of mapped) {
-          const effId = this.effectiveId(block, ensure);
-          const isUpdate =
-            effId !== undefined && existingType.get(effId) === m.sectionType;
-
-          if (isUpdate) {
-            await this.writeSection(
-              tx,
-              effId!,
-              draftVersionId,
-              index,
-              m,
-              locale,
-            );
-            keptIds.add(effId!);
-          } else {
-            const newId = await this.writeSection(
-              tx,
-              null,
-              draftVersionId,
-              index,
-              m,
-              locale,
-            );
-            const key = block.clientKey ?? block.id;
-            if (key) created.push({ clientKey: key, sectionId: newId });
-            // A type-changed effId stays out of keptIds → deleted below.
-          }
-        }
+        await this.reconcileLevel(tx, {
+          parentId: null,
+          nodes,
+          draftVersionId,
+          ensure,
+          locale,
+          existingType,
+          keptIds,
+          created,
+        });
 
         const toDelete = existing
           .filter((s) => !keptIds.has(s.id))
@@ -181,7 +173,7 @@ export class DocumentService {
       { timeout: 15000, maxWait: 5000 },
     );
 
-    // 5. Refreshed draft + meta.
+    // 5. Refreshed draft (flat sections with parentId/columnWidth) + meta.
     const sections = await this.loadDraftSections(draftVersionId);
     const pointers = await this.prisma.blogPost.findUnique({
       where: { id: postId },
@@ -196,14 +188,53 @@ export class DocumentService {
     };
   }
 
-  // ----- block → section mapping -----
+  // ----- tree mapping -----
 
-  private mapBlock(b: DocumentBlockDto): MappedBlock {
-    const base = (): MappedBlock => ({
-      sectionType: BLOCK_TYPE_MAP[b.type],
+  private mapTopNodes(blocks: DocumentBlockDto[]): MappedNode[] {
+    return blocks.map((block) => {
+      if (block.type !== DocumentBlockType.columns) {
+        return { block, m: this.mapLeaf(block) };
+      }
+      const cols = block.columns ?? [];
+      if (cols.length === 0) {
+        throw new BadRequestException(
+          'columns block requires at least one column',
+        );
+      }
+      return {
+        block,
+        m: {
+          sectionType: BlogSectionType.COLUMNS,
+          neutral: {},
+          minAccessTier: block.minAccessTier,
+          images: [],
+          pois: [],
+          items: [],
+        },
+        columns: cols.map((c) => ({
+          input: c,
+          width: c.width,
+          children: (c.blocks ?? []).map((leaf) => {
+            if (leaf.type === DocumentBlockType.columns) {
+              throw new BadRequestException(
+                'columns cannot be nested inside a column',
+              );
+            }
+            return { block: leaf, m: this.mapLeaf(leaf) };
+          }),
+        })),
+      };
+    });
+  }
+
+  private mapLeaf(b: DocumentLeafBlockDto): MappedSection {
+    const base = (): MappedSection => ({
+      sectionType:
+        LEAF_TYPE_MAP[
+          b.type as Exclude<DocumentBlockType, DocumentBlockType.columns>
+        ],
       neutral: {},
       minAccessTier: b.minAccessTier,
-      translation: undefined,
       images: [],
       pois: [],
       items: [],
@@ -258,17 +289,6 @@ export class DocumentService {
         m.images = ids.map((imageId) => ({ imageId }));
         return m;
       }
-      case DocumentBlockType.mediaText: {
-        if (!b.imageId)
-          throw new BadRequestException('mediaText block requires imageId');
-        const m = base();
-        m.neutral.mediaPosition = b.mediaPosition ?? null;
-        m.neutral.mediaSplit = b.mediaSplit ?? null;
-        m.neutral.mobileStackOrder = b.mobileStackOrder ?? null;
-        m.translation = { title: null, body: b.markdown ?? null };
-        m.images = single();
-        return m;
-      }
       case DocumentBlockType.embed: {
         if (!b.url) throw new BadRequestException('embed block requires url');
         const m = base();
@@ -315,21 +335,124 @@ export class DocumentService {
         return m;
       }
       default:
-        throw new BadRequestException(`Unknown block type: ${b.type}`);
+        throw new BadRequestException(`Unsupported leaf block type: ${b.type}`);
     }
   }
 
-  private effectiveId(
-    block: DocumentBlockDto,
-    ensure: { cloned: boolean; sectionIdMap: Map<string, string> },
-  ): string | undefined {
-    if (!block.id) return undefined;
-    return ensure.cloned
-      ? (ensure.sectionIdMap.get(block.id) ?? block.id)
-      : block.id;
+  private flattenSections(nodes: MappedNode[]): MappedSection[] {
+    const out: MappedSection[] = [];
+    for (const node of nodes) {
+      out.push(node.m);
+      if (node.columns) {
+        for (const col of node.columns) {
+          for (const child of col.children) out.push(child.m);
+        }
+      }
+    }
+    return out;
   }
 
-  private async validateReferences(blocks: MappedBlock[]): Promise<void> {
+  // ----- reconciliation -----
+
+  private async reconcileLevel(
+    tx: Prisma.TransactionClient,
+    ctx: {
+      parentId: string | null;
+      nodes: MappedNode[];
+      draftVersionId: string;
+      ensure: EnsureDraftResult;
+      locale: string;
+      existingType: Map<string, BlogSectionType>;
+      keptIds: Set<string>;
+      created: CreatedBlockRefResponse[];
+    },
+  ): Promise<void> {
+    for (let i = 0; i < ctx.nodes.length; i++) {
+      const node = ctx.nodes[i];
+      const sectionId = await this.upsertNodeSection(
+        tx,
+        node.block,
+        node.m,
+        ctx.parentId,
+        i,
+        ctx,
+      );
+
+      if (!node.columns) continue;
+
+      for (let j = 0; j < node.columns.length; j++) {
+        const col = node.columns[j];
+        const colM: MappedSection = {
+          sectionType: BlogSectionType.COLUMN,
+          neutral: { columnWidth: col.width ?? null },
+          images: [],
+          pois: [],
+          items: [],
+        };
+        const colId = await this.upsertNodeSection(
+          tx,
+          col.input,
+          colM,
+          sectionId,
+          j,
+          ctx,
+        );
+        await this.reconcileLevel(tx, {
+          ...ctx,
+          parentId: colId,
+          nodes: col.children,
+        });
+      }
+    }
+  }
+
+  /** Creates or updates the section for one node/column and returns its id. */
+  private async upsertNodeSection(
+    tx: Prisma.TransactionClient,
+    ref: { id?: string; clientKey?: string },
+    m: MappedSection,
+    parentId: string | null,
+    order: number,
+    ctx: {
+      draftVersionId: string;
+      ensure: EnsureDraftResult;
+      locale: string;
+      existingType: Map<string, BlogSectionType>;
+      keptIds: Set<string>;
+      created: CreatedBlockRefResponse[];
+    },
+  ): Promise<string> {
+    const effId = this.effectiveId(ref, ctx.ensure);
+    const isUpdate =
+      effId !== undefined && ctx.existingType.get(effId) === m.sectionType;
+
+    const sectionId = await this.writeSection(
+      tx,
+      isUpdate ? effId! : null,
+      ctx.draftVersionId,
+      parentId,
+      order,
+      m,
+      ctx.locale,
+    );
+    ctx.keptIds.add(sectionId);
+
+    if (!isUpdate) {
+      const key = ref.clientKey ?? ref.id;
+      if (key) ctx.created.push({ clientKey: key, sectionId });
+    }
+    return sectionId;
+  }
+
+  private effectiveId(
+    ref: { id?: string },
+    ensure: EnsureDraftResult,
+  ): string | undefined {
+    if (!ref.id) return undefined;
+    return ensure.cloned ? (ensure.sectionIdMap.get(ref.id) ?? ref.id) : ref.id;
+  }
+
+  private async validateReferences(blocks: MappedSection[]): Promise<void> {
     const imageIds = [
       ...new Set(blocks.flatMap((m) => m.images.map((i) => i.imageId))),
     ];
@@ -375,21 +498,21 @@ export class DocumentService {
     tx: Prisma.TransactionClient,
     sectionId: string | null,
     versionId: string,
+    parentId: string | null,
     order: number,
-    m: MappedBlock,
+    m: MappedSection,
     locale: string,
   ): Promise<string> {
-    const neutral = {
+    const data = {
       order,
+      parentId,
       headingLevel: m.neutral.headingLevel ?? null,
       quoteAuthor: m.neutral.quoteAuthor ?? null,
       calloutVariant: m.neutral.calloutVariant ?? null,
       galleryLayout: m.neutral.galleryLayout ?? null,
       embedUrl: m.neutral.embedUrl ?? null,
       embedProvider: m.neutral.embedProvider ?? null,
-      mediaPosition: m.neutral.mediaPosition ?? null,
-      mediaSplit: m.neutral.mediaSplit ?? null,
-      mobileStackOrder: m.neutral.mobileStackOrder ?? null,
+      columnWidth: m.neutral.columnWidth ?? null,
     };
 
     let id: string;
@@ -397,7 +520,7 @@ export class DocumentService {
       await tx.blogSection.update({
         where: { id: sectionId },
         data: {
-          ...neutral,
+          ...data,
           ...(m.minAccessTier ? { minAccessTier: m.minAccessTier } : {}),
         },
       });
@@ -408,7 +531,7 @@ export class DocumentService {
           versionId,
           type: m.sectionType,
           minAccessTier: m.minAccessTier ?? undefined,
-          ...neutral,
+          ...data,
         },
         select: { id: true },
       });
@@ -433,14 +556,17 @@ export class DocumentService {
       await this.reconcileImages(tx, id, m.images, locale);
     } else if (m.sectionType === BlogSectionType.LIST) {
       await this.reconcileItems(tx, id, m.items, locale);
-    } else if (POI_SECTION_TYPES.includes(m.sectionType)) {
+    } else if (
+      m.sectionType === BlogSectionType.MAP ||
+      m.sectionType === BlogSectionType.PLACE
+    ) {
       await this.reconcilePois(tx, id, m.pois);
     }
 
     return id;
   }
 
-  /** Set-replace section images, matching by imageId to keep other locales' captions. */
+  /** Set-replace section images, matching by imageId to keep other locales' text. */
   private async reconcileImages(
     tx: Prisma.TransactionClient,
     sectionId: string,
@@ -486,8 +612,6 @@ export class DocumentService {
         sectionImageId = row.id;
       }
 
-      // Per-locale image text (caption/alt/overlayText) — only touch fields the
-      // block actually carries, so other locales and unset fields are preserved.
       const text: {
         caption?: string | null;
         alt?: string | null;
