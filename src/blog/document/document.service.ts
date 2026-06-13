@@ -16,6 +16,7 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
+import { validateRichText } from '../common/rich-text';
 import {
   EnsureDraftResult,
   VersioningService,
@@ -254,6 +255,14 @@ export class DocumentService {
         overlayText: b.overlayText,
       },
     ];
+
+    // Enforce "no HTML, only palette tokens" on every user text field.
+    validateRichText(b.markdown);
+    validateRichText(b.text);
+    validateRichText(b.caption);
+    validateRichText(b.alt);
+    validateRichText(b.overlayText);
+    (b.items ?? []).forEach((it) => validateRichText(it.content));
 
     switch (b.type) {
       case DocumentBlockType.prose: {

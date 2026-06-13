@@ -7,6 +7,7 @@ import { BlogSectionType, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { LocaleResolver } from '../common/locale-resolver.service';
+import { validateRichText } from '../common/rich-text';
 import {
   EnsureDraftResult,
   VersioningService,
@@ -64,6 +65,8 @@ export class SectionService {
     dto: CreateSectionDto,
   ): Promise<SectionResponse> {
     assertNeutralFieldsForType(dto.type, dto);
+    validateRichText(dto.title);
+    validateRichText(dto.body);
 
     // First edit after publish lazily clones the live version into a new draft.
     const { draftVersionId } =
@@ -172,6 +175,8 @@ export class SectionService {
     dto: UpsertSectionTranslationDto,
   ): Promise<SectionResponse> {
     await this.localeResolver.assertWritable(locale);
+    validateRichText(dto.title);
+    validateRichText(dto.body);
     const { sectionId: id } =
       await this.versioning.resolveEditableSection(sectionId);
 
@@ -304,6 +309,9 @@ export class SectionService {
     dto: UpsertSectionImageTranslationDto,
   ): Promise<SectionResponse> {
     await this.localeResolver.assertWritable(locale);
+    validateRichText(dto.caption);
+    validateRichText(dto.alt);
+    validateRichText(dto.overlayText);
     const { imageId: id } = await this.versioning.resolveEditableImage(imageId);
     const sectionId = await this.getImageSectionId(id);
 
@@ -332,6 +340,7 @@ export class SectionService {
     sectionId: string,
     dto: AddSectionListItemDto,
   ): Promise<SectionResponse> {
+    validateRichText(dto.content);
     const { sectionId: id } =
       await this.versioning.resolveEditableSection(sectionId);
     const section = await this.getSectionOrThrow(id);
@@ -407,6 +416,7 @@ export class SectionService {
     dto: UpsertSectionListItemTranslationDto,
   ): Promise<SectionResponse> {
     await this.localeResolver.assertWritable(locale);
+    validateRichText(dto.content);
     const { itemId: id } = await this.versioning.resolveEditableItem(itemId);
     const sectionId = await this.getItemSectionId(id);
 

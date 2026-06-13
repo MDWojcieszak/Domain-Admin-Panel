@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { LocaleResolver } from './locale-resolver.service';
 import { LocaleController } from './locale.controller';
+import { ColorsController } from './colors.controller';
 
 /**
  * Shared blog plumbing (locale resolution) reused across blog sub-modules.
@@ -9,7 +10,7 @@ import { LocaleController } from './locale.controller';
  * domain). PrismaModule is global, so no import is needed here.
  */
 @Module({
-  controllers: [LocaleController],
+  controllers: [LocaleController, ColorsController],
   providers: [LocaleResolver],
   exports: [LocaleResolver],
 })
