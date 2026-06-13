@@ -1,9 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import { Public } from '../../common/decorators';
 import { HomePublicService } from './home-public.service';
-import { ResolvedHomeResponse } from './responses';
+import { PublicHomeResponse } from './responses';
 
 @Controller('blog/home')
 @ApiTags('Blog · Home')
@@ -12,13 +12,12 @@ export class HomePublicController {
 
   @Public()
   @Get()
+  @ApiQuery({ name: 'locale', required: false })
   @ApiOkResponse({
-    description: 'Active homepage layout resolved for a locale',
-    type: ResolvedHomeResponse,
+    description: 'Opinionated homepage — pinned + latest post cards',
+    type: PublicHomeResponse,
   })
-  async getHome(
-    @Query('locale') locale?: string,
-  ): Promise<ResolvedHomeResponse> {
-    return this.homePublicService.getActiveHome(locale);
+  getHome(@Query('locale') locale?: string): Promise<PublicHomeResponse> {
+    return this.homePublicService.getHome(locale);
   }
 }

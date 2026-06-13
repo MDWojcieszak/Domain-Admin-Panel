@@ -172,6 +172,9 @@ export class PostService {
     if (query.region) {
       versionFilter.region = { equals: query.region, mode: 'insensitive' };
     }
+    if (query.country) {
+      versionFilter.country = { equals: query.country, mode: 'insensitive' };
+    }
     if (query.category) {
       versionFilter.categories = {
         some: {

@@ -12,6 +12,9 @@ export class PublicPostsQueryDto extends PaginationDto {
   @IsString({ optional: true })
   region?: string;
 
+  @IsString({ optional: true, description: 'Country (language-neutral).' })
+  country?: string;
+
   @IsString({ optional: true, description: 'Series slug or id.' })
   series?: string;
 }

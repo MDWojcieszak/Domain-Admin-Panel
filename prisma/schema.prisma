@@ -740,7 +740,6 @@ model Image {
   poiImages           PoiImage[]
   poiCollectionCovers PoiCollection[]
   blogSeriesCovers    BlogSeries[]
-  homeBlockImages     HomeBlock[]
   blogAlbumItems      BlogMediaAlbumItem[]
   blogAlbumCovers     BlogMediaAlbum[]     @relation("BlogAlbumCover")
 
@@ -1271,21 +1270,13 @@ enum AppPlatform {
   ANDROID
 }
 
-enum HomeBlockType {
-  HERO
-  FEATURED_POSTS
-  CATEGORY_ROW
-  POST_GRID
-  MAP
-  TEXT
-}
-
 model BlogPost {
   id              String         @id @default(uuid())
   slug            String         @unique
   status          BlogPostStatus @default(DRAFT)
   accessTier      BlogAccessTier @default(PUBLIC) // bramka całego posta (globalna, nie wersjonowana)
   order           Int?
+  homePosition    Int?           @unique // przypięty slot strony głównej (1-based); null = nie przypięty
   viewCount       Int            @default(0)
   likeCount       Int            @default(0)
   helpfulCount    Int            @default(0)
@@ -1316,7 +1307,6 @@ model BlogPost {
   likes             BlogPostLike[]
   views             BlogPostView[]
   feedback          BlogPostFeedback[]
-  homeBlockPosts    HomeBlockPost[]
   editorialComments BlogEditorialComment[]
   searchDocuments   BlogSearchDocument[]
 
@@ -1551,7 +1541,6 @@ model Category {
   translations CategoryTranslation[]
   posts        BlogVersionCategory[]
   pois         PoiCategory[]
-  blocks       HomeBlock[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1592,48 +1581,11 @@ model BlogPostView {
   @@index([postId, createdAt])
 }
 
-model HomeLayout {
-  id       String      @id @default(uuid())
-  name     String
-  isActive Boolean     @default(false)
-  blocks   HomeBlock[]
-
-  createdAt DateTime @default(now())
+// Singleton config strony głównej (opinionated, bez buildera).
+model HomeConfig {
+  id        String   @id @default(uuid())
+  postCount Int      @default(12) // ile postów na stronie głównej
   updatedAt DateTime @updatedAt
-}
-
-model HomeBlock {
-  id       String        @id @default(uuid())
-  layout   HomeLayout    @relation(fields: [layoutId], references: [id], onDelete: Cascade)
-  layoutId String
-  type     HomeBlockType
-  order    Int
-
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  categoryId String?
-  image      Image?    @relation(fields: [imageId], references: [id], onDelete: SetNull)
-  imageId    String?
-  limit      Int?
-
-  // title/body → HomeBlockTranslation (per locale)
-  translations HomeBlockTranslation[]
-  posts        HomeBlockPost[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([layoutId, order])
-}
-
-model HomeBlockPost {
-  id      String    @id @default(uuid())
-  block   HomeBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
-  blockId String
-  post    BlogPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId  String
-  order   Int       @default(0)
-
-  @@unique([blockId, postId])
 }
 
 // Wewnętrzne komentarze redakcyjne (jak piny w Figmie). Nigdy widoczne publicznie.
@@ -1779,19 +1731,6 @@ model CategoryTranslation {
   label String?
 
   @@unique([categoryId, locale])
-  @@index([locale])
-}
-
-model HomeBlockTranslation {
-  id      String    @id @default(uuid())
-  block   HomeBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
-  blockId String
-  locale  String
-
-  title String?
-  body  String?
-
-  @@unique([blockId, locale])
   @@index([locale])
 }
 

@@ -97,7 +97,10 @@ export class CategoryService {
     }
   }
 
-  async patch(id: string, dto: PatchBlogCategoryDto): Promise<CategoryResponse> {
+  async patch(
+    id: string,
+    dto: PatchBlogCategoryDto,
+  ): Promise<CategoryResponse> {
     const category = await this.getCategoryOrThrow(id);
 
     if (category.isSystem && dto.key !== undefined) {
@@ -145,12 +148,11 @@ export class CategoryService {
       throw new ConflictException('Cannot delete a system category');
     }
 
-    const [poiRefs, postRefs, blockRefs] = await this.prisma.$transaction([
+    const [poiRefs, postRefs] = await this.prisma.$transaction([
       this.prisma.poiCategory.count({ where: { categoryId: id } }),
       this.prisma.blogVersionCategory.count({ where: { categoryId: id } }),
-      this.prisma.homeBlock.count({ where: { categoryId: id } }),
     ]);
-    if (poiRefs + postRefs + blockRefs > 0) {
+    if (poiRefs + postRefs > 0) {
       throw new ConflictException('Category is in use');
     }
 

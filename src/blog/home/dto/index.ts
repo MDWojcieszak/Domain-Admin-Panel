@@ -1,3 +1,2 @@
-export * from './home-layout.dto';
-export * from './home-block.dto';
-export * from './home-block-post.dto';
+export * from './patch-home-config.dto';
+export * from './set-home-pins.dto';

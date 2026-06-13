@@ -98,7 +98,6 @@ export class MediaService {
             blogVersionOgImages: true,
             blogSeriesCovers: true,
             poiCollectionCovers: true,
-            homeBlockImages: true,
           },
         },
       },
