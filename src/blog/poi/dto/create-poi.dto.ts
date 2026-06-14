@@ -22,8 +22,12 @@ export class CreatePoiDto {
   @IsNumber({ min: -180, max: 180 })
   longitude: number;
 
-  @IsString({ optional: true, nullable: true })
-  country?: string | null;
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'BlogCountry id (FK).',
+  })
+  countryId?: string | null;
 
   @IsString({ optional: true, nullable: true })
   region?: string | null;

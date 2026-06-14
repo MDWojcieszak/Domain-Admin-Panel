@@ -617,7 +617,7 @@ export class VersioningService {
         state: VersionState.DRAFT,
         coverImageId: src.coverImageId,
         ogImageId: src.ogImageId,
-        country: src.country,
+        countryId: src.countryId,
         region: src.region,
       },
     });

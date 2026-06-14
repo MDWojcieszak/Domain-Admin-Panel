@@ -27,8 +27,12 @@ export class CreatePostDto {
   @IsEnum({ enum: { BlogAccessTier }, optional: true })
   accessTier?: BlogAccessTier;
 
-  @IsString({ optional: true })
-  country?: string;
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'BlogCountry id (FK).',
+  })
+  countryId?: string | null;
 
   @IsString({ optional: true })
   region?: string;

@@ -742,6 +742,7 @@ model Image {
   blogSeriesCovers    BlogSeries[]
   blogAlbumItems      BlogMediaAlbumItem[]
   blogAlbumCovers     BlogMediaAlbum[]     @relation("BlogAlbumCover")
+  blogCountryCovers   BlogCountry[]        @relation("BlogCountryCover")
 
   @@index([scope])
 }
@@ -1332,8 +1333,9 @@ model BlogPostVersion {
   ogImage      Image?  @relation("VersionOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
   ogImageId    String? // obraz do social share (og:image); językowo-neutralny domyślny
 
-  country String? // canonical, językowo-neutralne (filtr listy)
-  region  String?
+  country   BlogCountry? @relation("VersionCountry", fields: [countryId], references: [id], onDelete: SetNull)
+  countryId String?
+  region    String?
 
   translations BlogPostVersionTranslation[]
   sections     BlogSection[]
@@ -1444,9 +1446,10 @@ model SectionPoi {
 // Point of Interest — WSPÓŁDZIELONA encja podróżnicza (seam blog ↔ apka-planer).
 // Blog: sekcje wskazują POI; apka: buduje z nich trasy/dni. Tekst (name override/description) w PoiTranslation.
 model Poi {
-  id        String  @id @default(uuid())
+  id        String       @id @default(uuid())
   name      String // canonical / identyfikator (proper noun, np. "Skógafoss")
-  country   String?
+  country   BlogCountry? @relation("PoiCountry", fields: [countryId], references: [id], onDelete: SetNull)
+  countryId String?
   region    String?
   city      String?
   address   String?
@@ -1610,6 +1613,36 @@ model BlogEditorialComment {
 
   @@index([postId])
   @@index([sectionId])
+}
+
+// Kanoniczny kraj (first-class). Treść (posty/POI) wskazuje na niego przez FK.
+model BlogCountry {
+  id           String  @id @default(uuid())
+  slug         String  @unique // kanoniczny klucz, np. "iceland"
+  code         String? // ISO-3166-1 alpha-2 (opcjonalne)
+  coverImage   Image?  @relation("BlogCountryCover", fields: [coverImageId], references: [id], onDelete: SetNull)
+  coverImageId String?
+  order        Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  translations BlogCountryTranslation[]
+  postVersions BlogPostVersion[]        @relation("VersionCountry")
+  pois         Poi[]                    @relation("PoiCountry")
+}
+
+model BlogCountryTranslation {
+  id        String      @id @default(uuid())
+  country   BlogCountry @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  countryId String
+  locale    String
+
+  name  String // zlokalizowana nazwa kraju
+  intro String? // opcjonalny opis/intro na stronie kraju
+
+  @@unique([countryId, locale])
+  @@index([locale])
 }
 
 // Feedback czytelnika na końcu posta („czy przydatny?"). Agregat widoczny po stronie admina.

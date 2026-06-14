@@ -9,6 +9,7 @@ import { PoiAdminResponse, PoiPublicResponse } from '../responses';
 /** Full include for admin reads (every locale + all relations). */
 export const ADMIN_POI_INCLUDE = {
   translations: true,
+  country: { select: { slug: true } },
   hours: true,
   images: { orderBy: { order: 'asc' } },
   categories: {
@@ -24,7 +25,7 @@ export const ADMIN_POI_INCLUDE = {
 export const PUBLIC_POI_SELECT = {
   id: true,
   name: true,
-  country: true,
+  country: { select: { slug: true } },
   region: true,
   city: true,
   address: true,
@@ -85,7 +86,7 @@ export class PoiMapper {
     return {
       id: poi.id,
       name: poi.name,
-      country: poi.country,
+      country: poi.country?.slug ?? null,
       region: poi.region,
       city: poi.city,
       address: poi.address,
@@ -149,7 +150,7 @@ export class PoiMapper {
     return {
       id: poi.id,
       name: t?.name ?? poi.name,
-      country: poi.country,
+      country: poi.country?.slug ?? null,
       region: poi.region,
       city: poi.city,
       address: poi.address,

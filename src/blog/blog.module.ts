@@ -15,6 +15,7 @@ import { InteractionModule } from './interaction/interaction.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { MediaModule } from './media/media.module';
 import { DocumentModule } from './document/document.module';
+import { CountryModule } from './country/country.module';
 import { BlogSeedService } from './seed/blog-seed.service';
 
 /**
@@ -39,6 +40,7 @@ import { BlogSeedService } from './seed/blog-seed.service';
     MaintenanceModule,
     MediaModule,
     DocumentModule,
+    CountryModule,
   ],
   providers: [BlogSeedService],
 })

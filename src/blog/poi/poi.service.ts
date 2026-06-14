@@ -44,9 +44,7 @@ export class PoiService {
       ...(query.region
         ? { region: { equals: query.region, mode: 'insensitive' } }
         : {}),
-      ...(query.country
-        ? { country: { equals: query.country, mode: 'insensitive' } }
-        : {}),
+      ...(query.country ? { country: { slug: query.country } } : {}),
       ...(query.includeClosed
         ? {}
         : { status: { not: PoiStatus.PERMANENTLY_CLOSED } }),
@@ -56,7 +54,7 @@ export class PoiService {
       this.prisma.poi.findMany({
         where,
         select: PUBLIC_POI_SELECT,
-        orderBy: [{ country: 'asc' }, { name: 'asc' }],
+        orderBy: [{ country: { slug: 'asc' } }, { name: 'asc' }],
         take: query.take ?? 100,
         skip: query.skip ?? 0,
       }),
@@ -81,9 +79,7 @@ export class PoiService {
       ...(query.region
         ? { region: { equals: query.region, mode: 'insensitive' } }
         : {}),
-      ...(query.country
-        ? { country: { equals: query.country, mode: 'insensitive' } }
-        : {}),
+      ...(query.country ? { country: { slug: query.country } } : {}),
       ...(query.search
         ? { name: { contains: query.search, mode: 'insensitive' } }
         : {}),
@@ -131,7 +127,7 @@ export class PoiService {
           name: dto.name,
           latitude: dto.latitude,
           longitude: dto.longitude,
-          country: dto.country,
+          countryId: dto.countryId,
           region: dto.region,
           city: dto.city,
           address: dto.address,
@@ -190,7 +186,7 @@ export class PoiService {
       }
     };
     set('name');
-    set('country');
+    set('countryId');
     set('region');
     set('city');
     set('address');

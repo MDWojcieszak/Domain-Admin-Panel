@@ -9,7 +9,7 @@ import { SectionResponse } from '../responses';
 export const SECTION_EMBEDDED_POI_SELECT = {
   id: true,
   name: true,
-  country: true,
+  country: { select: { slug: true } },
   region: true,
   city: true,
   latitude: true,
@@ -89,7 +89,7 @@ export class SectionMapper {
         poi: {
           id: sp.poi.id,
           name: sp.poi.name,
-          country: sp.poi.country,
+          country: sp.poi.country?.slug ?? null,
           region: sp.poi.region,
           city: sp.poi.city,
           latitude: sp.poi.latitude,

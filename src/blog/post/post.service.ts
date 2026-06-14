@@ -173,7 +173,7 @@ export class PostService {
       versionFilter.region = { equals: query.region, mode: 'insensitive' };
     }
     if (query.country) {
-      versionFilter.country = { equals: query.country, mode: 'insensitive' };
+      versionFilter.country = { slug: query.country };
     }
     if (query.category) {
       versionFilter.categories = {
@@ -256,7 +256,7 @@ export class PostService {
           postId: created.id,
           versionNumber: 1,
           state: VersionState.DRAFT,
-          country: dto.country,
+          countryId: dto.countryId,
           region: dto.region,
           coverImageId: dto.coverImageId,
           ogImageId: dto.ogImageId,
@@ -318,7 +318,11 @@ export class PostService {
     if (dto.seriesOrder !== undefined) postData.seriesOrder = dto.seriesOrder;
 
     const versionData: Prisma.BlogPostVersionUpdateInput = {};
-    if (dto.country !== undefined) versionData.country = dto.country;
+    if (dto.countryId !== undefined) {
+      versionData.country = dto.countryId
+        ? { connect: { id: dto.countryId } }
+        : { disconnect: true };
+    }
     if (dto.region !== undefined) versionData.region = dto.region;
     if (dto.coverImageId !== undefined) {
       versionData.coverImage = dto.coverImageId

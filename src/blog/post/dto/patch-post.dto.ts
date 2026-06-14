@@ -21,8 +21,12 @@ export class PatchPostDto {
   seriesOrder?: number | null;
 
   // --- draft version (language-neutral) ---
-  @IsString({ optional: true, nullable: true })
-  country?: string | null;
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'BlogCountry id (FK).',
+  })
+  countryId?: string | null;
 
   @IsString({ optional: true, nullable: true })
   region?: string | null;

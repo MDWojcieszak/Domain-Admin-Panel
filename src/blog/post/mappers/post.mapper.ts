@@ -38,7 +38,7 @@ type CardVersion = Prisma.BlogPostVersionGetPayload<{
 const DRAFT_EMBEDDED_POI_SELECT = {
   id: true,
   name: true,
-  country: true,
+  country: { select: { slug: true } },
   region: true,
   city: true,
   latitude: true,
@@ -65,6 +65,7 @@ const DRAFT_EMBEDDED_POI_SELECT = {
 /** Prisma include that loads a full version with all nested translations. */
 export const DRAFT_VERSION_INCLUDE = {
   translations: true,
+  country: { select: { slug: true } },
   sections: {
     orderBy: { order: 'asc' },
     include: {
@@ -141,7 +142,7 @@ export class PostMapper {
       versionId: version.id,
       versionNumber: version.versionNumber,
       versionState: version.state,
-      country: version.country,
+      country: version.country?.slug ?? null,
       region: version.region,
       coverImageId: version.coverImageId,
       ogImageId: version.ogImageId,
@@ -219,7 +220,7 @@ export class PostMapper {
           order: sp.order,
           name: pt?.name ?? sp.poi.name,
           description: pt?.description ?? null,
-          country: sp.poi.country,
+          country: sp.poi.country?.slug ?? null,
           region: sp.poi.region,
           city: sp.poi.city,
           latitude: sp.poi.latitude,
@@ -297,7 +298,7 @@ export class PostMapper {
       locale,
       isTeaser,
       versionId: version.id,
-      country: version.country,
+      country: version.country?.slug ?? null,
       region: version.region,
       coverImageId: version.coverImageId,
       ogImageId: version.ogImageId,
