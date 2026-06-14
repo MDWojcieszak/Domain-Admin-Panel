@@ -26,6 +26,7 @@ export enum DocumentBlockType {
   embed = 'embed',
   map = 'map',
   place = 'place',
+  collection = 'collection',
   list = 'list',
   heading = 'heading',
   quote = 'quote',
@@ -121,6 +122,12 @@ export class DocumentLeafBlockDto {
 
   @IsString({ isArray: true, optional: true })
   poiIds?: string[];
+
+  @IsString({
+    optional: true,
+    description: 'PoiCollection id (collection block).',
+  })
+  collectionId?: string;
 
   @IsNumber({ type: 'integer', optional: true, min: 1, max: 3 })
   level?: number;

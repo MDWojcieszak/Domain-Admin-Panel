@@ -30,6 +30,7 @@ const NEUTRAL_FIELDS_BY_TYPE: Record<BlogSectionType, NeutralField[]> = {
   GALLERY: ['galleryLayout'],
   MAP: [],
   PLACE: [],
+  COLLECTION: [],
   EMBED: ['embedUrl', 'embedProvider'],
   DIVIDER: [],
   COLUMNS: [],
@@ -56,6 +57,9 @@ const POI_TYPES: BlogSectionType[] = [
 
 /** Section types limited to a single POI. */
 const SINGLE_POI_TYPES: BlogSectionType[] = [BlogSectionType.PLACE];
+
+/** Section types that may reference an embedded collection. */
+const COLLECTION_TYPES: BlogSectionType[] = [BlogSectionType.COLLECTION];
 
 /**
  * Rejects any neutral field set on `fields` that is not valid for `type`.
@@ -103,4 +107,12 @@ export function assertPoisAllowed(type: BlogSectionType): void {
 
 export function isSinglePoiType(type: BlogSectionType): boolean {
   return SINGLE_POI_TYPES.includes(type);
+}
+
+export function assertCollectionAllowed(type: BlogSectionType): void {
+  if (!COLLECTION_TYPES.includes(type)) {
+    throw new BadRequestException(
+      `Section type ${type} cannot reference a collection`,
+    );
+  }
 }

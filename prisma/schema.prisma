@@ -1120,6 +1120,7 @@ enum BlogSectionType {
   GALLERY
   MAP
   PLACE
+  COLLECTION // osadzona rankowana kolekcja POI (wskazuje PoiCollection)
   EMBED
   DIVIDER
   COLUMNS // kontener layoutu kolumn (nestuje COLUMN)
@@ -1372,6 +1373,10 @@ model BlogSection {
   galleryLayout  GalleryLayout?
   embedUrl       String?
   embedProvider  EmbedProvider?
+
+  // Osadzona kolekcja (sekcja COLLECTION) — wskazuje rankowaną listę POI.
+  collection   PoiCollection? @relation("SectionCollection", fields: [collectionId], references: [id], onDelete: SetNull)
+  collectionId String?
 
   // Layout kolumn (1 poziom): COLUMNS → COLUMN(columnWidth) → bloki-liście.
   parent      BlogSection?  @relation("SectionChildren", fields: [parentId], references: [id], onDelete: Cascade)
@@ -1921,6 +1926,7 @@ model PoiCollection {
 
   items        PoiCollectionItem[]
   translations PoiCollectionTranslation[]
+  sections     BlogSection[]              @relation("SectionCollection")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

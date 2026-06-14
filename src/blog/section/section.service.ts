@@ -29,6 +29,7 @@ import {
 import { SectionListResponse, SectionResponse } from './responses';
 import { SECTION_INCLUDE, SectionMapper } from './mappers';
 import {
+  assertCollectionAllowed,
   assertImagesAllowed,
   assertItemsAllowed,
   assertNeutralFieldsForType,
@@ -65,6 +66,10 @@ export class SectionService {
     dto: CreateSectionDto,
   ): Promise<SectionResponse> {
     assertNeutralFieldsForType(dto.type, dto);
+    if (dto.collectionId != null) {
+      assertCollectionAllowed(dto.type);
+      await this.assertCollectionExists(dto.collectionId);
+    }
     validateRichText(dto.title);
     validateRichText(dto.body);
 
@@ -89,6 +94,7 @@ export class SectionService {
         galleryLayout: dto.galleryLayout,
         embedUrl: dto.embedUrl,
         embedProvider: dto.embedProvider,
+        collectionId: dto.collectionId,
         translations: {
           create: {
             locale,
@@ -123,6 +129,15 @@ export class SectionService {
     if (dto.galleryLayout !== undefined) data.galleryLayout = dto.galleryLayout;
     if (dto.embedUrl !== undefined) data.embedUrl = dto.embedUrl;
     if (dto.embedProvider !== undefined) data.embedProvider = dto.embedProvider;
+    if (dto.collectionId !== undefined) {
+      if (dto.collectionId) {
+        assertCollectionAllowed(section.type);
+        await this.assertCollectionExists(dto.collectionId);
+        data.collection = { connect: { id: dto.collectionId } };
+      } else {
+        data.collection = { disconnect: true };
+      }
+    }
 
     await this.prisma.blogSection.update({ where: { id }, data });
     return this.loadSection(id);
@@ -686,6 +701,16 @@ export class SectionService {
     });
     if (!poi) {
       throw new BadRequestException('POI not found');
+    }
+  }
+
+  private async assertCollectionExists(collectionId: string): Promise<void> {
+    const collection = await this.prisma.poiCollection.findUnique({
+      where: { id: collectionId },
+      select: { id: true },
+    });
+    if (!collection) {
+      throw new BadRequestException('Collection not found');
     }
   }
 }

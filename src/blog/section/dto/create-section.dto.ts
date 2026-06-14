@@ -45,6 +45,13 @@ export class CreateSectionDto {
   @IsEnum({ enum: { EmbedProvider }, optional: true })
   embedProvider?: EmbedProvider;
 
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'PoiCollection id (FK) — only for a COLLECTION section.',
+  })
+  collectionId?: string | null;
+
   // --- optional initial translation ---
   @IsString({
     optional: true,

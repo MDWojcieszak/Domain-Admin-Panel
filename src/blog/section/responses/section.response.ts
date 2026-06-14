@@ -148,6 +148,24 @@ export class SectionPoiResponse {
   poi: SectionPoiTargetResponse;
 }
 
+/** Compact collection reference embedded in a COLLECTION section (editor). */
+export class SectionCollectionResponse {
+  @IsString()
+  collectionId: string;
+
+  @IsString()
+  slug: string;
+
+  @IsString({ optional: true, nullable: true })
+  coverImageId: string | null;
+
+  @IsNumber({ type: 'integer' })
+  itemCount: number;
+
+  @IsString({ optional: true, nullable: true })
+  country: string | null;
+}
+
 /**
  * Raw section for the editor — all locales and children included, no locale
  * resolution or paywall cutting (that happens in the read views).
@@ -212,6 +230,9 @@ export class SectionResponse {
 
   @IsNested({ type: SectionPoiResponse, isArray: true })
   pois: SectionPoiResponse[];
+
+  @IsNested({ type: SectionCollectionResponse, optional: true, nullable: true })
+  collection: SectionCollectionResponse | null;
 
   @IsDate({ format: 'date-time' })
   createdAt: Date;

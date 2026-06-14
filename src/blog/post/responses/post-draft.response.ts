@@ -161,6 +161,28 @@ export class ResolvedSectionPoiResponse {
   untranslated: boolean;
 }
 
+/** A collection embedded in a COLLECTION section, resolved to a single locale. */
+export class ResolvedSectionCollectionResponse {
+  @IsString()
+  collectionId: string;
+
+  @IsString()
+  slug: string;
+
+  @IsString({ optional: true, nullable: true })
+  coverImageId: string | null;
+
+  @IsNumber({ type: 'integer' })
+  itemCount: number;
+
+  @IsString({ optional: true, nullable: true })
+  country: string | null;
+
+  /** Resolved collection title (fetch by-slug for the full ranked items). */
+  @IsString({ optional: true, nullable: true })
+  title: string | null;
+}
+
 /** A section resolved to a single locale (layout fields + localized text). */
 export class ResolvedSectionResponse {
   @IsString()
@@ -225,6 +247,13 @@ export class ResolvedSectionResponse {
 
   @IsNested({ type: ResolvedSectionPoiResponse, isArray: true })
   pois: ResolvedSectionPoiResponse[];
+
+  @IsNested({
+    type: ResolvedSectionCollectionResponse,
+    optional: true,
+    nullable: true,
+  })
+  collection: ResolvedSectionCollectionResponse | null;
 }
 
 /** Full draft version assembled for one locale (staff preview, no paywall). */

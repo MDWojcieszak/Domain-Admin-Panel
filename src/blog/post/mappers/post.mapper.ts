@@ -76,6 +76,16 @@ export const DRAFT_VERSION_INCLUDE = {
         orderBy: { order: 'asc' },
         include: { poi: { select: DRAFT_EMBEDDED_POI_SELECT } },
       },
+      collection: {
+        select: {
+          id: true,
+          slug: true,
+          coverImageId: true,
+          country: { select: { slug: true } },
+          _count: { select: { items: true } },
+          translations: { select: { locale: true, title: true } },
+        },
+      },
     },
   },
 } satisfies Prisma.BlogPostVersionInclude;
@@ -244,6 +254,21 @@ export class PostMapper {
           untranslated: isFallbackTranslation(pt, locale),
         };
       }),
+      collection: section.collection
+        ? {
+            collectionId: section.collection.id,
+            slug: section.collection.slug,
+            coverImageId: section.collection.coverImageId,
+            itemCount: section.collection._count.items,
+            country: section.collection.country?.slug ?? null,
+            title:
+              pickTranslation(
+                section.collection.translations,
+                locale,
+                defaultLocale,
+              )?.title ?? null,
+          }
+        : null,
     };
   }
 

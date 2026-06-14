@@ -65,6 +65,7 @@ interface MappedSection {
   images: MappedImage[];
   pois: string[];
   items: { content: string | null }[];
+  collectionId?: string | null;
 }
 
 /** A node in the document tree: a leaf, or a COLUMNS container with columns. */
@@ -92,6 +93,7 @@ const LEAF_TYPE_MAP: Record<
   [DocumentBlockType.embed]: BlogSectionType.EMBED,
   [DocumentBlockType.map]: BlogSectionType.MAP,
   [DocumentBlockType.place]: BlogSectionType.PLACE,
+  [DocumentBlockType.collection]: BlogSectionType.COLLECTION,
   [DocumentBlockType.list]: BlogSectionType.LIST,
   [DocumentBlockType.heading]: BlogSectionType.HEADING,
   [DocumentBlockType.quote]: BlogSectionType.QUOTE,
@@ -324,6 +326,15 @@ export class DocumentService {
         m.pois = [b.poiId];
         return m;
       }
+      case DocumentBlockType.collection: {
+        if (!b.collectionId)
+          throw new BadRequestException(
+            'collection block requires collectionId',
+          );
+        const m = base();
+        m.collectionId = b.collectionId;
+        return m;
+      }
       case DocumentBlockType.list: {
         const m = base();
         m.items = (b.items ?? []).map((it) => ({
@@ -499,6 +510,27 @@ export class DocumentService {
         );
       }
     }
+
+    const collectionIds = [
+      ...new Set(
+        blocks
+          .map((m) => m.collectionId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (collectionIds.length) {
+      const found = await this.prisma.poiCollection.findMany({
+        where: { id: { in: collectionIds } },
+        select: { id: true },
+      });
+      const set = new Set(found.map((c) => c.id));
+      const missing = collectionIds.filter((id) => !set.has(id));
+      if (missing.length) {
+        throw new BadRequestException(
+          `Invalid collection references: [${missing.join(', ')}]`,
+        );
+      }
+    }
   }
 
   // ----- section write (create or update) + children -----
@@ -522,6 +554,7 @@ export class DocumentService {
       embedUrl: m.neutral.embedUrl ?? null,
       embedProvider: m.neutral.embedProvider ?? null,
       columnWidth: m.neutral.columnWidth ?? null,
+      collectionId: m.collectionId ?? null,
     };
 
     let id: string;

@@ -19,6 +19,15 @@ export const SECTION_EMBEDDED_POI_SELECT = {
   categories: { select: { categoryId: true } },
 } satisfies Prisma.PoiSelect;
 
+/** Compact collection snapshot embedded in a COLLECTION section. */
+export const SECTION_EMBEDDED_COLLECTION_SELECT = {
+  id: true,
+  slug: true,
+  coverImageId: true,
+  country: { select: { slug: true } },
+  _count: { select: { items: true } },
+} satisfies Prisma.PoiCollectionSelect;
+
 /** Prisma include that loads a section with all locales and children. */
 export const SECTION_INCLUDE = {
   translations: true,
@@ -28,6 +37,7 @@ export const SECTION_INCLUDE = {
     orderBy: { order: 'asc' },
     include: { poi: { select: SECTION_EMBEDDED_POI_SELECT } },
   },
+  collection: { select: SECTION_EMBEDDED_COLLECTION_SELECT },
 } satisfies Prisma.BlogSectionInclude;
 
 export type SectionWithRelations = Prisma.BlogSectionGetPayload<{
@@ -99,6 +109,15 @@ export class SectionMapper {
           categoryIds: sp.poi.categories.map((c) => c.categoryId),
         },
       })),
+      collection: section.collection
+        ? {
+            collectionId: section.collection.id,
+            slug: section.collection.slug,
+            coverImageId: section.collection.coverImageId,
+            itemCount: section.collection._count.items,
+            country: section.collection.country?.slug ?? null,
+          }
+        : null,
       createdAt: section.createdAt,
       updatedAt: section.updatedAt,
     };

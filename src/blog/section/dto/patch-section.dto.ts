@@ -35,4 +35,11 @@ export class PatchSectionDto {
 
   @IsEnum({ enum: { EmbedProvider }, optional: true, nullable: true })
   embedProvider?: EmbedProvider | null;
+
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'PoiCollection id (FK) for a COLLECTION section; null clears.',
+  })
+  collectionId?: string | null;
 }
