@@ -1156,7 +1156,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateCategoryDto'
+              $ref: '#/components/schemas/CreateServerCategoryDto'
       responses:
         '200':
           description: Changed correctly
@@ -1177,7 +1177,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchCategoryDto'
+              $ref: '#/components/schemas/PatchServerCategoryDto'
       responses:
         '200':
           description: Changed correctly
@@ -2613,6 +2613,2893 @@ paths:
                 $ref: '#/components/schemas/DashboardTrendsResponseDto'
       tags: *ref_32
       security: *ref_33
+  /blog/locales:
+    get:
+      operationId: LocaleController_list
+      parameters: []
+      responses:
+        '200':
+          description: Enabled blog locales + the default (fallback) locale
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogLocaleListResponse'
+      tags:
+        - Blog · Locales
+      security:
+        - bearer: []
+  /blog/colors:
+    get:
+      operationId: ColorsController_list
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogColorsResponse'
+      tags:
+        - Blog · Colors
+  /blog/posts/public:
+    get:
+      operationId: PostController_listPublic
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+        - name: locale
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: category
+          required: false
+          in: query
+          description: Category id or key.
+          schema:
+            type: string
+        - name: region
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: country
+          required: false
+          in: query
+          description: Country (language-neutral).
+          schema:
+            type: string
+        - name: series
+          required: false
+          in: query
+          description: Series slug or id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public post feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPostListResponse'
+      tags: &ref_34
+        - Blog · Posts
+      security: &ref_35
+        - bearer: []
+  /blog/posts/public/{slug}:
+    get:
+      operationId: PostController_getPublic
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public post read (paywall-gated)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPostResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts:
+    get:
+      operationId: PostController_list
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+        - name: status
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/BlogPostStatus'
+        - name: search
+          required: false
+          in: query
+          description: Filter by slug (contains, case-insensitive).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List posts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostListResponse'
+      tags: *ref_34
+      security: *ref_35
+    post:
+      operationId: PostController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostDto'
+      responses:
+        '200':
+          description: Created post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts/reorder:
+    patch:
+      operationId: PostController_reorder
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderPostsDto'
+      responses:
+        '200':
+          description: Reordered posts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostListResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts/{id}:
+    get:
+      operationId: PostController_getById
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Post summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_34
+      security: *ref_35
+    patch:
+      operationId: PostController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchPostDto'
+      responses:
+        '200':
+          description: Patched post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts/{id}/draft:
+    get:
+      operationId: PostController_getDraft
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Full draft version resolved to a locale (staff preview)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDraftResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts/{id}/translations/{locale}:
+    put:
+      operationId: PostController_upsertTranslation
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertPostTranslationDto'
+      responses:
+        '200':
+          description: Upserted draft version translation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts/{id}/authors:
+    put:
+      operationId: PostController_setAuthors
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPostAuthorsDto'
+      responses:
+        '200':
+          description: Set post byline
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts/{id}/categories/draft:
+    get:
+      operationId: PostController_getDraftCategories
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Editable draft post categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCategoriesResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts/{id}/categories:
+    put:
+      operationId: PostController_setCategories
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPostCategoriesDto'
+      responses:
+        '200':
+          description: Set draft post categories (SET semantics)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCategoriesResponse'
+      tags: *ref_34
+      security: *ref_35
+  /blog/posts/{id}/publish:
+    post:
+      operationId: VersionController_publish
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Published post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: &ref_36
+        - Blog · Versioning
+      security: &ref_37
+        - bearer: []
+  /blog/posts/{id}/unpublish:
+    post:
+      operationId: VersionController_unpublish
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Unpublished post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_36
+      security: *ref_37
+  /blog/posts/{id}/schedule:
+    post:
+      operationId: VersionController_schedule
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleDto'
+      responses:
+        '200':
+          description: Scheduled post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_36
+      security: *ref_37
+  /blog/posts/{id}/archive:
+    post:
+      operationId: VersionController_archive
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Archived post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_36
+      security: *ref_37
+  /blog/posts/{id}/restore:
+    post:
+      operationId: VersionController_restore
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Restored post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_36
+      security: *ref_37
+  /blog/posts/{id}/rollback:
+    post:
+      operationId: VersionController_rollback
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RollbackDto'
+      responses:
+        '200':
+          description: Rolled back post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+      tags: *ref_36
+      security: *ref_37
+  /blog/posts/{id}/versions:
+    get:
+      operationId: VersionController_listVersions
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Version history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionListResponse'
+      tags: *ref_36
+      security: *ref_37
+  /blog/posts/{id}/versions/{versionId}:
+    delete:
+      operationId: VersionController_pruneVersion
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: versionId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pruned an ARCHIVED version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionListResponse'
+      tags: *ref_36
+      security: *ref_37
+  /blog/search:
+    get:
+      operationId: SearchController_search
+      parameters:
+        - name: q
+          required: true
+          in: query
+          description: Search terms.
+          schema:
+            minLength: 2
+            maxLength: 500
+            type: string
+        - name: locale
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: take
+          required: false
+          in: query
+          schema:
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: >-
+            Full-text search over published content; premium results above the
+            viewer's tier come back as locked teasers (no excerpt/body).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResultsResponse'
+      tags:
+        - Blog · Search
+  /blog/posts/{postId}/sections:
+    get:
+      operationId: SectionController_list
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List draft sections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionListResponse'
+      tags: &ref_38
+        - Blog · Sections
+      security: &ref_39
+        - bearer: []
+    post:
+      operationId: SectionController_create
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSectionDto'
+      responses:
+        '200':
+          description: Created section
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/posts/{postId}/sections/reorder:
+    patch:
+      operationId: SectionController_reorder
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderDto'
+      responses:
+        '200':
+          description: Reordered sections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionListResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/sections/{id}:
+    patch:
+      operationId: SectionController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchSectionDto'
+      responses:
+        '200':
+          description: Patched section
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+    delete:
+      operationId: SectionController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted section
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/sections/{id}/translations/{locale}:
+    put:
+      operationId: SectionController_upsertTranslation
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertSectionTranslationDto'
+      responses:
+        '200':
+          description: Upserted section translation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/sections/{id}/images:
+    post:
+      operationId: SectionController_addImage
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSectionImageDto'
+      responses:
+        '200':
+          description: Added section image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/sections/{id}/images/reorder:
+    patch:
+      operationId: SectionController_reorderImages
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderDto'
+      responses:
+        '200':
+          description: Reordered section images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/section-images/{imageId}:
+    patch:
+      operationId: SectionController_patchImage
+      parameters:
+        - name: imageId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchSectionImageDto'
+      responses:
+        '200':
+          description: Patched section image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+    delete:
+      operationId: SectionController_deleteImage
+      parameters:
+        - name: imageId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted section image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/section-images/{imageId}/translations/{locale}:
+    put:
+      operationId: SectionController_upsertImageTranslation
+      parameters:
+        - name: imageId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertSectionImageTranslationDto'
+      responses:
+        '200':
+          description: Upserted section image translation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/sections/{id}/items:
+    post:
+      operationId: SectionController_addItem
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSectionListItemDto'
+      responses:
+        '200':
+          description: Added list item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/sections/{id}/items/reorder:
+    patch:
+      operationId: SectionController_reorderItems
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderDto'
+      responses:
+        '200':
+          description: Reordered list items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/section-items/{itemId}:
+    patch:
+      operationId: SectionController_patchItem
+      parameters:
+        - name: itemId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchSectionListItemDto'
+      responses:
+        '200':
+          description: Patched list item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+    delete:
+      operationId: SectionController_deleteItem
+      parameters:
+        - name: itemId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted list item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/section-items/{itemId}/translations/{locale}:
+    put:
+      operationId: SectionController_upsertItemTranslation
+      parameters:
+        - name: itemId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertSectionListItemTranslationDto'
+      responses:
+        '200':
+          description: Upserted list item translation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/sections/{id}/pois:
+    post:
+      operationId: SectionController_addPoi
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSectionPoiDto'
+      responses:
+        '200':
+          description: Attached POI to section
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/sections/{id}/pois/reorder:
+    patch:
+      operationId: SectionController_reorderPois
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderDto'
+      responses:
+        '200':
+          description: Reordered section POIs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/section-pois/{poiLinkId}:
+    patch:
+      operationId: SectionController_patchPoi
+      parameters:
+        - name: poiLinkId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchSectionPoiDto'
+      responses:
+        '200':
+          description: Patched section POI link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+    delete:
+      operationId: SectionController_deletePoi
+      parameters:
+        - name: poiLinkId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detached section POI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+      tags: *ref_38
+      security: *ref_39
+  /blog/poi:
+    get:
+      operationId: PoiController_listPublic
+      parameters:
+        - name: category
+          required: false
+          in: query
+          description: Category id or key (ATTRACTION).
+          schema:
+            type: string
+        - name: region
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: country
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: locale
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: includeClosed
+          required: false
+          in: query
+          description: Include PERMANENTLY_CLOSED POIs.
+          schema:
+            type: boolean
+        - name: take
+          required: false
+          in: query
+          schema:
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Public POI map list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiPublicListResponse'
+      tags: &ref_40
+        - Blog · POI
+    post:
+      operationId: PoiController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePoiDto'
+      responses:
+        '200':
+          description: Created POI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/poi/admin:
+    get:
+      operationId: PoiController_listAdmin
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+        - name: status
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/PoiStatus'
+        - name: category
+          required: false
+          in: query
+          description: Category id or key (ATTRACTION).
+          schema:
+            type: string
+        - name: region
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: country
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: search
+          required: false
+          in: query
+          description: Name contains (case-insensitive).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin POI list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminListResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/poi/{id}:
+    get:
+      operationId: PoiController_getAdmin
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin POI detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+    patch:
+      operationId: PoiController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchPoiDto'
+      responses:
+        '200':
+          description: Patched POI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+    delete:
+      operationId: PoiController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted POI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/poi/{id}/images:
+    post:
+      operationId: PoiController_addImage
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPoiImageDto'
+      responses:
+        '200':
+          description: Added POI image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/poi/images/{imageId}:
+    patch:
+      operationId: PoiController_patchImage
+      parameters:
+        - name: imageId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchPoiImageDto'
+      responses:
+        '200':
+          description: Patched POI image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+    delete:
+      operationId: PoiController_deleteImage
+      parameters:
+        - name: imageId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted POI image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/poi/{id}/images/reorder:
+    patch:
+      operationId: PoiController_reorderImages
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderDto'
+      responses:
+        '200':
+          description: Reordered POI images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/poi/{id}/translations/{locale}:
+    put:
+      operationId: PoiController_upsertTranslation
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertPoiTranslationDto'
+      responses:
+        '200':
+          description: Upserted POI translation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/poi/{id}/hours:
+    put:
+      operationId: PoiController_setHours
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPoiHoursDto'
+      responses:
+        '200':
+          description: Replaced POI hours
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/poi/{id}/categories:
+    put:
+      operationId: PoiController_setCategories
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPoiCategoriesDto'
+      responses:
+        '200':
+          description: Replaced POI categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoiAdminResponse'
+      tags: *ref_40
+      security:
+        - bearer: []
+  /blog/categories:
+    get:
+      operationId: CategoryController_list
+      parameters:
+        - name: kind
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategoryKind'
+        - name: view
+          required: false
+          in: query
+          description: ADMIN (default, all locales) or RESOLVED (single label per locale).
+          schema:
+            $ref: '#/components/schemas/CategoryListView'
+        - name: locale
+          required: false
+          in: query
+          description: Locale used when view=RESOLVED.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+      tags: &ref_41
+        - Blog · Categories
+      security: &ref_42
+        - bearer: []
+    post:
+      operationId: CategoryController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBlogCategoryDto'
+      responses:
+        '200':
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+      tags: *ref_41
+      security: *ref_42
+  /blog/categories/{id}:
+    get:
+      operationId: CategoryController_getById
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+      tags: *ref_41
+      security: *ref_42
+    patch:
+      operationId: CategoryController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchBlogCategoryDto'
+      responses:
+        '200':
+          description: Patched category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+      tags: *ref_41
+      security: *ref_42
+    delete:
+      operationId: CategoryController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+      tags: *ref_41
+      security: *ref_42
+  /blog/categories/{id}/translations/{locale}:
+    put:
+      operationId: CategoryController_upsertTranslation
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCategoryTranslationDto'
+      responses:
+        '200':
+          description: Upserted category translation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+      tags: *ref_41
+      security: *ref_42
+  /blog/collections/public:
+    get:
+      operationId: CollectionController_listPublic
+      parameters:
+        - name: country
+          required: false
+          in: query
+          description: Country slug filter.
+          schema:
+            type: string
+        - name: region
+          required: false
+          in: query
+          description: Region scope filter.
+          schema:
+            type: string
+        - name: locale
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: take
+          required: false
+          in: query
+          schema:
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Public collection list (filter by country slug / region)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCollectionListResponse'
+      tags: &ref_43
+        - Blog · Collections
+  /blog/collections/by-slug/{slug}:
+    get:
+      operationId: CollectionController_getPublic
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public ranked collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCollectionResponse'
+      tags: *ref_43
+  /blog/collections:
+    get:
+      operationId: CollectionController_list
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+        - name: isPublic
+          required: false
+          in: query
+          schema:
+            type: boolean
+        - name: country
+          required: false
+          in: query
+          description: Country slug filter.
+          schema:
+            type: string
+        - name: region
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: search
+          required: false
+          in: query
+          description: Slug contains (case-insensitive).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin collection list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionListResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+    post:
+      operationId: CollectionController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCollectionDto'
+      responses:
+        '200':
+          description: Created collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+  /blog/collections/{id}:
+    get:
+      operationId: CollectionController_getById
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin collection detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+    patch:
+      operationId: CollectionController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchCollectionDto'
+      responses:
+        '200':
+          description: Patched collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+    delete:
+      operationId: CollectionController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+  /blog/collections/{id}/items:
+    post:
+      operationId: CollectionController_addItem
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCollectionItemDto'
+      responses:
+        '200':
+          description: Added collection item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+  /blog/collections/{id}/items/reorder:
+    patch:
+      operationId: CollectionController_reorderItems
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderCollectionItemsDto'
+      responses:
+        '200':
+          description: Reordered collection items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+  /blog/collections/{id}/items/{itemId}:
+    patch:
+      operationId: CollectionController_patchItem
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: itemId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchCollectionItemDto'
+      responses:
+        '200':
+          description: Patched collection item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+    delete:
+      operationId: CollectionController_deleteItem
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: itemId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Removed collection item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+  /blog/collections/{id}/translations/{locale}:
+    put:
+      operationId: CollectionController_upsertTranslation
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCollectionTranslationDto'
+      responses:
+        '200':
+          description: Upserted collection translation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+      tags: *ref_43
+      security:
+        - bearer: []
+  /blog/sitemap.xml:
+    get:
+      operationId: SeoController_sitemap
+      parameters: []
+      responses:
+        '200':
+          description: XML sitemap of published public posts
+      tags:
+        - Blog · SEO
+  /blog/home/config:
+    get:
+      operationId: HomeController_getConfig
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeConfigResponse'
+      tags: &ref_44
+        - Blog · Home (admin)
+      security: &ref_45
+        - bearer: []
+    patch:
+      operationId: HomeController_patchConfig
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchHomeConfigDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeConfigResponse'
+      tags: *ref_44
+      security: *ref_45
+  /blog/home/pins:
+    get:
+      operationId: HomeController_getPins
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomePinsResponse'
+      tags: *ref_44
+      security: *ref_45
+    put:
+      operationId: HomeController_setPins
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetHomePinsDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomePinsResponse'
+      tags: *ref_44
+      security: *ref_45
+  /blog/home:
+    get:
+      operationId: HomePublicController_getHome
+      parameters:
+        - name: locale
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Opinionated homepage — pinned + latest post cards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicHomeResponse'
+      tags:
+        - Blog · Home
+  /blog/posts/{postId}/comments:
+    post:
+      operationId: CommentController_create
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentDto'
+      responses:
+        '200':
+          description: Created comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorialCommentResponse'
+      tags: &ref_46
+        - Blog · Editorial comments
+      security: &ref_47
+        - bearer: []
+    get:
+      operationId: CommentController_list
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: sectionId
+          required: false
+          in: query
+          description: Filter to one section thread; omit for the whole post.
+          schema:
+            type: string
+        - name: global
+          required: false
+          in: query
+          description: >-
+            true → only post-level (global) comments. Ignored if sectionId is
+            set.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentListResponse'
+      tags: *ref_46
+      security: *ref_47
+  /blog/posts/{postId}/comments/{commentId}:
+    get:
+      operationId: CommentController_get
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: commentId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comment detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorialCommentResponse'
+      tags: *ref_46
+      security: *ref_47
+    patch:
+      operationId: CommentController_patch
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: commentId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchCommentDto'
+      responses:
+        '200':
+          description: Patched comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorialCommentResponse'
+      tags: *ref_46
+      security: *ref_47
+    delete:
+      operationId: CommentController_delete
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: commentId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorialCommentResponse'
+      tags: *ref_46
+      security: *ref_47
+  /blog/posts/{postId}/like:
+    post:
+      operationId: InteractionController_like
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Liked the post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeToggleResponse'
+      tags: &ref_48
+        - Blog · Interactions
+      security: &ref_49
+        - bearer: []
+    delete:
+      operationId: InteractionController_unlike
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Unliked the post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeToggleResponse'
+      tags: *ref_48
+      security: *ref_49
+  /blog/posts/{postId}/view:
+    post:
+      operationId: InteractionController_view
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recorded a view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewResultResponse'
+      tags: *ref_48
+      security: *ref_49
+  /blog/posts/{postId}/interactions:
+    get:
+      operationId: InteractionController_interactions
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Viewer engagement state + counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionStateResponse'
+      tags: *ref_48
+      security: *ref_49
+  /blog/posts/{postId}/feedback:
+    put:
+      operationId: InteractionController_upsertFeedback
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertFeedbackDto'
+      responses:
+        '200':
+          description: Upserted feedback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+      tags: *ref_48
+      security: *ref_49
+    delete:
+      operationId: InteractionController_deleteFeedback
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted feedback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+      tags: *ref_48
+      security: *ref_49
+  /blog/posts/{postId}/insights:
+    get:
+      operationId: InteractionController_insights
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: recentFeedbackLimit
+          required: false
+          in: query
+          description: Recent feedback rows (1–100).
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Post analytics (staff)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightsResponse'
+      tags: *ref_48
+      security: *ref_49
+  /blog/media/upload:
+    post:
+      operationId: MediaController_upload
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileDto'
+      responses:
+        '200':
+          description: Uploaded a BLOG-scoped image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponseDto'
+      tags: &ref_50
+        - Blog · Media
+      security: &ref_51
+        - bearer: []
+  /blog/media:
+    get:
+      operationId: MediaController_list
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: Blog media library (paginated)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogMediaListResponse'
+      tags: *ref_50
+      security: *ref_51
+  /blog/media/images/{id}:
+    get:
+      operationId: MediaController_getImage
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogMediaImageResponse'
+      tags: *ref_50
+      security: *ref_51
+    delete:
+      operationId: MediaController_deleteImage
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted a blog image (409 if still in use)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponseDto'
+      tags: *ref_50
+      security: *ref_51
+  /blog/media/albums:
+    post:
+      operationId: MediaController_createAlbum
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBlogAlbumDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogMediaAlbumResponse'
+      tags: *ref_50
+      security: *ref_51
+    get:
+      operationId: MediaController_listAlbums
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogMediaAlbumListResponse'
+      tags: *ref_50
+      security: *ref_51
+  /blog/media/albums/{id}:
+    get:
+      operationId: MediaController_getAlbum
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogMediaAlbumResponse'
+      tags: *ref_50
+      security: *ref_51
+    patch:
+      operationId: MediaController_patchAlbum
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchBlogAlbumDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogMediaAlbumResponse'
+      tags: *ref_50
+      security: *ref_51
+    delete:
+      operationId: MediaController_deleteAlbum
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponseDto'
+      tags: *ref_50
+      security: *ref_51
+  /blog/media/albums/{id}/items:
+    put:
+      operationId: MediaController_setAlbumItems
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetBlogAlbumItemsDto'
+      responses:
+        '200':
+          description: Replaced album items (BLOG-scoped images only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogMediaAlbumResponse'
+      tags: *ref_50
+      security: *ref_51
+  /blog/posts/{postId}/document:
+    put:
+      operationId: DocumentController_save
+      parameters:
+        - name: postId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: false
+          in: query
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveDocumentDto'
+      responses:
+        '200':
+          description: Refreshed draft + clientKey→sectionId map
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveDocumentResponse'
+      tags:
+        - Blog · Document
+      security:
+        - bearer: []
+  /blog/countries/manage:
+    post:
+      operationId: CountryController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBlogCountryDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCountryAdminResponse'
+      tags: &ref_52
+        - Blog · Countries (admin)
+      security: &ref_53
+        - bearer: []
+    get:
+      operationId: CountryController_list
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCountryListResponse'
+      tags: *ref_52
+      security: *ref_53
+  /blog/countries/manage/{id}:
+    get:
+      operationId: CountryController_getById
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCountryAdminResponse'
+      tags: *ref_52
+      security: *ref_53
+    patch:
+      operationId: CountryController_patch
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchBlogCountryDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCountryAdminResponse'
+      tags: *ref_52
+      security: *ref_53
+    delete:
+      operationId: CountryController_delete
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCountryAdminResponse'
+      tags: *ref_52
+      security: *ref_53
+  /blog/countries/manage/{id}/translations/{locale}:
+    put:
+      operationId: CountryController_upsertTranslation
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCountryTranslationDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCountryAdminResponse'
+      tags: *ref_52
+      security: *ref_53
+  /blog/countries:
+    get:
+      operationId: CountryPublicController_menu
+      parameters:
+        - name: locale
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCountryMenuResponse'
+      tags: &ref_54
+        - Blog · Countries
+  /blog/countries/by-slug/{slug}:
+    get:
+      operationId: CountryPublicController_page
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: locale
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCountryPageResponse'
+      tags: *ref_54
+  /ecosystem/grants/mine:
+    get:
+      operationId: GrantController_mine
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+        - name: userId
+          required: false
+          in: query
+          description: Filter by user (admin only).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: My access grants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantListResponse'
+      tags: &ref_55
+        - Ecosystem · Access grants
+      security: &ref_56
+        - bearer: []
+  /ecosystem/grants:
+    post:
+      operationId: GrantController_issue
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGrantDto'
+      responses:
+        '200':
+          description: Issued grant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantResponse'
+      tags: *ref_55
+      security: *ref_56
+    get:
+      operationId: GrantController_list
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+        - name: userId
+          required: false
+          in: query
+          description: Filter by user (admin only).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List grants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantListResponse'
+      tags: *ref_55
+      security: *ref_56
+  /ecosystem/grants/{id}:
+    delete:
+      operationId: GrantController_revoke
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Revoked grant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantResponse'
+      tags: *ref_55
+      security: *ref_56
+  /ecosystem/redeem:
+    post:
+      operationId: RedeemController_redeem
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemCodeDto'
+      responses:
+        '200':
+          description: Redeemed a code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeemResultResponse'
+      tags: &ref_57
+        - Ecosystem · Redeem codes
+      security: &ref_58
+        - bearer: []
+  /ecosystem/codes:
+    post:
+      operationId: RedeemController_createCode
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCodeDto'
+      responses:
+        '200':
+          description: Created code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeemCodeResponse'
+      tags: *ref_57
+      security: *ref_58
+    get:
+      operationId: RedeemController_listCodes
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: List codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeListResponse'
+      tags: *ref_57
+      security: *ref_58
+  /ecosystem/codes/{id}:
+    delete:
+      operationId: RedeemController_revokeCode
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Revoked code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeemCodeResponse'
+      tags: *ref_57
+      security: *ref_58
+  /ecosystem/devices/register:
+    post:
+      operationId: DeviceController_register
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceDto'
+      responses:
+        '200':
+          description: Activated/renewed device + fresh license
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceWithLicenseResponse'
+      tags: &ref_59
+        - Ecosystem · App devices
+      security: &ref_60
+        - bearer: []
+  /ecosystem/devices:
+    get:
+      operationId: DeviceController_list
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+      responses:
+        '200':
+          description: My devices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceListResponse'
+      tags: *ref_59
+      security: *ref_60
+  /ecosystem/devices/{id}/license:
+    get:
+      operationId: DeviceController_fetchLicense
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Re-issued license
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseResponse'
+      tags: *ref_59
+      security: *ref_60
+  /ecosystem/devices/{id}:
+    get:
+      operationId: DeviceController_get
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: My device detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceResponse'
+      tags: *ref_59
+      security: *ref_60
+    delete:
+      operationId: DeviceController_revoke
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Revoked device
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceResponse'
+      tags: *ref_59
+      security: *ref_60
+  /ecosystem/license/public-key:
+    get:
+      operationId: LicenseController_getPublicKey
+      parameters: []
+      responses:
+        '200':
+          description: Ed25519 public key (PEM) for offline verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicKeyResponse'
+      tags:
+        - Ecosystem · License
 info:
   title: WHCP Backend
   description: XD
@@ -3595,7 +6482,7 @@ components:
           type: string
         mediaType:
           $ref: '#/components/schemas/DiskType'
-    CreateCategoryDto:
+    CreateServerCategoryDto:
       type: object
       properties:
         name:
@@ -3604,11 +6491,25 @@ components:
           type: string
       required:
         - value
-    PatchCategoryDto:
+    PatchServerCategoryDto:
       type: object
       properties:
         name:
           type: string
+    GalleryImageDataDto:
+      type: object
+      properties:
+        title:
+          type: string
+        dateTaken:
+          type: string
+          format: date-time
+        localization:
+          type: string
+        description:
+          type: string
+      required:
+        - dateTaken
     DimensionsDto:
       type: object
       properties:
@@ -3619,13 +6520,13 @@ components:
       required:
         - width
         - height
-    ImageDto:
+    GalleryImageDto:
       type: object
       properties:
         id:
           type: string
         data:
-          $ref: '#/components/schemas/ImageDataDto'
+          $ref: '#/components/schemas/GalleryImageDataDto'
         dimensions:
           $ref: '#/components/schemas/DimensionsDto'
       required:
@@ -3636,7 +6537,7 @@ components:
         images:
           type: array
           items:
-            $ref: '#/components/schemas/ImageDto'
+            $ref: '#/components/schemas/GalleryImageDto'
         count:
           type: number
       required:
@@ -5519,3 +8420,3715 @@ components:
       required:
         - range
         - series
+    BlogLocaleResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        isDefault:
+          type: boolean
+        order:
+          type: integer
+          nullable: true
+      required:
+        - code
+        - name
+        - isDefault
+    BlogLocaleListResponse:
+      type: object
+      properties:
+        defaultLocale:
+          type: string
+        locales:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogLocaleResponse'
+      required:
+        - defaultLocale
+        - locales
+    BlogColorsResponse:
+      type: object
+      properties:
+        colors:
+          description: >-
+            Allowed inline color tokens (used for both text `fg` and background
+            `bg`).
+          type: array
+          items:
+            type: string
+      required:
+        - colors
+    BlogAccessTier:
+      type: string
+      enum:
+        - PUBLIC
+        - REGISTERED
+        - PREMIUM
+    BlogAuthorRole:
+      type: string
+      enum:
+        - AUTHOR
+        - CO_AUTHOR
+    PostAuthorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        role:
+          $ref: '#/components/schemas/BlogAuthorRole'
+        order:
+          type: integer
+      required:
+        - id
+        - userId
+        - role
+        - order
+    PublicPostCardResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+          nullable: true
+        excerpt:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        accessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        readingMinutes:
+          type: integer
+          nullable: true
+        categoryIds:
+          type: array
+          items:
+            type: string
+        untranslated:
+          type: boolean
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostAuthorResponse'
+        firstPublishedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - slug
+        - accessTier
+        - categoryIds
+        - untranslated
+        - authors
+    PublicPostListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicPostCardResponse'
+      required:
+        - total
+        - posts
+    BlogPostStatus:
+      type: string
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - SCHEDULED
+        - ARCHIVED
+    HreflangAlternateResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        canonicalUrl:
+          type: string
+      required:
+        - locale
+        - canonicalUrl
+    BlogSectionType:
+      type: string
+      enum:
+        - HEADING
+        - PARAGRAPH
+        - QUOTE
+        - CALLOUT
+        - LIST
+        - IMAGE
+        - GALLERY
+        - MAP
+        - PLACE
+        - COLLECTION
+        - EMBED
+        - DIVIDER
+        - COLUMNS
+        - COLUMN
+    CalloutVariant:
+      type: string
+      enum:
+        - INFO
+        - TIP
+        - WARNING
+        - SUCCESS
+    GalleryLayout:
+      type: string
+      enum:
+        - GRID
+        - CAROUSEL
+        - MASONRY
+        - FULLWIDTH
+    EmbedProvider:
+      type: string
+      enum:
+        - YOUTUBE
+        - VIMEO
+        - SPOTIFY
+        - X
+        - OTHER
+    BlogImageSize:
+      type: string
+      enum:
+        - SMALL
+        - MEDIUM
+        - LARGE
+        - FULL
+        - FULL_BLEED
+    BlogAspectRatio:
+      type: string
+      enum:
+        - ORIGINAL
+        - SQUARE
+        - RATIO_4_3
+        - RATIO_3_2
+        - RATIO_16_9
+        - RATIO_21_9
+        - RATIO_65_24
+        - RATIO_3_4
+        - RATIO_2_3
+        - RATIO_4_5
+        - RATIO_9_16
+    BlogOverlayPosition:
+      type: string
+      enum:
+        - TOP_LEFT
+        - TOP_CENTER
+        - TOP_RIGHT
+        - MIDDLE_LEFT
+        - MIDDLE_CENTER
+        - MIDDLE_RIGHT
+        - BOTTOM_LEFT
+        - BOTTOM_CENTER
+        - BOTTOM_RIGHT
+    BlogOverlayTheme:
+      type: string
+      enum:
+        - LIGHT
+        - DARK
+    BlogOverlayBackdrop:
+      type: string
+      enum:
+        - NONE
+        - SCRIM
+        - GRADIENT
+        - GLASS
+    ResolvedSectionImageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        imageId:
+          type: string
+        order:
+          type: integer
+        size:
+          $ref: '#/components/schemas/BlogImageSize'
+        aspectRatio:
+          $ref: '#/components/schemas/BlogAspectRatio'
+        focalX:
+          type: number
+          nullable: true
+        focalY:
+          type: number
+          nullable: true
+        overlayPosition:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayPosition'
+        overlayTheme:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayTheme'
+        overlayBackdrop:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayBackdrop'
+        caption:
+          type: string
+          nullable: true
+        alt:
+          type: string
+          nullable: true
+        overlayText:
+          type: string
+          nullable: true
+      required:
+        - id
+        - imageId
+        - order
+        - size
+        - aspectRatio
+    ResolvedSectionListItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        order:
+          type: integer
+        content:
+          type: string
+          nullable: true
+      required:
+        - id
+        - order
+    PoiStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - TEMPORARILY_CLOSED
+        - PERMANENTLY_CLOSED
+    PoiPriceLevel:
+      type: string
+      enum:
+        - FREE
+        - LOW
+        - MODERATE
+        - HIGH
+    PoiSeason:
+      type: string
+      enum:
+        - SPRING
+        - SUMMER
+        - AUTUMN
+        - WINTER
+    PoiDifficulty:
+      type: string
+      enum:
+        - EASY
+        - MODERATE
+        - HARD
+        - EXPERT
+    ResolvedSectionPoiResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        poiId:
+          type: string
+        order:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/PoiStatus'
+        coverImageId:
+          type: string
+          nullable: true
+        categoryIds:
+          type: array
+          items:
+            type: string
+        creatorRating:
+          type: integer
+          nullable: true
+        priceLevel:
+          nullable: true
+          $ref: '#/components/schemas/PoiPriceLevel'
+        bestSeasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiSeason'
+        difficulty:
+          nullable: true
+          $ref: '#/components/schemas/PoiDifficulty'
+        distanceKm:
+          type: number
+          nullable: true
+        elevationGainM:
+          type: integer
+          nullable: true
+        visitDurationMin:
+          type: integer
+          nullable: true
+        websiteUrl:
+          type: string
+          nullable: true
+        bookingUrl:
+          type: string
+          nullable: true
+        mapsUrl:
+          type: string
+          nullable: true
+        googlePlaceId:
+          type: string
+          nullable: true
+        osmId:
+          type: string
+          nullable: true
+        untranslated:
+          type: boolean
+      required:
+        - id
+        - poiId
+        - order
+        - name
+        - latitude
+        - longitude
+        - status
+        - categoryIds
+        - bestSeasons
+        - untranslated
+    ResolvedSectionCollectionResponse:
+      type: object
+      properties:
+        collectionId:
+          type: string
+        slug:
+          type: string
+        coverImageId:
+          type: string
+          nullable: true
+        itemCount:
+          type: integer
+        country:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+      required:
+        - collectionId
+        - slug
+        - itemCount
+    VisibleSectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/BlogSectionType'
+        order:
+          type: integer
+        minAccessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        headingLevel:
+          type: integer
+          nullable: true
+        quoteAuthor:
+          type: string
+          nullable: true
+        calloutVariant:
+          nullable: true
+          $ref: '#/components/schemas/CalloutVariant'
+        galleryLayout:
+          nullable: true
+          $ref: '#/components/schemas/GalleryLayout'
+        embedUrl:
+          type: string
+          nullable: true
+        embedProvider:
+          nullable: true
+          $ref: '#/components/schemas/EmbedProvider'
+        parentId:
+          type: string
+          nullable: true
+          description: Parent section id (COLUMNS→COLUMN nesting); null at top level.
+        columnWidth:
+          type: number
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        keywords:
+          type: array
+          items:
+            type: string
+        untranslated:
+          type: boolean
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolvedSectionImageResponse'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolvedSectionListItemResponse'
+        pois:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolvedSectionPoiResponse'
+        collection:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ResolvedSectionCollectionResponse'
+        locked:
+          type: boolean
+      required:
+        - id
+        - type
+        - order
+        - minAccessTier
+        - keywords
+        - untranslated
+        - images
+        - items
+        - pois
+        - locked
+    PublicPostResponse:
+      type: object
+      properties:
+        postId:
+          type: string
+        slug:
+          type: string
+        status:
+          $ref: '#/components/schemas/BlogPostStatus'
+        accessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        locale:
+          type: string
+        isTeaser:
+          type: boolean
+        versionId:
+          type: string
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        ogImageId:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        subtitle:
+          type: string
+          nullable: true
+        excerpt:
+          type: string
+          nullable: true
+        readingMinutes:
+          type: integer
+          nullable: true
+        metaTitle:
+          type: string
+          nullable: true
+        metaDescription:
+          type: string
+          nullable: true
+        canonicalUrl:
+          type: string
+          nullable: true
+        seoKeywords:
+          type: array
+          items:
+            type: string
+        untranslated:
+          type: boolean
+        hreflangs:
+          type: array
+          items:
+            $ref: '#/components/schemas/HreflangAlternateResponse'
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostAuthorResponse'
+        firstPublishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastPublishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisibleSectionResponse'
+      required:
+        - postId
+        - slug
+        - status
+        - accessTier
+        - locale
+        - isTeaser
+        - versionId
+        - seoKeywords
+        - untranslated
+        - hreflangs
+        - authors
+        - sections
+    PostResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        status:
+          $ref: '#/components/schemas/BlogPostStatus'
+        accessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        order:
+          type: integer
+          nullable: true
+        viewCount:
+          type: integer
+        likeCount:
+          type: integer
+        helpfulCount:
+          type: integer
+        notHelpfulCount:
+          type: integer
+        createdById:
+          type: string
+        seriesId:
+          type: string
+          nullable: true
+        seriesOrder:
+          type: integer
+          nullable: true
+        draftVersionId:
+          type: string
+          nullable: true
+        publishedVersionId:
+          type: string
+          nullable: true
+        hasUnpublishedChanges:
+          type: boolean
+        firstPublishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastPublishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        scheduledFor:
+          type: string
+          format: date-time
+          nullable: true
+        archivedAt:
+          type: string
+          format: date-time
+          nullable: true
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostAuthorResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - slug
+        - status
+        - accessTier
+        - viewCount
+        - likeCount
+        - helpfulCount
+        - notHelpfulCount
+        - createdById
+        - hasUnpublishedChanges
+        - authors
+        - createdAt
+        - updatedAt
+    PostListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostResponse'
+      required:
+        - total
+        - posts
+    PostOrderInputDto:
+      type: object
+      properties:
+        id:
+          type: string
+        order:
+          type: integer
+      required:
+        - id
+        - order
+    ReorderPostsDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostOrderInputDto'
+      required:
+        - items
+    VersionState:
+      type: string
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - ARCHIVED
+    ResolvedSectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/BlogSectionType'
+        order:
+          type: integer
+        minAccessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        headingLevel:
+          type: integer
+          nullable: true
+        quoteAuthor:
+          type: string
+          nullable: true
+        calloutVariant:
+          nullable: true
+          $ref: '#/components/schemas/CalloutVariant'
+        galleryLayout:
+          nullable: true
+          $ref: '#/components/schemas/GalleryLayout'
+        embedUrl:
+          type: string
+          nullable: true
+        embedProvider:
+          nullable: true
+          $ref: '#/components/schemas/EmbedProvider'
+        parentId:
+          type: string
+          nullable: true
+          description: Parent section id (COLUMNS→COLUMN nesting); null at top level.
+        columnWidth:
+          type: number
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        keywords:
+          type: array
+          items:
+            type: string
+        untranslated:
+          type: boolean
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolvedSectionImageResponse'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolvedSectionListItemResponse'
+        pois:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolvedSectionPoiResponse'
+        collection:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ResolvedSectionCollectionResponse'
+      required:
+        - id
+        - type
+        - order
+        - minAccessTier
+        - keywords
+        - untranslated
+        - images
+        - items
+        - pois
+    PostDraftResponse:
+      type: object
+      properties:
+        postId:
+          type: string
+        slug:
+          type: string
+        status:
+          $ref: '#/components/schemas/BlogPostStatus'
+        accessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        locale:
+          type: string
+        hasUnpublishedChanges:
+          type: boolean
+        versionId:
+          type: string
+        versionNumber:
+          type: integer
+        versionState:
+          $ref: '#/components/schemas/VersionState'
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        ogImageId:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        subtitle:
+          type: string
+          nullable: true
+        excerpt:
+          type: string
+          nullable: true
+        seoKeywords:
+          type: array
+          items:
+            type: string
+        metaTitle:
+          type: string
+          nullable: true
+        metaDescription:
+          type: string
+          nullable: true
+        canonicalUrl:
+          type: string
+          nullable: true
+        wordCount:
+          type: integer
+          nullable: true
+        readingMinutes:
+          type: integer
+          nullable: true
+        untranslated:
+          type: boolean
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolvedSectionResponse'
+      required:
+        - postId
+        - slug
+        - status
+        - accessTier
+        - locale
+        - hasUnpublishedChanges
+        - versionId
+        - versionNumber
+        - versionState
+        - seoKeywords
+        - untranslated
+        - sections
+    CreatePostDto:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: Unique URL slug for the post.
+        title:
+          type: string
+          description: >-
+            Title for the initial locale (default locale unless `locale` is
+            set).
+        locale:
+          type: string
+          description: Locale of the initial content. Defaults to the default BlogLocale.
+        subtitle:
+          type: string
+        excerpt:
+          type: string
+        accessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        countryId:
+          type: string
+          nullable: true
+          description: BlogCountry id (FK).
+        region:
+          type: string
+        coverImageId:
+          type: string
+        ogImageId:
+          type: string
+        seriesId:
+          type: string
+        seriesOrder:
+          type: integer
+      required:
+        - slug
+        - title
+    PatchPostDto:
+      type: object
+      properties:
+        slug:
+          type: string
+        accessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        seriesId:
+          type: string
+          nullable: true
+        seriesOrder:
+          type: integer
+          nullable: true
+        countryId:
+          type: string
+          nullable: true
+          description: BlogCountry id (FK).
+        region:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        ogImageId:
+          type: string
+          nullable: true
+    UpsertPostTranslationDto:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: true
+        subtitle:
+          type: string
+          nullable: true
+        excerpt:
+          type: string
+          nullable: true
+        seoKeywords:
+          type: array
+          items:
+            type: string
+        metaTitle:
+          type: string
+          nullable: true
+        metaDescription:
+          type: string
+          nullable: true
+        canonicalUrl:
+          type: string
+          nullable: true
+    PostAuthorInputDto:
+      type: object
+      properties:
+        userId:
+          type: string
+        role:
+          $ref: '#/components/schemas/BlogAuthorRole'
+        order:
+          type: integer
+      required:
+        - userId
+    SetPostAuthorsDto:
+      type: object
+      properties:
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostAuthorInputDto'
+      required:
+        - authors
+    CategoryKind:
+      type: string
+      enum:
+        - POST
+        - ATTRACTION
+    ResolvedCategoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+        key:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        order:
+          type: integer
+          nullable: true
+        label:
+          type: string
+          nullable: true
+        untranslated:
+          type: boolean
+      required:
+        - id
+        - kind
+        - key
+        - untranslated
+    PostCategoriesResponse:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolvedCategoryResponse'
+      required:
+        - categories
+    SetPostCategoriesDto:
+      type: object
+      properties:
+        categoryIds:
+          description: >-
+            Full desired set of POST category ids (SET semantics; [] clears
+            all).
+          type: array
+          items:
+            type: string
+      required:
+        - categoryIds
+    ScheduleDto:
+      type: object
+      properties:
+        scheduledFor:
+          type: string
+          format: date-time
+          description: When to auto-publish the current draft (must be in the future).
+      required:
+        - scheduledFor
+    RollbackDto:
+      type: object
+      properties:
+        versionId:
+          type: string
+          description: Id of the ARCHIVED version to roll back to.
+      required:
+        - versionId
+    VersionSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        versionNumber:
+          type: integer
+        state:
+          $ref: '#/components/schemas/VersionState'
+        isDraft:
+          type: boolean
+        isPublished:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        archivedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - versionNumber
+        - state
+        - isDraft
+        - isPublished
+        - createdAt
+        - updatedAt
+    VersionListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/VersionSummaryResponse'
+      required:
+        - total
+        - versions
+    SearchResultResponse:
+      type: object
+      properties:
+        postSlug:
+          type: string
+        title:
+          type: string
+          nullable: true
+        excerpt:
+          type: string
+          nullable: true
+        accessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        locked:
+          type: boolean
+        rank:
+          type: number
+      required:
+        - postSlug
+        - accessTier
+        - locked
+        - rank
+    SearchResultsResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResultResponse'
+        total:
+          type: integer
+        locale:
+          type: string
+      required:
+        - results
+        - total
+        - locale
+    SectionTranslationResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        keywords:
+          type: array
+          items:
+            type: string
+      required:
+        - locale
+        - keywords
+    SectionImageTranslationResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        caption:
+          type: string
+          nullable: true
+        alt:
+          type: string
+          nullable: true
+        overlayText:
+          type: string
+          nullable: true
+      required:
+        - locale
+    SectionImageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        imageId:
+          type: string
+        order:
+          type: integer
+        size:
+          $ref: '#/components/schemas/BlogImageSize'
+        aspectRatio:
+          $ref: '#/components/schemas/BlogAspectRatio'
+        focalX:
+          type: number
+          nullable: true
+        focalY:
+          type: number
+          nullable: true
+        overlayPosition:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayPosition'
+        overlayTheme:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayTheme'
+        overlayBackdrop:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayBackdrop'
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionImageTranslationResponse'
+      required:
+        - id
+        - imageId
+        - order
+        - size
+        - aspectRatio
+        - translations
+    SectionListItemTranslationResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        content:
+          type: string
+          nullable: true
+      required:
+        - locale
+    SectionListItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        order:
+          type: integer
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionListItemTranslationResponse'
+      required:
+        - id
+        - order
+        - translations
+    SectionPoiTargetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+        longitude:
+          type: number
+        status:
+          $ref: '#/components/schemas/PoiStatus'
+        coverImageId:
+          type: string
+          nullable: true
+        categoryIds:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - name
+        - latitude
+        - longitude
+        - status
+        - categoryIds
+    SectionPoiResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        poiId:
+          type: string
+        order:
+          type: integer
+        poi:
+          $ref: '#/components/schemas/SectionPoiTargetResponse'
+      required:
+        - id
+        - poiId
+        - order
+        - poi
+    SectionCollectionResponse:
+      type: object
+      properties:
+        collectionId:
+          type: string
+        slug:
+          type: string
+        coverImageId:
+          type: string
+          nullable: true
+        itemCount:
+          type: integer
+        country:
+          type: string
+          nullable: true
+      required:
+        - collectionId
+        - slug
+        - itemCount
+    SectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        versionId:
+          type: string
+        type:
+          $ref: '#/components/schemas/BlogSectionType'
+        order:
+          type: integer
+        minAccessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        headingLevel:
+          type: integer
+          nullable: true
+        quoteAuthor:
+          type: string
+          nullable: true
+        calloutVariant:
+          nullable: true
+          $ref: '#/components/schemas/CalloutVariant'
+        galleryLayout:
+          nullable: true
+          $ref: '#/components/schemas/GalleryLayout'
+        embedUrl:
+          type: string
+          nullable: true
+        embedProvider:
+          nullable: true
+          $ref: '#/components/schemas/EmbedProvider'
+        parentId:
+          type: string
+          nullable: true
+          description: Parent section id (COLUMNS→COLUMN→block nesting); null at top level.
+        columnWidth:
+          type: number
+          nullable: true
+          description: COLUMN width share, 0..1 (relative).
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionTranslationResponse'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionImageResponse'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionListItemResponse'
+        pois:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionPoiResponse'
+        collection:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/SectionCollectionResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - versionId
+        - type
+        - order
+        - minAccessTier
+        - translations
+        - images
+        - items
+        - pois
+        - createdAt
+        - updatedAt
+    SectionListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionResponse'
+      required:
+        - total
+        - sections
+    CreateSectionDto:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/BlogSectionType'
+        order:
+          type: integer
+          description: Position; appended to the end when omitted.
+        minAccessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        headingLevel:
+          type: integer
+          minimum: 1
+          maximum: 6
+        quoteAuthor:
+          type: string
+        calloutVariant:
+          $ref: '#/components/schemas/CalloutVariant'
+        galleryLayout:
+          $ref: '#/components/schemas/GalleryLayout'
+        embedUrl:
+          type: string
+        embedProvider:
+          $ref: '#/components/schemas/EmbedProvider'
+        collectionId:
+          type: string
+          nullable: true
+          description: PoiCollection id (FK) — only for a COLLECTION section.
+        locale:
+          type: string
+          description: Locale for the initial translation. Defaults to the default locale.
+        title:
+          type: string
+        body:
+          type: string
+          description: Markdown body for the initial locale.
+        keywords:
+          type: array
+          items:
+            type: string
+      required:
+        - type
+    OrderItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+        order:
+          type: integer
+      required:
+        - id
+        - order
+    ReorderDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemDto'
+      required:
+        - items
+    PatchSectionDto:
+      type: object
+      properties:
+        order:
+          type: integer
+        minAccessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        headingLevel:
+          type: integer
+          minimum: 1
+          maximum: 6
+          nullable: true
+        quoteAuthor:
+          type: string
+          nullable: true
+        calloutVariant:
+          nullable: true
+          $ref: '#/components/schemas/CalloutVariant'
+        galleryLayout:
+          nullable: true
+          $ref: '#/components/schemas/GalleryLayout'
+        embedUrl:
+          type: string
+          nullable: true
+        embedProvider:
+          nullable: true
+          $ref: '#/components/schemas/EmbedProvider'
+        collectionId:
+          type: string
+          nullable: true
+          description: PoiCollection id (FK) for a COLLECTION section; null clears.
+    UpsertSectionTranslationDto:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+          description: Markdown body.
+        keywords:
+          type: array
+          items:
+            type: string
+    AddSectionImageDto:
+      type: object
+      properties:
+        imageId:
+          type: string
+        order:
+          type: integer
+        size:
+          $ref: '#/components/schemas/BlogImageSize'
+        aspectRatio:
+          $ref: '#/components/schemas/BlogAspectRatio'
+        focalX:
+          type: number
+          minimum: 0
+          maximum: 1
+        focalY:
+          type: number
+          minimum: 0
+          maximum: 1
+        overlayPosition:
+          $ref: '#/components/schemas/BlogOverlayPosition'
+        overlayTheme:
+          $ref: '#/components/schemas/BlogOverlayTheme'
+        overlayBackdrop:
+          $ref: '#/components/schemas/BlogOverlayBackdrop'
+      required:
+        - imageId
+    PatchSectionImageDto:
+      type: object
+      properties:
+        order:
+          type: integer
+        size:
+          $ref: '#/components/schemas/BlogImageSize'
+        aspectRatio:
+          $ref: '#/components/schemas/BlogAspectRatio'
+        focalX:
+          type: number
+          minimum: 0
+          maximum: 1
+          nullable: true
+        focalY:
+          type: number
+          minimum: 0
+          maximum: 1
+          nullable: true
+        overlayPosition:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayPosition'
+        overlayTheme:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayTheme'
+        overlayBackdrop:
+          nullable: true
+          $ref: '#/components/schemas/BlogOverlayBackdrop'
+    UpsertSectionImageTranslationDto:
+      type: object
+      properties:
+        caption:
+          type: string
+          nullable: true
+        alt:
+          type: string
+          nullable: true
+        overlayText:
+          type: string
+          nullable: true
+    AddSectionListItemDto:
+      type: object
+      properties:
+        order:
+          type: integer
+        locale:
+          type: string
+          description: Locale for the initial content. Defaults to the default locale.
+        content:
+          type: string
+    PatchSectionListItemDto:
+      type: object
+      properties:
+        order:
+          type: integer
+    UpsertSectionListItemTranslationDto:
+      type: object
+      properties:
+        content:
+          type: string
+          nullable: true
+    AddSectionPoiDto:
+      type: object
+      properties:
+        poiId:
+          type: string
+        order:
+          type: integer
+      required:
+        - poiId
+    PatchSectionPoiDto:
+      type: object
+      properties:
+        order:
+          type: integer
+    PoiPublicCategoryResponse:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+        key:
+          type: string
+        label:
+          type: string
+          nullable: true
+      required:
+        - categoryId
+        - kind
+        - key
+    Weekday:
+      type: string
+      enum:
+        - MON
+        - TUE
+        - WED
+        - THU
+        - FRI
+        - SAT
+        - SUN
+    PoiHoursResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        weekday:
+          $ref: '#/components/schemas/Weekday'
+        opensAt:
+          type: string
+          nullable: true
+        closesAt:
+          type: string
+          nullable: true
+        closed:
+          type: boolean
+      required:
+        - id
+        - weekday
+        - closed
+    PoiImageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        imageId:
+          type: string
+        order:
+          type: integer
+      required:
+        - id
+        - imageId
+        - order
+    PoiPublicResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+          nullable: true
+        googlePlaceId:
+          type: string
+          nullable: true
+        osmId:
+          type: string
+          nullable: true
+        visitDurationMin:
+          type: integer
+          nullable: true
+        creatorRating:
+          type: integer
+          nullable: true
+        priceLevel:
+          nullable: true
+          $ref: '#/components/schemas/PoiPriceLevel'
+        bestSeasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiSeason'
+        websiteUrl:
+          type: string
+          nullable: true
+        bookingUrl:
+          type: string
+          nullable: true
+        mapsUrl:
+          type: string
+          nullable: true
+        difficulty:
+          nullable: true
+          $ref: '#/components/schemas/PoiDifficulty'
+        distanceKm:
+          type: number
+          nullable: true
+        elevationGainM:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/PoiStatus'
+        permanentlyClosed:
+          type: boolean
+        coverImageId:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiPublicCategoryResponse'
+        hours:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiHoursResponse'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiImageResponse'
+        untranslated:
+          type: boolean
+      required:
+        - id
+        - name
+        - latitude
+        - longitude
+        - bestSeasons
+        - status
+        - permanentlyClosed
+        - categories
+        - hours
+        - images
+        - untranslated
+    PoiPublicListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        pois:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiPublicResponse'
+      required:
+        - total
+        - pois
+    PoiVerdict:
+      type: string
+      enum:
+        - LOVED
+        - LIKED
+        - MIXED
+        - DISLIKED
+        - SKIP
+    PoiCategoryRefResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        categoryId:
+          type: string
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+        key:
+          type: string
+      required:
+        - id
+        - categoryId
+        - kind
+        - key
+    PoiTranslationResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+      required:
+        - locale
+    PoiAdminResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+          nullable: true
+        googlePlaceId:
+          type: string
+          nullable: true
+        osmId:
+          type: string
+          nullable: true
+        visitDurationMin:
+          type: integer
+          nullable: true
+        creatorRating:
+          type: integer
+          nullable: true
+        creatorVerdict:
+          nullable: true
+          $ref: '#/components/schemas/PoiVerdict'
+        internalNote:
+          type: string
+          nullable: true
+        priceLevel:
+          nullable: true
+          $ref: '#/components/schemas/PoiPriceLevel'
+        bestSeasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiSeason'
+        websiteUrl:
+          type: string
+          nullable: true
+        bookingUrl:
+          type: string
+          nullable: true
+        mapsUrl:
+          type: string
+          nullable: true
+        difficulty:
+          nullable: true
+          $ref: '#/components/schemas/PoiDifficulty'
+        distanceKm:
+          type: number
+          nullable: true
+        elevationGainM:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/PoiStatus'
+        coverImageId:
+          type: string
+          nullable: true
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiCategoryRefResponse'
+        hours:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiHoursResponse'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiImageResponse'
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiTranslationResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - latitude
+        - longitude
+        - bestSeasons
+        - status
+        - categories
+        - hours
+        - images
+        - translations
+        - createdAt
+        - updatedAt
+    PoiAdminListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        pois:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiAdminResponse'
+      required:
+        - total
+        - pois
+    CreatePoiDto:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Canonical name (proper noun).
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        countryId:
+          type: string
+          nullable: true
+          description: BlogCountry id (FK).
+        region:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+          nullable: true
+          description: IANA timezone, e.g. Atlantic/Reykjavik.
+        googlePlaceId:
+          type: string
+          nullable: true
+        osmId:
+          type: string
+          nullable: true
+        visitDurationMin:
+          type: integer
+          minimum: 0
+          nullable: true
+        creatorRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+          description: Public AI weight 1–5.
+        creatorVerdict:
+          nullable: true
+          $ref: '#/components/schemas/PoiVerdict'
+        internalNote:
+          type: string
+          nullable: true
+          description: INTERNAL — never public.
+        priceLevel:
+          nullable: true
+          $ref: '#/components/schemas/PoiPriceLevel'
+        bestSeasons:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/PoiSeason'
+        websiteUrl:
+          type: string
+          nullable: true
+        bookingUrl:
+          type: string
+          nullable: true
+        mapsUrl:
+          type: string
+          nullable: true
+        difficulty:
+          nullable: true
+          $ref: '#/components/schemas/PoiDifficulty'
+        distanceKm:
+          type: number
+          minimum: 0
+          nullable: true
+        elevationGainM:
+          type: integer
+          minimum: 0
+          nullable: true
+        status:
+          nullable: true
+          $ref: '#/components/schemas/PoiStatus'
+        coverImageId:
+          type: string
+          nullable: true
+        categoryIds:
+          nullable: true
+          description: ATTRACTION category ids.
+          type: array
+          items:
+            type: string
+        locale:
+          type: string
+          nullable: true
+          description: Locale for the initial translation. Defaults to the default locale.
+        localizedName:
+          type: string
+          nullable: true
+          description: Localized name override for `locale`.
+        description:
+          type: string
+          nullable: true
+      required:
+        - name
+        - latitude
+        - longitude
+    AddPoiImageDto:
+      type: object
+      properties:
+        imageId:
+          type: string
+        order:
+          type: integer
+      required:
+        - imageId
+    PatchPoiImageDto:
+      type: object
+      properties:
+        order:
+          type: integer
+    PatchPoiDto:
+      type: object
+      properties:
+        name:
+          type: string
+        countryId:
+          type: string
+          nullable: true
+          description: BlogCountry id (FK).
+        region:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        timezone:
+          type: string
+          nullable: true
+        googlePlaceId:
+          type: string
+          nullable: true
+        osmId:
+          type: string
+          nullable: true
+        visitDurationMin:
+          type: integer
+          minimum: 0
+          nullable: true
+        creatorRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+        creatorVerdict:
+          nullable: true
+          $ref: '#/components/schemas/PoiVerdict'
+        internalNote:
+          type: string
+          nullable: true
+        priceLevel:
+          nullable: true
+          $ref: '#/components/schemas/PoiPriceLevel'
+        bestSeasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiSeason'
+        websiteUrl:
+          type: string
+          nullable: true
+        bookingUrl:
+          type: string
+          nullable: true
+        mapsUrl:
+          type: string
+          nullable: true
+        difficulty:
+          nullable: true
+          $ref: '#/components/schemas/PoiDifficulty'
+        distanceKm:
+          type: number
+          minimum: 0
+          nullable: true
+        elevationGainM:
+          type: integer
+          minimum: 0
+          nullable: true
+        status:
+          $ref: '#/components/schemas/PoiStatus'
+        coverImageId:
+          type: string
+          nullable: true
+    UpsertPoiTranslationDto:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Localized name override.
+        description:
+          type: string
+          nullable: true
+    PoiHourEntryDto:
+      type: object
+      properties:
+        weekday:
+          $ref: '#/components/schemas/Weekday'
+        opensAt:
+          type: string
+          nullable: true
+          description: HH:mm (validated server-side); ignored when closed=true.
+        closesAt:
+          type: string
+          nullable: true
+          description: HH:mm (validated server-side); ignored when closed=true.
+        closed:
+          type: boolean
+      required:
+        - weekday
+    SetPoiHoursDto:
+      type: object
+      properties:
+        hours:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoiHourEntryDto'
+      required:
+        - hours
+    SetPoiCategoriesDto:
+      type: object
+      properties:
+        categoryIds:
+          type: array
+          items:
+            type: string
+      required:
+        - categoryIds
+    CategoryListView:
+      type: string
+      enum:
+        - ADMIN
+        - RESOLVED
+    CategoryTranslationResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        label:
+          type: string
+          nullable: true
+      required:
+        - locale
+    CategoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+        key:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        isSystem:
+          type: boolean
+        order:
+          type: integer
+          nullable: true
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryTranslationResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - kind
+        - key
+        - isSystem
+        - translations
+        - createdAt
+        - updatedAt
+    CategoryListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryResponse'
+      required:
+        - total
+        - categories
+    CreateBlogCategoryDto:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+        key:
+          type: string
+          description: Canonical, language-neutral key (normalized server-side).
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        order:
+          type: integer
+          nullable: true
+        locale:
+          type: string
+          description: Locale for the initial label. Defaults to the default locale.
+        label:
+          type: string
+      required:
+        - kind
+        - key
+    PatchBlogCategoryDto:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Blocked for system categories.
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        order:
+          type: integer
+          nullable: true
+    UpsertCategoryTranslationDto:
+      type: object
+      properties:
+        label:
+          type: string
+          nullable: true
+          description: Localized label; null clears it.
+    PublicCollectionSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        itemCount:
+          type: integer
+        title:
+          type: string
+          nullable: true
+        untranslated:
+          type: boolean
+      required:
+        - id
+        - slug
+        - itemCount
+        - untranslated
+    PublicCollectionListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicCollectionSummaryResponse'
+      required:
+        - total
+        - collections
+    PublicCollectionItemResponse:
+      type: object
+      properties:
+        rank:
+          type: integer
+        poi:
+          $ref: '#/components/schemas/PoiPublicResponse'
+      required:
+        - rank
+        - poi
+    PublicCollectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        untranslated:
+          type: boolean
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicCollectionItemResponse'
+      required:
+        - id
+        - slug
+        - untranslated
+        - items
+    CollectionSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+        coverImageId:
+          type: string
+          nullable: true
+        itemCount:
+          type: integer
+        title:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - slug
+        - isPublic
+        - itemCount
+        - createdAt
+    CollectionListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionSummaryResponse'
+      required:
+        - total
+        - collections
+    CollectionTranslationResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+      required:
+        - locale
+    CollectionItemAdminResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        poiId:
+          type: string
+        rank:
+          type: integer
+        poiName:
+          type: string
+      required:
+        - id
+        - poiId
+        - rank
+        - poiName
+    CollectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        country:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+        coverImageId:
+          type: string
+          nullable: true
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionTranslationResponse'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionItemAdminResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - slug
+        - isPublic
+        - translations
+        - items
+        - createdAt
+        - updatedAt
+    CreateCollectionDto:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: Unique slug.
+        title:
+          type: string
+          description: Title for the initial locale.
+        locale:
+          type: string
+          description: Initial locale. Defaults to the default locale.
+        description:
+          type: string
+        countryId:
+          type: string
+          nullable: true
+          description: Scope country — BlogCountry id (FK). null = thematic.
+        region:
+          type: string
+          nullable: true
+          description: Scope region.
+        isPublic:
+          type: boolean
+          description: Public (blog) vs internal (planning). Default true.
+        coverImageId:
+          type: string
+          nullable: true
+      required:
+        - slug
+        - title
+    AddCollectionItemDto:
+      type: object
+      properties:
+        poiId:
+          type: string
+        rank:
+          type: integer
+          minimum: 1
+          description: Rank (1 = top). Appended to the end when omitted.
+      required:
+        - poiId
+    CollectionItemOrderDto:
+      type: object
+      properties:
+        id:
+          type: string
+        rank:
+          type: integer
+          minimum: 1
+      required:
+        - id
+        - rank
+    ReorderCollectionItemsDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionItemOrderDto'
+      required:
+        - items
+    PatchCollectionItemDto:
+      type: object
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+    PatchCollectionDto:
+      type: object
+      properties:
+        slug:
+          type: string
+        countryId:
+          type: string
+          nullable: true
+          description: Scope country — BlogCountry id (FK). null = clear.
+        region:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+        coverImageId:
+          type: string
+          nullable: true
+    UpsertCollectionTranslationDto:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+    HomeConfigResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        postCount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - postCount
+        - updatedAt
+    PatchHomeConfigDto:
+      type: object
+      properties:
+        postCount:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: How many posts the homepage shows.
+    HomePinResponse:
+      type: object
+      properties:
+        postId:
+          type: string
+        slug:
+          type: string
+        position:
+          type: integer
+      required:
+        - postId
+        - slug
+        - position
+    HomePinsResponse:
+      type: object
+      properties:
+        pins:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomePinResponse'
+      required:
+        - pins
+    HomePinInputDto:
+      type: object
+      properties:
+        postId:
+          type: string
+        position:
+          type: integer
+          minimum: 1
+          description: Slot position (1-based).
+      required:
+        - postId
+        - position
+    SetHomePinsDto:
+      type: object
+      properties:
+        pins:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomePinInputDto'
+      required:
+        - pins
+    PublicHomeResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicPostCardResponse'
+      required:
+        - posts
+    CreateCommentDto:
+      type: object
+      properties:
+        sectionId:
+          type: string
+          description: Section to anchor to; omit for a post-level thread.
+        anchorStart:
+          type: integer
+        anchorEnd:
+          type: integer
+        quote:
+          type: string
+          description: Cached quote of the anchored text.
+        body:
+          type: string
+      required:
+        - body
+    EditorialCommentAuthorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+      required:
+        - id
+        - email
+    EditorialCommentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        postId:
+          type: string
+        sectionId:
+          type: string
+          nullable: true
+        anchorStart:
+          type: integer
+          nullable: true
+        anchorEnd:
+          type: integer
+          nullable: true
+        quote:
+          type: string
+          nullable: true
+        authorId:
+          type: string
+        author:
+          $ref: '#/components/schemas/EditorialCommentAuthorResponse'
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - postId
+        - authorId
+        - author
+        - body
+        - createdAt
+        - updatedAt
+    CommentListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/EditorialCommentResponse'
+      required:
+        - total
+        - comments
+    PatchCommentDto:
+      type: object
+      properties:
+        body:
+          type: string
+      required:
+        - body
+    LikeToggleResponse:
+      type: object
+      properties:
+        liked:
+          type: boolean
+        likeCount:
+          type: integer
+      required:
+        - liked
+        - likeCount
+    ViewResultResponse:
+      type: object
+      properties:
+        counted:
+          type: boolean
+        viewCount:
+          type: integer
+      required:
+        - counted
+        - viewCount
+    BlogFeedbackRating:
+      type: string
+      enum:
+        - HELPFUL
+        - NOT_HELPFUL
+    InteractionStateResponse:
+      type: object
+      properties:
+        postId:
+          type: string
+        liked:
+          type: boolean
+        feedbackRating:
+          nullable: true
+          $ref: '#/components/schemas/BlogFeedbackRating'
+        viewCount:
+          type: integer
+        likeCount:
+          type: integer
+        helpfulCount:
+          type: integer
+        notHelpfulCount:
+          type: integer
+      required:
+        - postId
+        - liked
+        - viewCount
+        - likeCount
+        - helpfulCount
+        - notHelpfulCount
+    UpsertFeedbackDto:
+      type: object
+      properties:
+        rating:
+          $ref: '#/components/schemas/BlogFeedbackRating'
+        comment:
+          type: string
+          maxLength: 500
+          nullable: true
+      required:
+        - rating
+    FeedbackResponse:
+      type: object
+      properties:
+        postId:
+          type: string
+        rating:
+          nullable: true
+          $ref: '#/components/schemas/BlogFeedbackRating'
+        helpfulCount:
+          type: integer
+        notHelpfulCount:
+          type: integer
+      required:
+        - postId
+        - helpfulCount
+        - notHelpfulCount
+    RecentFeedbackResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+          nullable: true
+        rating:
+          $ref: '#/components/schemas/BlogFeedbackRating'
+        comment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - rating
+        - createdAt
+    InsightsResponse:
+      type: object
+      properties:
+        postId:
+          type: string
+        viewCount:
+          type: integer
+        likeCount:
+          type: integer
+        helpfulCount:
+          type: integer
+        notHelpfulCount:
+          type: integer
+        uniqueViewerCount:
+          type: integer
+        recentFeedback:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentFeedbackResponse'
+      required:
+        - postId
+        - viewCount
+        - likeCount
+        - helpfulCount
+        - notHelpfulCount
+        - uniqueViewerCount
+        - recentFeedback
+    BlogMediaImageDimensionsResponse:
+      type: object
+      properties:
+        width:
+          type: string
+        height:
+          type: string
+      required:
+        - width
+        - height
+    BlogMediaImageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        dimensions:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/BlogMediaImageDimensionsResponse'
+        uploadedById:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - createdAt
+    BlogMediaListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogMediaImageResponse'
+      required:
+        - total
+        - images
+    CreateBlogAlbumDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+          description: Cover image id. Must be a BLOG-scoped image.
+      required:
+        - name
+    BlogMediaAlbumItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        order:
+          type: integer
+        image:
+          $ref: '#/components/schemas/BlogMediaImageResponse'
+      required:
+        - id
+        - order
+        - image
+    BlogMediaAlbumResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        createdById:
+          type: string
+        itemCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogMediaAlbumItemResponse'
+      required:
+        - id
+        - name
+        - createdById
+        - itemCount
+        - createdAt
+        - updatedAt
+        - items
+    BlogMediaAlbumSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        createdById:
+          type: string
+        itemCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdById
+        - itemCount
+        - createdAt
+        - updatedAt
+    BlogMediaAlbumListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        albums:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogMediaAlbumSummaryResponse'
+      required:
+        - total
+        - albums
+    BlogAlbumItemInputDto:
+      type: object
+      properties:
+        imageId:
+          type: string
+        order:
+          type: integer
+          description: Explicit order; defaults to the array index.
+      required:
+        - imageId
+    SetBlogAlbumItemsDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogAlbumItemInputDto'
+      required:
+        - items
+    PatchBlogAlbumDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+          description: Cover image id (BLOG-scoped). Pass null to clear.
+    DocumentBlockType:
+      type: string
+      enum:
+        - prose
+        - callout
+        - divider
+        - image
+        - gallery
+        - embed
+        - map
+        - place
+        - collection
+        - list
+        - heading
+        - quote
+        - columns
+    DocumentListItemInputDto:
+      type: object
+      properties:
+        content:
+          type: string
+          nullable: true
+    DocumentLeafBlockDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Existing sectionId (update).
+        clientKey:
+          type: string
+          description: Client key for a new block.
+        type:
+          $ref: '#/components/schemas/DocumentBlockType'
+        markdown:
+          type: string
+          nullable: true
+          description: Markdown body (prose/callout/quote).
+        text:
+          type: string
+          nullable: true
+          description: Heading text.
+        caption:
+          type: string
+          nullable: true
+          description: Caption for a single-image block (image).
+        alt:
+          type: string
+          nullable: true
+        overlayText:
+          type: string
+          nullable: true
+        variant:
+          $ref: '#/components/schemas/CalloutVariant'
+        imageId:
+          type: string
+        imageIds:
+          type: array
+          items:
+            type: string
+        galleryLayout:
+          $ref: '#/components/schemas/GalleryLayout'
+        imageSize:
+          $ref: '#/components/schemas/BlogImageSize'
+        aspectRatio:
+          $ref: '#/components/schemas/BlogAspectRatio'
+        focalX:
+          type: number
+          minimum: 0
+          maximum: 1
+        focalY:
+          type: number
+          minimum: 0
+          maximum: 1
+        overlayPosition:
+          $ref: '#/components/schemas/BlogOverlayPosition'
+        overlayTheme:
+          $ref: '#/components/schemas/BlogOverlayTheme'
+        overlayBackdrop:
+          $ref: '#/components/schemas/BlogOverlayBackdrop'
+        provider:
+          $ref: '#/components/schemas/EmbedProvider'
+        url:
+          type: string
+        poiId:
+          type: string
+        poiIds:
+          type: array
+          items:
+            type: string
+        collectionId:
+          type: string
+          description: PoiCollection id (collection block).
+        level:
+          type: integer
+          minimum: 1
+          maximum: 3
+        author:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentListItemInputDto'
+        minAccessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+      required:
+        - type
+    DocumentColumnDto:
+      type: object
+      properties:
+        id:
+          type: string
+        clientKey:
+          type: string
+        width:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Column width share, 0..1 (relative; FE normalizes).
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentLeafBlockDto'
+      required:
+        - blocks
+    DocumentBlockDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Existing sectionId (update).
+        clientKey:
+          type: string
+          description: Client key for a new block.
+        type:
+          $ref: '#/components/schemas/DocumentBlockType'
+        markdown:
+          type: string
+          nullable: true
+          description: Markdown body (prose/callout/quote).
+        text:
+          type: string
+          nullable: true
+          description: Heading text.
+        caption:
+          type: string
+          nullable: true
+          description: Caption for a single-image block (image).
+        alt:
+          type: string
+          nullable: true
+        overlayText:
+          type: string
+          nullable: true
+        variant:
+          $ref: '#/components/schemas/CalloutVariant'
+        imageId:
+          type: string
+        imageIds:
+          type: array
+          items:
+            type: string
+        galleryLayout:
+          $ref: '#/components/schemas/GalleryLayout'
+        imageSize:
+          $ref: '#/components/schemas/BlogImageSize'
+        aspectRatio:
+          $ref: '#/components/schemas/BlogAspectRatio'
+        focalX:
+          type: number
+          minimum: 0
+          maximum: 1
+        focalY:
+          type: number
+          minimum: 0
+          maximum: 1
+        overlayPosition:
+          $ref: '#/components/schemas/BlogOverlayPosition'
+        overlayTheme:
+          $ref: '#/components/schemas/BlogOverlayTheme'
+        overlayBackdrop:
+          $ref: '#/components/schemas/BlogOverlayBackdrop'
+        provider:
+          $ref: '#/components/schemas/EmbedProvider'
+        url:
+          type: string
+        poiId:
+          type: string
+        poiIds:
+          type: array
+          items:
+            type: string
+        collectionId:
+          type: string
+          description: PoiCollection id (collection block).
+        level:
+          type: integer
+          minimum: 1
+          maximum: 3
+        author:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentListItemInputDto'
+        minAccessTier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentColumnDto'
+      required:
+        - type
+    SaveDocumentDto:
+      type: object
+      properties:
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentBlockDto'
+      required:
+        - blocks
+    CreatedBlockRefResponse:
+      type: object
+      properties:
+        clientKey:
+          type: string
+          description: >-
+            clientKey of a new block, or the previous sectionId of a block whose
+            type changed.
+        sectionId:
+          type: string
+      required:
+        - clientKey
+        - sectionId
+    SaveDocumentResponse:
+      type: object
+      properties:
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionResponse'
+        created:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreatedBlockRefResponse'
+        hasUnpublishedChanges:
+          type: boolean
+        versionId:
+          type: string
+      required:
+        - sections
+        - created
+        - hasUnpublishedChanges
+        - versionId
+    CreateBlogCountryDto:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: Canonical key (normalized lowercase).
+        code:
+          type: string
+          nullable: true
+          description: ISO-3166-1 alpha-2.
+        coverImageId:
+          type: string
+          nullable: true
+        order:
+          type: integer
+          nullable: true
+        locale:
+          type: string
+          description: Locale for the initial name/intro; defaults to default locale.
+        name:
+          type: string
+          description: Localized country name.
+        intro:
+          type: string
+          nullable: true
+      required:
+        - slug
+    BlogCountryTranslationResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        name:
+          type: string
+        intro:
+          type: string
+          nullable: true
+      required:
+        - locale
+        - name
+    BlogCountryAdminResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        code:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        order:
+          type: integer
+          nullable: true
+        postCount:
+          type: integer
+        poiCount:
+          type: integer
+        collectionCount:
+          type: integer
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogCountryTranslationResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - slug
+        - postCount
+        - poiCount
+        - collectionCount
+        - translations
+        - createdAt
+        - updatedAt
+    BlogCountryListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        countries:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogCountryAdminResponse'
+      required:
+        - total
+        - countries
+    PatchBlogCountryDto:
+      type: object
+      properties:
+        slug:
+          type: string
+        code:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        order:
+          type: integer
+          nullable: true
+    UpsertCountryTranslationDto:
+      type: object
+      properties:
+        name:
+          type: string
+        intro:
+          type: string
+          nullable: true
+      required:
+        - name
+    BlogCountryMenuItemResponse:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        coverImageId:
+          type: string
+          nullable: true
+        postCount:
+          type: integer
+        poiCount:
+          type: integer
+        collectionCount:
+          type: integer
+      required:
+        - slug
+        - name
+        - postCount
+        - poiCount
+        - collectionCount
+    BlogCountryMenuResponse:
+      type: object
+      properties:
+        countries:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogCountryMenuItemResponse'
+      required:
+        - countries
+    BlogCountryPageResponse:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        intro:
+          type: string
+          nullable: true
+        coverImageId:
+          type: string
+          nullable: true
+        postCount:
+          type: integer
+        poiCount:
+          type: integer
+        collectionCount:
+          type: integer
+      required:
+        - slug
+        - name
+        - postCount
+        - poiCount
+        - collectionCount
+    AccessGrantSource:
+      type: string
+      enum:
+        - APP_PURCHASE
+        - SUBSCRIPTION
+        - MANUAL
+        - REDEEM_CODE
+    GrantResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        tier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        source:
+          $ref: '#/components/schemas/AccessGrantSource'
+        startedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        reference:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - tier
+        - source
+        - startedAt
+        - createdAt
+        - updatedAt
+    GrantListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrantResponse'
+      required:
+        - total
+        - grants
+    CreateGrantDto:
+      type: object
+      properties:
+        userId:
+          type: string
+        tier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        source:
+          $ref: '#/components/schemas/AccessGrantSource'
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        reference:
+          type: string
+          nullable: true
+      required:
+        - userId
+    RedeemCodeDto:
+      type: object
+      properties:
+        code:
+          type: string
+      required:
+        - code
+    RedeemResultResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        grant:
+          $ref: '#/components/schemas/GrantResponse'
+      required:
+        - message
+        - grant
+    CreateCodeDto:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Auto-generated when omitted; normalized.
+        tier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        durationDays:
+          type: integer
+          minimum: 1
+          maximum: 36500
+          nullable: true
+          description: Access length in days after redemption; null = unlimited.
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Code usable until this instant.
+    RedeemCodeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        tier:
+          $ref: '#/components/schemas/BlogAccessTier'
+        durationDays:
+          type: integer
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        redeemedById:
+          type: string
+          nullable: true
+        redeemedAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - code
+        - tier
+        - createdAt
+        - updatedAt
+    CodeListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        codes:
+          type: array
+          items:
+            $ref: '#/components/schemas/RedeemCodeResponse'
+      required:
+        - total
+        - codes
+    AppPlatform:
+      type: string
+      enum:
+        - IOS
+        - ANDROID
+    RegisterDeviceDto:
+      type: object
+      properties:
+        installationId:
+          type: string
+          description: Stable per-installation id.
+        platform:
+          $ref: '#/components/schemas/AppPlatform'
+        name:
+          type: string
+          nullable: true
+          description: Friendly device name.
+      required:
+        - installationId
+        - platform
+    DeviceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        installationId:
+          type: string
+        platform:
+          $ref: '#/components/schemas/AppPlatform'
+        name:
+          type: string
+          nullable: true
+        activatedAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        licenseExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - installationId
+        - platform
+        - activatedAt
+        - createdAt
+        - updatedAt
+    LicenseResponse:
+      type: object
+      properties:
+        license:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+        - license
+        - expiresAt
+    DeviceWithLicenseResponse:
+      type: object
+      properties:
+        device:
+          $ref: '#/components/schemas/DeviceResponse'
+        license:
+          $ref: '#/components/schemas/LicenseResponse'
+      required:
+        - device
+        - license
+    DeviceListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeviceResponse'
+      required:
+        - total
+        - devices
+    PublicKeyResponse:
+      type: object
+      properties:
+        publicKey:
+          type: string
+      required:
+        - publicKey

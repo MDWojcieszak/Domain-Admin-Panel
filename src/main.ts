@@ -6,6 +6,7 @@ import { SwaggerTheme } from 'swagger-themes';
 import { SwaggerThemeNameEnum } from 'swagger-themes/build/enums/swagger-theme-name';
 import { Transport } from '@nestjs/microservices';
 import { config } from './config/config';
+import { validateEnv } from './config/validate-env';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { MessagingDocsService } from './api-docs/messaging-docs.service';
@@ -66,7 +67,8 @@ const swaggerConfig = new DocumentBuilder()
 };
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  validateEnv();
+  const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.connectMicroservice(
     {
@@ -76,7 +78,14 @@ async function bootstrap() {
     { inheritAppConfig: true },
   );
   app.startAllMicroservices();
-  app.enableCors();
+  // Explicit origin allow-list (comma-separated ALLOWED_ORIGINS). No credentials:
+  // auth is Bearer-header-only, there are no cookies to protect. (audit H1)
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: allowedOrigins?.length ? allowedOrigins : ['http://localhost:3000'],
+  });
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
@@ -98,6 +107,6 @@ async function bootstrap() {
   });
 
   SwaggerModule.setup('docs', app, document, { customCss: darkStyle });
-  await app.listen(3000);
+  await app.listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 }
 bootstrap();

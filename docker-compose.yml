@@ -8,11 +8,21 @@ services:
       context: ${APP_CONTEXT}
       dockerfile: Dockerfile
     container_name: ${APP_NAME:-nestjs-app}
-    ports:
-      - '${APP_PORT:-3000}:${CONTAINER_PORT:-3000}'
+    # Host networking is required for Wake-on-LAN: the magic packet is an L2
+    # broadcast and a bridged container cannot reach the physical LAN. With host
+    # mode the app shares the host's interfaces, so it binds APP_PORT directly on
+    # the host (the `ports:` mapping is intentionally dropped) and reaches the DB
+    # and RabbitMQ via localhost (they still publish their ports on the host).
+    # NOTE: host networking only works on a Linux Docker host (not Docker Desktop
+    # on Windows/macOS).
+    network_mode: host
     environment:
-      DATABASE_URL: 'postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}'
-      RABBITMQ_URL: 'amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}'
+      # Under host networking there is no port mapping — the app binds this port
+      # directly on the host (keep it equal to your previous published port).
+      PORT: ${APP_PORT:-3000}
+      # No Compose DNS in host mode: reach DB/MQ via the host-published ports.
+      DATABASE_URL: 'postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}'
+      RABBITMQ_URL: 'amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@localhost:${RABBITMQ_PORT}'
       INTERFACE_URL: ${APP_URL}
 
       SUPERUSER_FIRSTNAME: ${SUPERUSER_FIRSTNAME}
