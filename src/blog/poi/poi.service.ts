@@ -118,8 +118,7 @@ export class PoiService {
       await this.assertAttractionCategories(categoryIds);
     }
 
-    const hasTranslation =
-      dto.localizedName !== undefined || dto.description !== undefined;
+    const hasTranslation = dto.localizedName != null || dto.description != null;
     let locale: string | undefined;
     if (hasTranslation) {
       locale = dto.locale ?? (await this.localeResolver.getDefaultCode());
@@ -151,7 +150,7 @@ export class PoiService {
           difficulty: dto.difficulty,
           distanceKm: dto.distanceKm,
           elevationGainM: dto.elevationGainM,
-          status: dto.status,
+          status: dto.status ?? undefined,
           coverImageId: dto.coverImageId,
           translations:
             hasTranslation && locale
