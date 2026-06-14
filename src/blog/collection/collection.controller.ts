@@ -18,6 +18,7 @@ import {
   AddCollectionItemDto,
   CreateCollectionDto,
   GetCollectionsQueryDto,
+  GetPublicCollectionsQueryDto,
   PatchCollectionDto,
   PatchCollectionItemDto,
   ReorderCollectionItemsDto,
@@ -26,6 +27,7 @@ import {
 import {
   CollectionListResponse,
   CollectionResponse,
+  PublicCollectionListResponse,
   PublicCollectionResponse,
 } from './responses';
 
@@ -35,6 +37,18 @@ export class CollectionController {
   constructor(private readonly collectionService: CollectionService) {}
 
   // --- public (no auth) ---
+
+  @Public()
+  @Get('public')
+  @ApiOkResponse({
+    description: 'Public collection list (filter by country slug / region)',
+    type: PublicCollectionListResponse,
+  })
+  async listPublic(
+    @Query() query: GetPublicCollectionsQueryDto,
+  ): Promise<PublicCollectionListResponse> {
+    return this.collectionService.listPublic(query);
+  }
 
   @Public()
   @Get('by-slug/:slug')

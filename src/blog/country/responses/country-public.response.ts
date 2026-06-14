@@ -16,6 +16,9 @@ export class BlogCountryMenuItemResponse {
 
   @IsNumber({ type: 'integer' })
   poiCount: number;
+
+  @IsNumber({ type: 'integer' })
+  collectionCount: number;
 }
 
 export class BlogCountryMenuResponse {
@@ -42,4 +45,7 @@ export class BlogCountryPageResponse {
 
   @IsNumber({ type: 'integer' })
   poiCount: number;
+
+  @IsNumber({ type: 'integer' })
+  collectionCount: number;
 }

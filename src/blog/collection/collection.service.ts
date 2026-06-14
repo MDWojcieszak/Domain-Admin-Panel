@@ -11,6 +11,7 @@ import {
   AddCollectionItemDto,
   CreateCollectionDto,
   GetCollectionsQueryDto,
+  GetPublicCollectionsQueryDto,
   PatchCollectionDto,
   PatchCollectionItemDto,
   ReorderCollectionItemsDto,
@@ -19,6 +20,7 @@ import {
 import {
   CollectionListResponse,
   CollectionResponse,
+  PublicCollectionListResponse,
   PublicCollectionResponse,
 } from './responses';
 import {
@@ -48,7 +50,7 @@ export class CollectionService {
     const created = await this.prisma.poiCollection.create({
       data: {
         slug: dto.slug,
-        country: dto.country,
+        countryId: dto.countryId,
         region: dto.region,
         isPublic: dto.isPublic,
         coverImageId: dto.coverImageId,
@@ -64,9 +66,7 @@ export class CollectionService {
   async list(query: GetCollectionsQueryDto): Promise<CollectionListResponse> {
     const where: Prisma.PoiCollectionWhereInput = {
       ...(query.isPublic !== undefined ? { isPublic: query.isPublic } : {}),
-      ...(query.country
-        ? { country: { equals: query.country, mode: 'insensitive' } }
-        : {}),
+      ...(query.country ? { country: { slug: query.country } } : {}),
       ...(query.region
         ? { region: { equals: query.region, mode: 'insensitive' } }
         : {}),
@@ -114,7 +114,11 @@ export class CollectionService {
 
     const data: Prisma.PoiCollectionUpdateInput = {};
     if (dto.slug !== undefined) data.slug = dto.slug;
-    if (dto.country !== undefined) data.country = dto.country;
+    if (dto.countryId !== undefined) {
+      data.country = dto.countryId
+        ? { connect: { id: dto.countryId } }
+        : { disconnect: true };
+    }
     if (dto.region !== undefined) data.region = dto.region;
     if (dto.isPublic !== undefined) data.isPublic = dto.isPublic;
     if (dto.coverImageId !== undefined) {
@@ -239,6 +243,40 @@ export class CollectionService {
   }
 
   // ----- public -----
+
+  async listPublic(
+    query: GetPublicCollectionsQueryDto,
+  ): Promise<PublicCollectionListResponse> {
+    const where: Prisma.PoiCollectionWhereInput = {
+      isPublic: true,
+      ...(query.country ? { country: { slug: query.country } } : {}),
+      ...(query.region
+        ? { region: { equals: query.region, mode: 'insensitive' } }
+        : {}),
+    };
+    const take = query.take ?? 50;
+    const skip = query.skip ?? 0;
+
+    const [collections, total] = await this.prisma.$transaction([
+      this.prisma.poiCollection.findMany({
+        where,
+        include: COLLECTION_SUMMARY_INCLUDE,
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+      }),
+      this.prisma.poiCollection.count({ where }),
+    ]);
+
+    const locale = await this.localeResolver.resolve(query.locale);
+    const defaultLocale = await this.localeResolver.getDefaultCode();
+    return {
+      total,
+      collections: collections.map((c) =>
+        CollectionMapper.toPublicSummary(c, locale, defaultLocale),
+      ),
+    };
+  }
 
   async getPublicBySlug(
     slug: string,

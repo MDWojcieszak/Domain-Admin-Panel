@@ -16,8 +16,12 @@ export class CreateCollectionDto {
   @IsString({ optional: true })
   description?: string;
 
-  @IsString({ optional: true, nullable: true, description: 'Scope country.' })
-  country?: string | null;
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'Scope country — BlogCountry id (FK). null = thematic.',
+  })
+  countryId?: string | null;
 
   @IsString({ optional: true, nullable: true, description: 'Scope region.' })
   region?: string | null;

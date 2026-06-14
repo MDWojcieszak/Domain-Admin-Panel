@@ -9,7 +9,7 @@ export class GetCollectionsQueryDto extends PaginationDto {
   @IsBoolean({ optional: true })
   isPublic?: boolean;
 
-  @IsString({ optional: true })
+  @IsString({ optional: true, description: 'Country slug filter.' })
   country?: string;
 
   @IsString({ optional: true })

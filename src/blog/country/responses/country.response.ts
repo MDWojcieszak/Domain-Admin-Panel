@@ -34,6 +34,9 @@ export class BlogCountryAdminResponse {
   @IsNumber({ type: 'integer' })
   poiCount: number;
 
+  @IsNumber({ type: 'integer' })
+  collectionCount: number;
+
   @IsNested({ type: BlogCountryTranslationResponse, isArray: true })
   translations: BlogCountryTranslationResponse[];
 

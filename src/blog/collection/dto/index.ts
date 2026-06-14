@@ -5,3 +5,4 @@ export * from './add-collection-item.dto';
 export * from './patch-collection-item.dto';
 export * from './reorder-collection-items.dto';
 export * from './get-collections-query.dto';
+export * from './get-public-collections-query.dto';

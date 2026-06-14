@@ -4,8 +4,12 @@ export class PatchCollectionDto {
   @IsString({ optional: true })
   slug?: string;
 
-  @IsString({ optional: true, nullable: true })
-  country?: string | null;
+  @IsString({
+    optional: true,
+    nullable: true,
+    description: 'Scope country — BlogCountry id (FK). null = clear.',
+  })
+  countryId?: string | null;
 
   @IsString({ optional: true, nullable: true })
   region?: string | null;

@@ -1630,6 +1630,7 @@ model BlogCountry {
   translations BlogCountryTranslation[]
   postVersions BlogPostVersion[]        @relation("VersionCountry")
   pois         Poi[]                    @relation("PoiCountry")
+  collections  PoiCollection[]          @relation("CollectionCountry")
 }
 
 model BlogCountryTranslation {
@@ -1909,12 +1910,13 @@ model BlogSeriesTranslation {
 // Rankowana kolekcja POI: „top miejsca w kolejności" (per kraj/wycieczka/temat).
 // Wśród LOVED rozstrzyga ręczny `rank`. Używana w blogu i apce (priorytet).
 model PoiCollection {
-  id           String  @id @default(uuid())
-  slug         String  @unique
-  country      String? // opcjonalny scope „top dla kraju"
-  region       String?
-  isPublic     Boolean @default(true) // publiczna (blog) vs wewnętrzna (planowanie)
-  coverImage   Image?  @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
+  id           String       @id @default(uuid())
+  slug         String       @unique
+  country      BlogCountry? @relation("CollectionCountry", fields: [countryId], references: [id], onDelete: SetNull) // opcjonalny scope „top dla kraju" (FK; null = tematyczna)
+  countryId    String?
+  region       String? // wolny scope-tag (nie first-class)
+  isPublic     Boolean      @default(true) // publiczna (blog) vs wewnętrzna (planowanie)
+  coverImage   Image?       @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
   coverImageId String?
 
   items        PoiCollectionItem[]

@@ -34,7 +34,14 @@ type CountryWithTr = Prisma.BlogCountryGetPayload<{
   include: typeof COUNTRY_INCLUDE;
 }>;
 
-type Counts = Map<string, { postCount: number; poiCount: number }>;
+type CountEntry = { postCount: number; poiCount: number; collectionCount: number };
+type Counts = Map<string, CountEntry>;
+
+const EMPTY_COUNTS: CountEntry = {
+  postCount: 0,
+  poiCount: 0,
+  collectionCount: 0,
+};
 
 @Injectable()
 export class CountryService {
@@ -152,16 +159,17 @@ export class CountryService {
 
     const items = countries
       .map((c) => {
-        const cc = counts.get(c.id) ?? { postCount: 0, poiCount: 0 };
+        const cc = counts.get(c.id) ?? EMPTY_COUNTS;
         return {
           slug: c.slug,
           name: this.resolveName(c, locale, defaultLocale),
           coverImageId: c.coverImageId,
           postCount: cc.postCount,
           poiCount: cc.poiCount,
+          collectionCount: cc.collectionCount,
         };
       })
-      .filter((i) => i.postCount + i.poiCount > 0);
+      .filter((i) => i.postCount + i.poiCount + i.collectionCount > 0);
 
     return { countries: items };
   }
@@ -179,10 +187,7 @@ export class CountryService {
     });
     if (!country) throw new NotFoundException('Country not found');
 
-    const cc = (await this.getCounts()).get(country.id) ?? {
-      postCount: 0,
-      poiCount: 0,
-    };
+    const cc = (await this.getCounts()).get(country.id) ?? EMPTY_COUNTS;
     const tr = pickTranslation(country.translations, locale, defaultLocale);
     return {
       slug: country.slug,
@@ -191,14 +196,15 @@ export class CountryService {
       coverImageId: country.coverImageId,
       postCount: cc.postCount,
       poiCount: cc.poiCount,
+      collectionCount: cc.collectionCount,
     };
   }
 
   // ----- helpers -----
 
-  /** Published-post + public-POI counts per countryId. */
+  /** Published-post + public-POI + public-collection counts per countryId. */
   private async getCounts(): Promise<Counts> {
-    const [postGroups, poiGroups] = await Promise.all([
+    const [postGroups, poiGroups, collectionGroups] = await Promise.all([
       this.prisma.blogPostVersion.groupBy({
         by: ['countryId'],
         where: {
@@ -216,25 +222,40 @@ export class CountryService {
         },
         _count: { _all: true },
       }),
+      this.prisma.poiCollection.groupBy({
+        by: ['countryId'],
+        where: { isPublic: true, countryId: { not: null } },
+        _count: { _all: true },
+      }),
     ]);
 
     const map: Counts = new Map();
+    const entry = (id: string) =>
+      map.get(id) ?? { postCount: 0, poiCount: 0, collectionCount: 0 };
+
     for (const g of postGroups) {
-      if (g.countryId) {
-        map.set(g.countryId, { postCount: g._count._all, poiCount: 0 });
-      }
+      if (!g.countryId) continue;
+      const e = entry(g.countryId);
+      e.postCount = g._count._all;
+      map.set(g.countryId, e);
     }
     for (const g of poiGroups) {
       if (!g.countryId) continue;
-      const e = map.get(g.countryId) ?? { postCount: 0, poiCount: 0 };
+      const e = entry(g.countryId);
       e.poiCount = g._count._all;
+      map.set(g.countryId, e);
+    }
+    for (const g of collectionGroups) {
+      if (!g.countryId) continue;
+      const e = entry(g.countryId);
+      e.collectionCount = g._count._all;
       map.set(g.countryId, e);
     }
     return map;
   }
 
   private toAdmin(c: CountryWithTr, counts: Counts): BlogCountryAdminResponse {
-    const cc = counts.get(c.id) ?? { postCount: 0, poiCount: 0 };
+    const cc = counts.get(c.id) ?? EMPTY_COUNTS;
     return {
       id: c.id,
       slug: c.slug,
@@ -243,6 +264,7 @@ export class CountryService {
       order: c.order,
       postCount: cc.postCount,
       poiCount: cc.poiCount,
+      collectionCount: cc.collectionCount,
       translations: c.translations.map((t) => ({
         locale: t.locale,
         name: t.name,

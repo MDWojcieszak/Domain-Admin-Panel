@@ -9,9 +9,11 @@ import {
   CollectionResponse,
   CollectionSummaryResponse,
   PublicCollectionResponse,
+  PublicCollectionSummaryResponse,
 } from '../responses';
 
 export const COLLECTION_ADMIN_INCLUDE = {
+  country: { select: { slug: true } },
   translations: true,
   items: {
     orderBy: { rank: 'asc' },
@@ -20,11 +22,13 @@ export const COLLECTION_ADMIN_INCLUDE = {
 } satisfies Prisma.PoiCollectionInclude;
 
 export const COLLECTION_SUMMARY_INCLUDE = {
+  country: { select: { slug: true } },
   translations: true,
   _count: { select: { items: true } },
 } satisfies Prisma.PoiCollectionInclude;
 
 export const COLLECTION_PUBLIC_INCLUDE = {
+  country: { select: { slug: true } },
   translations: true,
   items: {
     orderBy: { rank: 'asc' },
@@ -47,7 +51,7 @@ export class CollectionMapper {
     return {
       id: collection.id,
       slug: collection.slug,
-      country: collection.country,
+      country: collection.country?.slug ?? null,
       region: collection.region,
       isPublic: collection.isPublic,
       coverImageId: collection.coverImageId,
@@ -79,13 +83,31 @@ export class CollectionMapper {
     return {
       id: collection.id,
       slug: collection.slug,
-      country: collection.country,
+      country: collection.country?.slug ?? null,
       region: collection.region,
       isPublic: collection.isPublic,
       coverImageId: collection.coverImageId,
       itemCount: collection._count.items,
       title: t?.title ?? null,
       createdAt: collection.createdAt,
+    };
+  }
+
+  static toPublicSummary(
+    collection: SummaryCollection,
+    locale: string,
+    defaultLocale: string,
+  ): PublicCollectionSummaryResponse {
+    const t = pickTranslation(collection.translations, locale, defaultLocale);
+    return {
+      id: collection.id,
+      slug: collection.slug,
+      country: collection.country?.slug ?? null,
+      region: collection.region,
+      coverImageId: collection.coverImageId,
+      itemCount: collection._count.items,
+      title: t?.title ?? null,
+      untranslated: isFallbackTranslation(t, locale),
     };
   }
 
@@ -98,7 +120,7 @@ export class CollectionMapper {
     return {
       id: collection.id,
       slug: collection.slug,
-      country: collection.country,
+      country: collection.country?.slug ?? null,
       region: collection.region,
       coverImageId: collection.coverImageId,
       title: t?.title ?? null,
