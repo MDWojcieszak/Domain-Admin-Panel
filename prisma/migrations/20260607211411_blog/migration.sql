@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "ImageScope" AS ENUM ('GALLERY', 'BLOG');
+
+-- CreateEnum
 CREATE TYPE "BlogPostStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'SCHEDULED', 'ARCHIVED');
 
 -- CreateEnum
@@ -11,16 +14,7 @@ CREATE TYPE "BlogAccessTier" AS ENUM ('PUBLIC', 'REGISTERED', 'PREMIUM');
 CREATE TYPE "VersionState" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
 
 -- CreateEnum
-CREATE TYPE "BlogSectionType" AS ENUM ('HEADING', 'PARAGRAPH', 'QUOTE', 'CALLOUT', 'LIST', 'IMAGE', 'GALLERY', 'MEDIA_TEXT', 'MAP', 'PLACE', 'EMBED', 'DIVIDER');
-
--- CreateEnum
-CREATE TYPE "BlogMediaPosition" AS ENUM ('LEFT', 'RIGHT');
-
--- CreateEnum
-CREATE TYPE "BlogMediaSplit" AS ENUM ('ONE_THIRD', 'TWO_FIFTHS', 'HALF', 'THREE_FIFTHS', 'TWO_THIRDS');
-
--- CreateEnum
-CREATE TYPE "BlogMobileStackOrder" AS ENUM ('MEDIA_FIRST', 'TEXT_FIRST');
+CREATE TYPE "BlogSectionType" AS ENUM ('HEADING', 'PARAGRAPH', 'QUOTE', 'CALLOUT', 'LIST', 'IMAGE', 'GALLERY', 'MAP', 'PLACE', 'EMBED', 'DIVIDER', 'COLUMNS', 'COLUMN');
 
 -- CreateEnum
 CREATE TYPE "BlogFeedbackRating" AS ENUM ('HELPFUL', 'NOT_HELPFUL');
@@ -76,8 +70,34 @@ CREATE TYPE "AccessGrantSource" AS ENUM ('APP_PURCHASE', 'SUBSCRIPTION', 'MANUAL
 -- CreateEnum
 CREATE TYPE "AppPlatform" AS ENUM ('IOS', 'ANDROID');
 
--- CreateEnum
-CREATE TYPE "HomeBlockType" AS ENUM ('HERO', 'FEATURED_POSTS', 'CATEGORY_ROW', 'POST_GRID', 'MAP', 'TEXT');
+-- AlterTable
+ALTER TABLE "Image" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "scope" "ImageScope" NOT NULL DEFAULT 'GALLERY',
+ADD COLUMN     "uploadedById" TEXT;
+
+-- CreateTable
+CREATE TABLE "BlogMediaAlbum" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "coverImageId" TEXT,
+    "createdById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BlogMediaAlbum_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BlogMediaAlbumItem" (
+    "id" TEXT NOT NULL,
+    "albumId" TEXT NOT NULL,
+    "imageId" TEXT NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BlogMediaAlbumItem_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "BlogPost" (
@@ -86,6 +106,7 @@ CREATE TABLE "BlogPost" (
     "status" "BlogPostStatus" NOT NULL DEFAULT 'DRAFT',
     "accessTier" "BlogAccessTier" NOT NULL DEFAULT 'PUBLIC',
     "order" INTEGER,
+    "homePosition" INTEGER,
     "viewCount" INTEGER NOT NULL DEFAULT 0,
     "likeCount" INTEGER NOT NULL DEFAULT 0,
     "helpfulCount" INTEGER NOT NULL DEFAULT 0,
@@ -136,9 +157,8 @@ CREATE TABLE "BlogSection" (
     "galleryLayout" "GalleryLayout",
     "embedUrl" TEXT,
     "embedProvider" "EmbedProvider",
-    "mediaPosition" "BlogMediaPosition",
-    "mediaSplit" "BlogMediaSplit",
-    "mobileStackOrder" "BlogMobileStackOrder",
+    "parentId" TEXT,
+    "columnWidth" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -290,39 +310,12 @@ CREATE TABLE "BlogPostView" (
 );
 
 -- CreateTable
-CREATE TABLE "HomeLayout" (
+CREATE TABLE "HomeConfig" (
     "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "isActive" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "postCount" INTEGER NOT NULL DEFAULT 12,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "HomeLayout_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "HomeBlock" (
-    "id" TEXT NOT NULL,
-    "layoutId" TEXT NOT NULL,
-    "type" "HomeBlockType" NOT NULL,
-    "order" INTEGER NOT NULL,
-    "categoryId" TEXT,
-    "imageId" TEXT,
-    "limit" INTEGER,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "HomeBlock_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "HomeBlockPost" (
-    "id" TEXT NOT NULL,
-    "blockId" TEXT NOT NULL,
-    "postId" TEXT NOT NULL,
-    "order" INTEGER NOT NULL DEFAULT 0,
-
-    CONSTRAINT "HomeBlockPost_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "HomeConfig_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -339,43 +332,6 @@ CREATE TABLE "BlogEditorialComment" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "BlogEditorialComment_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "BlogSectionTemplate" (
-    "id" TEXT NOT NULL,
-    "key" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "icon" TEXT,
-    "group" TEXT,
-    "isSystem" BOOLEAN NOT NULL DEFAULT false,
-    "order" INTEGER,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "BlogSectionTemplate_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "BlogSectionTemplateBlock" (
-    "id" TEXT NOT NULL,
-    "templateId" TEXT NOT NULL,
-    "type" "BlogSectionType" NOT NULL,
-    "order" INTEGER NOT NULL,
-    "headingLevel" INTEGER,
-    "calloutVariant" "CalloutVariant",
-    "galleryLayout" "GalleryLayout",
-    "mediaPosition" "BlogMediaPosition",
-    "mediaSplit" "BlogMediaSplit",
-    "mobileStackOrder" "BlogMobileStackOrder",
-    "imageSize" "BlogImageSize",
-    "aspectRatio" "BlogAspectRatio",
-    "overlayPosition" "BlogOverlayPosition",
-    "placeholderTitle" TEXT,
-    "placeholderBody" TEXT,
-
-    CONSTRAINT "BlogSectionTemplateBlock_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -474,17 +430,6 @@ CREATE TABLE "CategoryTranslation" (
     "label" TEXT,
 
     CONSTRAINT "CategoryTranslation_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "HomeBlockTranslation" (
-    "id" TEXT NOT NULL,
-    "blockId" TEXT NOT NULL,
-    "locale" TEXT NOT NULL,
-    "title" TEXT,
-    "body" TEXT,
-
-    CONSTRAINT "HomeBlockTranslation_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -619,7 +564,19 @@ CREATE TABLE "PoiCollectionTranslation" (
 );
 
 -- CreateIndex
+CREATE INDEX "BlogMediaAlbum_createdById_idx" ON "BlogMediaAlbum"("createdById");
+
+-- CreateIndex
+CREATE INDEX "BlogMediaAlbumItem_albumId_order_idx" ON "BlogMediaAlbumItem"("albumId", "order");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "BlogMediaAlbumItem_albumId_imageId_key" ON "BlogMediaAlbumItem"("albumId", "imageId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "BlogPost_slug_key" ON "BlogPost"("slug");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "BlogPost_homePosition_key" ON "BlogPost"("homePosition");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "BlogPost_draftVersionId_key" ON "BlogPost"("draftVersionId");
@@ -647,6 +604,9 @@ CREATE UNIQUE INDEX "BlogPostVersion_postId_versionNumber_key" ON "BlogPostVersi
 
 -- CreateIndex
 CREATE INDEX "BlogSection_versionId_order_idx" ON "BlogSection"("versionId", "order");
+
+-- CreateIndex
+CREATE INDEX "BlogSection_parentId_order_idx" ON "BlogSection"("parentId", "order");
 
 -- CreateIndex
 CREATE INDEX "BlogSectionImage_sectionId_order_idx" ON "BlogSectionImage"("sectionId", "order");
@@ -694,22 +654,10 @@ CREATE UNIQUE INDEX "BlogPostLike_postId_userId_key" ON "BlogPostLike"("postId",
 CREATE INDEX "BlogPostView_postId_createdAt_idx" ON "BlogPostView"("postId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "HomeBlock_layoutId_order_idx" ON "HomeBlock"("layoutId", "order");
-
--- CreateIndex
-CREATE UNIQUE INDEX "HomeBlockPost_blockId_postId_key" ON "HomeBlockPost"("blockId", "postId");
-
--- CreateIndex
 CREATE INDEX "BlogEditorialComment_postId_idx" ON "BlogEditorialComment"("postId");
 
 -- CreateIndex
 CREATE INDEX "BlogEditorialComment_sectionId_idx" ON "BlogEditorialComment"("sectionId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "BlogSectionTemplate_key_key" ON "BlogSectionTemplate"("key");
-
--- CreateIndex
-CREATE INDEX "BlogSectionTemplateBlock_templateId_order_idx" ON "BlogSectionTemplateBlock"("templateId", "order");
 
 -- CreateIndex
 CREATE INDEX "BlogPostFeedback_postId_rating_idx" ON "BlogPostFeedback"("postId", "rating");
@@ -752,12 +700,6 @@ CREATE INDEX "CategoryTranslation_locale_idx" ON "CategoryTranslation"("locale")
 
 -- CreateIndex
 CREATE UNIQUE INDEX "CategoryTranslation_categoryId_locale_key" ON "CategoryTranslation"("categoryId", "locale");
-
--- CreateIndex
-CREATE INDEX "HomeBlockTranslation_locale_idx" ON "HomeBlockTranslation"("locale");
-
--- CreateIndex
-CREATE UNIQUE INDEX "HomeBlockTranslation_blockId_locale_key" ON "HomeBlockTranslation"("blockId", "locale");
 
 -- CreateIndex
 CREATE INDEX "BlogSearchDocument_locale_idx" ON "BlogSearchDocument"("locale");
@@ -816,6 +758,24 @@ CREATE INDEX "PoiCollectionTranslation_locale_idx" ON "PoiCollectionTranslation"
 -- CreateIndex
 CREATE UNIQUE INDEX "PoiCollectionTranslation_collectionId_locale_key" ON "PoiCollectionTranslation"("collectionId", "locale");
 
+-- CreateIndex
+CREATE INDEX "Image_scope_idx" ON "Image"("scope");
+
+-- AddForeignKey
+ALTER TABLE "Image" ADD CONSTRAINT "Image_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BlogMediaAlbum" ADD CONSTRAINT "BlogMediaAlbum_coverImageId_fkey" FOREIGN KEY ("coverImageId") REFERENCES "Image"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BlogMediaAlbum" ADD CONSTRAINT "BlogMediaAlbum_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BlogMediaAlbumItem" ADD CONSTRAINT "BlogMediaAlbumItem_albumId_fkey" FOREIGN KEY ("albumId") REFERENCES "BlogMediaAlbum"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BlogMediaAlbumItem" ADD CONSTRAINT "BlogMediaAlbumItem_imageId_fkey" FOREIGN KEY ("imageId") REFERENCES "Image"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
 -- AddForeignKey
 ALTER TABLE "BlogPost" ADD CONSTRAINT "BlogPost_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -839,6 +799,9 @@ ALTER TABLE "BlogPostVersion" ADD CONSTRAINT "BlogPostVersion_ogImageId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "BlogSection" ADD CONSTRAINT "BlogSection_versionId_fkey" FOREIGN KEY ("versionId") REFERENCES "BlogPostVersion"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BlogSection" ADD CONSTRAINT "BlogSection_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "BlogSection"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "BlogSectionImage" ADD CONSTRAINT "BlogSectionImage_sectionId_fkey" FOREIGN KEY ("sectionId") REFERENCES "BlogSection"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -892,21 +855,6 @@ ALTER TABLE "BlogPostView" ADD CONSTRAINT "BlogPostView_postId_fkey" FOREIGN KEY
 ALTER TABLE "BlogPostView" ADD CONSTRAINT "BlogPostView_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "HomeBlock" ADD CONSTRAINT "HomeBlock_layoutId_fkey" FOREIGN KEY ("layoutId") REFERENCES "HomeLayout"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "HomeBlock" ADD CONSTRAINT "HomeBlock_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "HomeBlock" ADD CONSTRAINT "HomeBlock_imageId_fkey" FOREIGN KEY ("imageId") REFERENCES "Image"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "HomeBlockPost" ADD CONSTRAINT "HomeBlockPost_blockId_fkey" FOREIGN KEY ("blockId") REFERENCES "HomeBlock"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "HomeBlockPost" ADD CONSTRAINT "HomeBlockPost_postId_fkey" FOREIGN KEY ("postId") REFERENCES "BlogPost"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "BlogEditorialComment" ADD CONSTRAINT "BlogEditorialComment_postId_fkey" FOREIGN KEY ("postId") REFERENCES "BlogPost"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -914,9 +862,6 @@ ALTER TABLE "BlogEditorialComment" ADD CONSTRAINT "BlogEditorialComment_sectionI
 
 -- AddForeignKey
 ALTER TABLE "BlogEditorialComment" ADD CONSTRAINT "BlogEditorialComment_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "BlogSectionTemplateBlock" ADD CONSTRAINT "BlogSectionTemplateBlock_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "BlogSectionTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "BlogPostFeedback" ADD CONSTRAINT "BlogPostFeedback_postId_fkey" FOREIGN KEY ("postId") REFERENCES "BlogPost"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -941,9 +886,6 @@ ALTER TABLE "PoiTranslation" ADD CONSTRAINT "PoiTranslation_poiId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "CategoryTranslation" ADD CONSTRAINT "CategoryTranslation_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "HomeBlockTranslation" ADD CONSTRAINT "HomeBlockTranslation_blockId_fkey" FOREIGN KEY ("blockId") REFERENCES "HomeBlock"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "BlogSearchDocument" ADD CONSTRAINT "BlogSearchDocument_postId_fkey" FOREIGN KEY ("postId") REFERENCES "BlogPost"("id") ON DELETE CASCADE ON UPDATE CASCADE;

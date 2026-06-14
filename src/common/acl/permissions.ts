@@ -274,7 +274,7 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
   {
     key: PERMISSIONS.BLOG_HOME_MANAGE,
     resource: 'blog',
-    description: 'Manage the homepage layout and blocks',
+    description: 'Manage homepage settings (post count) and pinned posts',
   },
   {
     key: PERMISSIONS.BLOG_ANALYTICS,
