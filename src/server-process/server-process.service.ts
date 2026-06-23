@@ -12,6 +12,8 @@ import {
 } from '@prisma/client';
 import { PaginationDto } from '../common/dto';
 import { WebsocketGateway, WsRoom } from '../websocket/websocket.gateway';
+import { NotificationService } from '../notification/notification.service';
+import { PERMISSIONS } from '../common/acl/permissions';
 
 type CompiledMarker = {
   id: string;
@@ -57,6 +59,7 @@ export class ServerProcessService {
   constructor(
     private prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
+    private readonly notifications: NotificationService,
   ) {}
 
   async handleGetAll(dto: PaginationDto) {
@@ -186,8 +189,42 @@ export class ServerProcessService {
       if (isTerminal) {
         this.progressContexts.delete(dto.processId);
       }
+
+      if (failed) {
+        void this.notifyProcessFailed(dto.processId);
+      }
     } catch (e) {
       Logger.log(e);
+    }
+  }
+
+  /** Emails opted-in users (processEmailNotifications + process.read) when a
+   * process ends in FAILED. Best-effort, never throws. */
+  private async notifyProcessFailed(processId: string): Promise<void> {
+    try {
+      const process = await this.prisma.process.findUnique({
+        where: { id: processId },
+        select: {
+          name: true,
+          category: { select: { server: { select: { name: true } } } },
+        },
+      });
+      if (!process) return;
+
+      const serverName = process.category?.server?.name ?? null;
+      await this.notifications.emailUsers({
+        setting: 'processEmailNotifications',
+        permission: PERMISSIONS.PROCESS_READ,
+        logType: 'PROCESS_FAILED',
+        subject: `Process ${process.name} failed`,
+        subjectName: process.name,
+        headline: serverName ? `failed on ${serverName}` : 'failed',
+        detail:
+          'The process ended in a FAILED state. Check its logs in the panel for the cause.',
+        meta: { processId, serverName },
+      });
+    } catch (e) {
+      Logger.error(`Process-failed notify error: ${(e as Error).message}`);
     }
   }
 

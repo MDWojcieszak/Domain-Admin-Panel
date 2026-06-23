@@ -13,18 +13,29 @@ import { WebsocketGateway, WsRoom } from '../websocket/websocket.gateway';
 import { PaginationDto } from '../common/dto';
 import { UpdateServerPropertiesDto } from './dto/updateServerProperties.dto';
 import { PatchServerCategoryDto } from './dto/patch-category.dto';
-import { CategorySource } from '@prisma/client';
+import { CategorySource, Prisma } from '@prisma/client';
+import { ServerPowerService } from './server-power.service';
+
+/** Compact status projection for list/single fetches (badge + wake progress). */
+const STATUS_SUMMARY_SELECT = {
+  status: true,
+  isOnline: true,
+  lastSeenAt: true,
+  statusChangedAt: true,
+} satisfies Prisma.ServerPropertiesSelect;
 
 @Injectable()
 export class ServerService {
   constructor(
     private prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
+    private readonly serverPower: ServerPowerService,
   ) {}
 
   async handleGet(id: string) {
     const server = this.prisma.server.findUnique({
       where: { id },
+      include: { properties: { select: STATUS_SUMMARY_SELECT } },
     });
     if (!server) throw new ForbiddenException();
     return server;
@@ -36,6 +47,7 @@ export class ServerService {
     const servers = await this.prisma.server.findMany({
       take: dto.take,
       skip: dto.skip,
+      include: { properties: { select: STATUS_SUMMARY_SELECT } },
     });
     return { total, servers, params: dto };
   }
@@ -85,6 +97,7 @@ export class ServerService {
             memoryInfo: { select: { free: true, id: true, total: true } },
             uptime: true,
             status: true,
+            statusChangedAt: true,
             isOnline: true,
             lastSeenAt: true,
           },
@@ -223,6 +236,8 @@ export class ServerService {
         }
 
         Logger.log(`Server ${dto.name} re-registered (updated)`);
+        // Register is the first sign of life → mark online immediately.
+        await this.serverPower.markPresence(existing.id);
         return true;
       }
 
@@ -263,6 +278,7 @@ export class ServerService {
       );
 
       Logger.log(`Server ${dto.name} registered (created)`);
+      await this.serverPower.markPresence(server.id);
       return true;
     } catch (error: any) {
       Logger.error(error);

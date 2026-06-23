@@ -1,4 +1,20 @@
-import { IsDate, IsString } from 'nestjs-swagger-dto';
+import { ServerStatus } from '@prisma/client';
+import { IsBoolean, IsDate, IsEnum, IsNested, IsString } from 'nestjs-swagger-dto';
+
+/** Compact status for list/badge rendering (no heavy CPU/disk/memory payload). */
+export class ServerStatusSummaryDto {
+  @IsEnum({ enum: { ServerStatus }, optional: true, nullable: true })
+  status?: ServerStatus | null;
+
+  @IsBoolean({ optional: true, nullable: true })
+  isOnline?: boolean | null;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  lastSeenAt?: Date | null;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  statusChangedAt?: Date | null;
+}
 
 export class ServerResponseDto {
   @IsString()
@@ -21,4 +37,7 @@ export class ServerResponseDto {
 
   @IsDate({ format: 'date-time' })
   updatedAt: Date;
+
+  @IsNested({ type: ServerStatusSummaryDto, optional: true, nullable: true })
+  properties?: ServerStatusSummaryDto | null;
 }

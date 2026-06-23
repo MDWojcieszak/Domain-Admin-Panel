@@ -871,9 +871,13 @@ model ServerProperties {
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
   serverId String @unique
 
-  status     ServerStatus?
-  lastSeenAt DateTime?
-  isOnline   Boolean       @default(false)
+  status          ServerStatus?
+  statusChangedAt DateTime? // when `status` last changed — drives wake progress/timeout
+  lastSeenAt      DateTime?
+  isOnline        Boolean       @default(false)
+
+  idleSince      DateTime? // online with no active process since — drives idle alert
+  idleNotifiedAt DateTime? // idle email already sent for the current idle period
 
   startedBy   User?     @relation("StartedBy", fields: [startedById], references: [id], onDelete: NoAction)
   startedById String?

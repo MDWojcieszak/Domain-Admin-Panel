@@ -61,6 +61,14 @@ export class ServerPropertiesDto {
   @IsEnum({ enum: { ServerStatus }, optional: true })
   status?: ServerStatus;
 
+  @IsDate({
+    format: 'date-time',
+    optional: true,
+    nullable: true,
+    description: 'When `status` last changed — for wake progress/elapsed.',
+  })
+  statusChangedAt?: Date | null;
+
   @IsDate({ format: 'date-time', optional: true })
   lastSeenAt?: Date;
 
