@@ -12,6 +12,7 @@ import {
   CategoryListView,
   CreateBlogCategoryDto,
   GetCategoriesQueryDto,
+  GetPublicCategoriesQueryDto,
   PatchBlogCategoryDto,
   UpsertCategoryTranslationDto,
 } from './dto';
@@ -56,6 +57,30 @@ export class CategoryService {
     return {
       total: categories.length,
       categories: categories.map((c) => CategoryMapper.toResponse(c)),
+    };
+  }
+
+  /** Public, locale-resolved catalog (id → key + label + icon/color), no isSystem. */
+  async listPublic(
+    query: GetPublicCategoriesQueryDto,
+  ): Promise<ResolvedCategoryListResponse> {
+    const where: Prisma.CategoryWhereInput = query.kind
+      ? { kind: query.kind }
+      : {};
+
+    const categories = await this.prisma.category.findMany({
+      where,
+      include: CATEGORY_INCLUDE,
+      orderBy: [{ order: { sort: 'asc', nulls: 'last' } }, { key: 'asc' }],
+    });
+
+    const locale = await this.localeResolver.resolve(query.locale);
+    const defaultLocale = await this.localeResolver.getDefaultCode();
+    return {
+      total: categories.length,
+      categories: categories.map((c) =>
+        CategoryMapper.toResolved(c, locale, defaultLocale),
+      ),
     };
   }
 

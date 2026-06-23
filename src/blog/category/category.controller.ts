@@ -11,12 +11,13 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
-import { RequirePermissions } from '../../common/decorators';
+import { Public, RequirePermissions } from '../../common/decorators';
 import { PERMISSIONS } from '../../common/acl/permissions';
 import { CategoryService } from './category.service';
 import {
   CreateBlogCategoryDto,
   GetCategoriesQueryDto,
+  GetPublicCategoriesQueryDto,
   PatchBlogCategoryDto,
   UpsertCategoryTranslationDto,
 } from './dto';
@@ -31,6 +32,18 @@ import {
 @ApiBearerAuth()
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
+
+  @Public()
+  @Get('public')
+  @ApiOkResponse({
+    description: 'Public category catalog (locale-resolved id → key + label)',
+    type: ResolvedCategoryListResponse,
+  })
+  async listPublic(
+    @Query() query: GetPublicCategoriesQueryDto,
+  ): Promise<ResolvedCategoryListResponse> {
+    return this.categoryService.listPublic(query);
+  }
 
   @RequirePermissions(PERMISSIONS.BLOG_READ)
   @Get()
