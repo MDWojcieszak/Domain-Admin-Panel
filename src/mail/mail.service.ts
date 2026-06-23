@@ -1,6 +1,7 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
 import {
+  NotificationMailDto,
   ResetPasswordConfirmationDto,
   ResetPasswordMailDto,
   WelcomeEmailDto,
@@ -35,6 +36,16 @@ export class MailService {
       to: dto.email,
       subject: 'Password is changed.',
       template: './reset-password-confirmation',
+      context: dto,
+    });
+    return res;
+  }
+
+  async sendNotification(dto: NotificationMailDto) {
+    const res = await this.mailerService.sendMail({
+      to: dto.email,
+      subject: dto.subject,
+      template: './notification',
       context: dto,
     });
     return res;
