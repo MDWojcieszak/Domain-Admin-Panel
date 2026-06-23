@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { BlogFeedbackRating, Prisma } from '@prisma/client';
+import { BlogFeedbackRating, BlogPostStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { InsightsQueryDto, UpsertFeedbackDto } from './dto';
@@ -120,6 +120,38 @@ export class InteractionService {
       });
       return { counted: true, viewCount: post.viewCount };
     });
+  }
+
+  /**
+   * Public view registration. Only counts on a PUBLISHED post (no leaking draft
+   * counters via a guessed id). A logged-in viewer goes through the per-user
+   * dedup path; an anonymous viewer records a bare event (no per-visitor identity
+   * to dedup on — the daily cron prunes old rows).
+   */
+  async viewPublic(
+    postId: string,
+    userId: string | null,
+  ): Promise<ViewResultResponse> {
+    const post = await this.prisma.blogPost.findUnique({
+      where: { id: postId },
+      select: { status: true },
+    });
+    if (!post || post.status !== BlogPostStatus.PUBLISHED) {
+      throw new NotFoundException('Post not found');
+    }
+    if (userId) {
+      return this.view(postId, userId);
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.blogPostView.create({ data: { postId, userId: null } });
+      return tx.blogPost.update({
+        where: { id: postId },
+        data: { viewCount: { increment: 1 } },
+        select: { viewCount: true },
+      });
+    });
+    return { counted: true, viewCount: updated.viewCount };
   }
 
   // ----- interactions (viewer state) -----

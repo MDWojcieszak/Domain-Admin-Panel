@@ -7,10 +7,17 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
-import { GetCurrentUser, RequirePermissions } from '../../common/decorators';
+import {
+  GetCurrentUser,
+  GetOptionalUser,
+  Public,
+  RequirePermissions,
+} from '../../common/decorators';
+import { OptionalAuthGuard } from '../../common/guards';
 import { PERMISSIONS } from '../../common/acl/permissions';
 import { InteractionService } from './interaction.service';
 import { InsightsQueryDto, UpsertFeedbackDto } from './dto';
@@ -27,6 +34,24 @@ import {
 @ApiBearerAuth()
 export class InteractionController {
   constructor(private readonly interactionService: InteractionService) {}
+
+  // ----- public (no auth; optional token attributes a logged-in viewer) -----
+
+  @Public()
+  @UseGuards(OptionalAuthGuard)
+  @Post('public/:postId/view')
+  @ApiOkResponse({
+    description: 'Register a public post view',
+    type: ViewResultResponse,
+  })
+  async viewPublic(
+    @Param('postId') postId: string,
+    @GetOptionalUser('sub') userId: string | null,
+  ): Promise<ViewResultResponse> {
+    return this.interactionService.viewPublic(postId, userId);
+  }
+
+  // ----- staff -----
 
   @RequirePermissions(PERMISSIONS.BLOG_READ)
   @Post(':postId/like')

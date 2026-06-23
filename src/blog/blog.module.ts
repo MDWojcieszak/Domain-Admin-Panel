@@ -16,6 +16,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
 import { MediaModule } from './media/media.module';
 import { DocumentModule } from './document/document.module';
 import { CountryModule } from './country/country.module';
+import { AuthorModule } from './author/author.module';
 import { BlogSeedService } from './seed/blog-seed.service';
 
 /**
@@ -41,6 +42,7 @@ import { BlogSeedService } from './seed/blog-seed.service';
     MediaModule,
     DocumentModule,
     CountryModule,
+    AuthorModule,
   ],
   providers: [BlogSeedService],
 })
