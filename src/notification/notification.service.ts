@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AccountStatus, Prisma, Role } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -85,12 +86,20 @@ const TEST_COPY: Record<
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
+  /** Panel base URL for the email CTA button (empty hides it). */
+  private readonly panelUrl: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
     private readonly permissions: PermissionsService,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    this.panelUrl =
+      this.config.get<string>('INTERFACE_URL') ||
+      this.config.get<string>('APP_URL') ||
+      '';
+  }
 
   /**
    * Emails opted-in, permitted users and records each in NotificationLog.
@@ -133,6 +142,7 @@ export class NotificationService {
         subjectName: copy.subjectName,
         headline: copy.headline,
         detail: copy.detail,
+        panelUrl: this.panelUrl,
       });
       await this.log(userId, `TEST_${type}`, 'SENT', { test: true });
       return { delivered: true, email: user.email };
@@ -188,6 +198,7 @@ export class NotificationService {
         subjectName: n.subjectName,
         headline: n.headline,
         detail: n.detail,
+        panelUrl: this.panelUrl,
       });
       await this.log(user.id, n.logType, 'SENT', n.meta);
     } catch (err) {

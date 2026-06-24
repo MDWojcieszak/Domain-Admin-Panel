@@ -16,6 +16,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { FileModule } from './file/file.module';
 import { ServerModule } from './server/server.module';
 import { NotificationModule } from './notification/notification.module';
+import { HealthModule } from './health/health.module';
 import { config } from './config/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
@@ -66,6 +67,7 @@ import { EcosystemModule } from './ecosystem/ecosystem.module';
     ServerProcessModule,
     ServerModule,
     NotificationModule,
+    HealthModule,
     CronJobsModule,
     WebsocketModule,
     GalleryModule,

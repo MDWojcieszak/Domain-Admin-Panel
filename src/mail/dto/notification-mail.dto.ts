@@ -22,4 +22,8 @@ export class NotificationMailDto {
   /** One-line explanation under the headline. */
   @IsString()
   detail: string;
+
+  /** Panel URL for the CTA button; empty string hides the button. */
+  @IsString()
+  panelUrl: string;
 }

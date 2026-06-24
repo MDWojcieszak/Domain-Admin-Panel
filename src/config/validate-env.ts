@@ -15,6 +15,16 @@ const REQUIRED_IN_PRODUCTION = [
   'BLOG_LICENSE_PRIVATE_KEY',
   'SUPERUSER_EMAIL',
   'SUPERUSER_PASSWORD',
+  // RabbitMQ — the agent message bus; the microservice can't start without it.
+  'RABBITMQ_URL',
+  // Mail — outbound emails (welcome, reset, notifications) silently fail otherwise.
+  'MAIL_HOST',
+  'MAIL_USER',
+  'MAIL_PASS',
+  // Panel URL — used for reset links and notification CTAs.
+  'INTERFACE_URL',
+  // CORS allow-list — without it the prod frontend origin is blocked (falls back to localhost).
+  'ALLOWED_ORIGINS',
 ];
 
 export function validateEnv(): void {

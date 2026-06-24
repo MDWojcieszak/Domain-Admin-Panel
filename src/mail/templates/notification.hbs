@@ -103,9 +103,13 @@
                       <tbody style='width:100%'>
                         <tr style='width:100%'>
                           <td data-id='__react-email-column'>
-                            <p
+                            {{#if panelUrl}}<p
                               style='font-size:14px;line-height:24px;margin:16px 0;text-align:center'
-                            >Open the panel to see current status and details.</p>
+                            ><a
+                                style='color:#FFF;text-decoration:none;background-color:#009DF8;border-radius:12px;font-weight:bold;cursor:pointer;padding:12px 40px;margin:auto'
+                                target='_blank'
+                                href='{{panelUrl}}'
+                              >Open the panel</a></p>{{/if}}
                             <p
                               style='font-size:13px;line-height:22px;margin:16px 0;text-align:center;color:#888'
                             >You receive this because you enabled these email

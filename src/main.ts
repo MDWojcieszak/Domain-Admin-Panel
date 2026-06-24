@@ -8,6 +8,7 @@ import { Transport } from '@nestjs/microservices';
 import { config } from './config/config';
 import { validateEnv } from './config/validate-env';
 import { writeFileSync } from 'fs';
+import { ServerResponse } from 'http';
 import { join } from 'path';
 import { MessagingDocsService } from './api-docs/messaging-docs.service';
 
@@ -69,6 +70,28 @@ const swaggerConfig = new DocumentBuilder()
 async function bootstrap() {
   validateEnv();
   const app = await NestFactory.create(AppModule);
+
+  // Security headers (dependency-free; covers helmet's core set for a JSON API).
+  // CORP is `cross-origin` so the frontend can embed backend-served images.
+  app.use((_req: unknown, res: ServerResponse, next: () => void) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-DNS-Prefetch-Control', 'off');
+    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    if (process.env.NODE_ENV === 'production') {
+      res.setHeader(
+        'Strict-Transport-Security',
+        'max-age=15552000; includeSubDomains',
+      );
+    }
+    next();
+  });
+
+  // Flush RMQ/Prisma connections + run OnModuleDestroy cleanly on SIGTERM/SIGINT.
+  app.enableShutdownHooks();
+
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.connectMicroservice(
     {

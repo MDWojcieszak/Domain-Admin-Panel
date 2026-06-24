@@ -20,7 +20,9 @@ import {
   GetCurrentUser,
   Public,
   RequirePermissions,
+  Throttle,
 } from '../common/decorators';
+import { ThrottleGuard } from '../common/guards/throttle.guard';
 import { PERMISSIONS } from '../common/acl/permissions';
 import {
   ApiBearerAuth,
@@ -38,6 +40,8 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
+  @Throttle(10, 60_000)
+  @UseGuards(ThrottleGuard)
   @HttpCode(HttpStatus.OK)
   @Post('local/signin')
   @ApiOperation({ summary: 'Sign in using email and password' })
@@ -56,6 +60,8 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle(5, 60_000)
+  @UseGuards(ThrottleGuard)
   @HttpCode(HttpStatus.OK)
   @Post('reset-password-request')
   @ApiOperation({ summary: 'Initiate password reset request' })
@@ -78,7 +84,8 @@ export class AuthController {
 
   @Public()
   @ApiBearerAuth('JWT-reset-password')
-  @UseGuards(RptGuard)
+  @Throttle(10, 60_000)
+  @UseGuards(RptGuard, ThrottleGuard)
   @HttpCode(HttpStatus.OK)
   @Post('reset-password')
   @ApiOperation({ summary: 'Reset password using reset token' })

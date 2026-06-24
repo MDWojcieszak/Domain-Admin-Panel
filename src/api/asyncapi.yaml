@@ -458,6 +458,11 @@ components:
           type: number
         status:
           $ref: '#/components/schemas/ServerStatus'
+        statusChangedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When `status` last changed — for wake progress/elapsed.
         lastSeenAt:
           type: string
           format: date-time
