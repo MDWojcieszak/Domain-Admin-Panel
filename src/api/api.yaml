@@ -1207,21 +1207,35 @@ paths:
         - bearer: []
   /health:
     get:
-      operationId: HealthController_liveness
+      operationId: SystemController_liveness
       parameters: []
       responses:
         '200':
           description: Process is alive
       tags: &ref_12
-        - Health
+        - System
   /health/ready:
     get:
-      operationId: HealthController_readiness
+      operationId: SystemController_readiness
       parameters: []
       responses:
         '200':
           description: Dependencies reachable
       tags: *ref_12
+  /system/status:
+    get:
+      operationId: SystemController_status
+      parameters: []
+      responses:
+        '200':
+          description: System diagnostics (database, mail, RabbitMQ)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatusResponse'
+      tags: *ref_12
+      security:
+        - bearer: []
   /gallery/all:
     get:
       operationId: GalleryController_getAll
@@ -6659,6 +6673,37 @@ components:
       properties:
         name:
           type: string
+    SubsystemCheckResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        latencyMs:
+          type: number
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+      required:
+        - name
+        - status
+    SystemStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        checkedAt:
+          type: string
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubsystemCheckResponse'
+      required:
+        - status
+        - checkedAt
+        - checks
     GalleryImageDataDto:
       type: object
       properties:

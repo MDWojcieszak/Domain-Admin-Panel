@@ -44,6 +44,8 @@ export const PERMISSIONS = {
 
   DASHBOARD_READ: 'dashboard.read',
 
+  SYSTEM_READ: 'system.read',
+
   BLOG_READ: 'blog.read',
   BLOG_READ_DRAFT: 'blog.read.draft',
   BLOG_WRITE: 'blog.write',
@@ -227,6 +229,12 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
     key: PERMISSIONS.DASHBOARD_READ,
     resource: 'dashboard',
     description: 'View the system dashboard',
+  },
+
+  {
+    key: PERMISSIONS.SYSTEM_READ,
+    resource: 'system',
+    description: 'View system status / diagnostics (database, mail, RabbitMQ)',
   },
 
   {
