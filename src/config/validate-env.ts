@@ -25,6 +25,11 @@ const REQUIRED_IN_PRODUCTION = [
   'INTERFACE_URL',
   // CORS allow-list — without it the prod frontend origin is blocked (falls back to localhost).
   'ALLOWED_ORIGINS',
+  // Encryption key for service-integration tokens (Immich etc.). TokenService
+  // refuses to construct without it, so the app can't boot anyway — fail with a
+  // clear message instead. Must stay STABLE per env (rotating it makes existing
+  // encrypted tokens undecryptable).
+  'EXTERNAL_TOKEN_KEY',
 ];
 
 export function validateEnv(): void {
