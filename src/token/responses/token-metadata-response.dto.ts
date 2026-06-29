@@ -14,6 +14,13 @@ export class TokenMetadataResponseDto {
   @IsEnum({ enum: { ApiKeyType } })
   type: ApiKeyType;
 
+  @IsString({
+    optional: true,
+    nullable: true,
+    example: 'https://photo.whcp.pl/api',
+  })
+  baseUrl?: string | null;
+
   @IsDate({ format: 'date-time', optional: true })
   expiresAt?: Date;
 

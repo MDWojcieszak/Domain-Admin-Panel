@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ImmichApiService } from './immich-api.service';
 import { ImmichController } from './immich.controller';
-import { TokenService } from '../token/token.service';
+import { TokenModule } from '../token/token.module';
 import { ImmichService } from './immich.service';
 
 @Module({
-  providers: [ImmichApiService, TokenService, ImmichService],
+  imports: [TokenModule],
+  providers: [ImmichApiService, ImmichService],
   controllers: [ImmichController],
 })
 export class ImmichModule {}

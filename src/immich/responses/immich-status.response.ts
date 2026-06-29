@@ -2,6 +2,9 @@ import { IsBoolean, IsString } from 'nestjs-swagger-dto';
 
 export class ImmichStatusResponse {
   @IsBoolean()
+  configured: boolean;
+
+  @IsBoolean()
   connected: boolean;
 
   @IsString({ optional: true })
@@ -9,4 +12,7 @@ export class ImmichStatusResponse {
 
   @IsString({ optional: true })
   baseUrl?: string;
+
+  @IsString({ optional: true })
+  libraryPath?: string;
 }

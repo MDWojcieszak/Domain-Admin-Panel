@@ -589,6 +589,12 @@ model ApiKey {
   value     String
   service   ConnectedServiceType
   type      ApiKeyType
+  // Base URL of the connected service (e.g. the Immich API endpoint). Stored
+  // as a first-class column rather than inside `meta`.
+  baseUrl   String?
+  // Root path of the service's external library on the server (e.g. Immich's
+  // /media/vault). The album-folder paths are built on top of this prefix.
+  libraryPath String?
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
   expiresAt DateTime?
@@ -1032,7 +1038,7 @@ model PhotoEntry {
   uploadStatus MediaStatus @default(NOT_UPLOADED)
 
   astroObjects PhotoEntryAstroObject[]
-  immichAlbum  PhotoEntryImmichAlbum?
+  immichAlbums PhotoEntryImmichAlbum[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1064,14 +1070,31 @@ model PhotoEntryAstroObject {
   @@index([astroObjectId])
 }
 
+enum ImmichAlbumSource {
+  EXPORT
+  EDIT
+  SELECTS
+  SOURCE
+  DELIVERY
+  ENTIRE
+}
+
 model PhotoEntryImmichAlbum {
   id String @id @default(uuid())
 
+  // A photo entry can have many Immich albums (e.g. one per folder scope).
   photoEntry   PhotoEntry @relation(fields: [photoEntryId], references: [id], onDelete: Cascade)
-  photoEntryId String     @unique
+  photoEntryId String
 
   albumId   String
   albumName String
+
+  // Which folder scope the album was built from (refresh re-uses the same scope).
+  source ImmichAlbumSource @default(EXPORT)
+
+  // Optional: scope to a single astro object of the entry (null = whole entry /
+  // all objects). Lets refresh reproduce the same astro-object-specific paths.
+  astroObjectId String?
 
   sourcePaths Json?
 
@@ -1081,6 +1104,7 @@ model PhotoEntryImmichAlbum {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([photoEntryId])
   @@index([albumId])
 }
 

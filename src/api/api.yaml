@@ -2416,13 +2416,128 @@ paths:
       parameters: []
       responses:
         '200':
-          description: Immich connection status
+          description: Immich connection status (live ping)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichStatusResponse'
       tags: &ref_30
         - Immich
+      security:
+        - bearer: []
+  /immich/config:
+    put:
+      operationId: ImmichController_saveConfig
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveImmichConfigDto'
+      responses:
+        '200':
+          description: Save Immich connection config (URL + token + library) + verify
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichStatusResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+    delete:
+      operationId: ImmichController_removeConfig
+      parameters: []
+      responses:
+        '200':
+          description: Remove the Immich connection config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichStatusResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/libraries:
+    get:
+      operationId: ImmichController_listLibraries
+      parameters: []
+      responses:
+        '200':
+          description: List Immich external libraries with statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichLibraryListResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/library/{id}/scan:
+    post:
+      operationId: ImmichController_scanLibrary
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trigger a (re)scan of an Immich library
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/albums:
+    get:
+      operationId: ImmichController_browseAlbums
+      parameters: []
+      responses:
+        '200':
+          description: Browse all Immich albums enriched with linked photo entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichAlbumBrowseResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/album:
+    get:
+      operationId: ImmichController_listAlbums
+      parameters:
+        - name: photoEntryId
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List tracked album links (optionally by photo entry)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichAlbumListResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/album/preview:
+    post:
+      operationId: ImmichController_previewAlbum
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewImmichAlbumDto'
+      responses:
+        '200':
+          description: Preview assets that would be added to an album (no-op)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichAlbumPreviewResponse'
+      tags: *ref_30
       security:
         - bearer: []
   /immich/album/create:
@@ -2437,7 +2552,7 @@ paths:
               $ref: '#/components/schemas/CreateImmichAlbumDto'
       responses:
         '200':
-          description: Created Immich album
+          description: Create a new Immich album from a photo entry folder
           content:
             application/json:
               schema:
@@ -2445,23 +2560,135 @@ paths:
       tags: *ref_30
       security:
         - bearer: []
-  /immich/album/refresh:
+  /immich/album/empty:
     post:
-      operationId: ImmichController_refreshAlbum
+      operationId: ImmichController_createEmptyAlbum
       parameters: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefreshImmichAlbumDto'
+              $ref: '#/components/schemas/CreateEmptyAlbumDto'
       responses:
         '200':
-          description: Refreshed Immich album
+          description: Create an empty Immich album (attach entries later)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichBrowseAlbumResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/album/{albumId}/attach:
+    post:
+      operationId: ImmichController_attachEntry
+      parameters:
+        - name: albumId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachEntryDto'
+      responses:
+        '200':
+          description: Attach a photo entry folder to an existing Immich album
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumSyncResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/album/{albumId}:
+    delete:
+      operationId: ImmichController_deleteAlbum
+      parameters:
+        - name: albumId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: >-
+            Delete the whole album in Immich (keeps the photos) + remove our
+            links
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichAlbumRemovedResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/album/link/{id}/refresh:
+    post:
+      operationId: ImmichController_refreshAlbum
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Refresh a tracked link with newly added assets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichAlbumSyncResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/album/link/{id}:
+    delete:
+      operationId: ImmichController_detachEntry
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: removeAssets
+          required: false
+          in: query
+          description: Also remove this entry’s assets from the Immich album (default true)
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: >-
+            Detach a tracked link (optionally remove the entry assets from the
+            album)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImmichAlbumDeletedResponse'
+      tags: *ref_30
+      security:
+        - bearer: []
+  /immich/asset/{id}/thumbnail:
+    get:
+      operationId: ImmichController_getAssetThumbnail
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: size
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/ThumbnailSize'
+      responses:
+        '200':
+          description: Asset thumbnail image (binary stream)
       tags: *ref_30
       security:
         - bearer: []
@@ -6831,6 +7058,10 @@ components:
         type:
           type: string
           example: EXTERNAL
+        baseUrl:
+          type: string
+          nullable: true
+          example: https://photo.whcp.pl/api
         expiresAt:
           type: string
           format: date-time
@@ -6858,6 +7089,10 @@ components:
           type: string
         type:
           $ref: '#/components/schemas/ApiKeyType'
+        baseUrl:
+          type: string
+          nullable: true
+          example: https://photo.whcp.pl/api
         expiresAt:
           type: string
           format: date-time
@@ -8184,28 +8419,294 @@ components:
     ImmichStatusResponse:
       type: object
       properties:
+        configured:
+          type: boolean
         connected:
           type: boolean
         serverVersion:
           type: string
         baseUrl:
           type: string
-      required:
-        - connected
-    CreateImmichAlbumDto:
-      type: object
-      properties:
-        photoEntryId:
+        libraryPath:
           type: string
       required:
+        - configured
+        - connected
+    SaveImmichConfigDto:
+      type: object
+      properties:
+        baseUrl:
+          type: string
+          minLength: 1
+          example: https://photo.whcp.pl/api
+        apiKey:
+          type: string
+          minLength: 1
+          example: aBcD3f-IMMICH-API-KEY
+        libraryPath:
+          type: string
+          example: /media/vault
+        name:
+          type: string
+          maxLength: 128
+          example: Immich
+      required:
+        - baseUrl
+        - apiKey
+    ImmichLibraryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        importPaths:
+          type: array
+          items:
+            type: string
+        exclusionPatterns:
+          type: array
+          items:
+            type: string
+        assetCount:
+          type: integer
+        refreshedAt:
+          type: string
+          nullable: true
+        photos:
+          type: integer
+        videos:
+          type: integer
+        total:
+          type: integer
+        usage:
+          type: integer
+      required:
+        - id
+        - name
+        - importPaths
+        - exclusionPatterns
+        - assetCount
+        - photos
+        - videos
+        - total
+        - usage
+    ImmichLibraryListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        libraries:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImmichLibraryResponse'
+      required:
+        - total
+        - libraries
+    ImmichAlbumSource:
+      type: string
+      enum:
+        - EXPORT
+        - EDIT
+        - SELECTS
+        - SOURCE
+        - DELIVERY
+        - ENTIRE
+    ImmichAlbumEntryLinkResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        photoEntryId:
+          type: string
+        source:
+          $ref: '#/components/schemas/ImmichAlbumSource'
+        astroObjectId:
+          type: string
+          nullable: true
+        lastAssetCount:
+          type: number
+          nullable: true
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
         - photoEntryId
-    ImmichAlbumSyncResponse:
+        - source
+        - createdAt
+    ImmichBrowseAlbumResponse:
       type: object
       properties:
         albumId:
           type: string
         albumName:
           type: string
+        assetCount:
+          type: integer
+        albumUrl:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImmichAlbumEntryLinkResponse'
+      required:
+        - albumId
+        - albumName
+        - assetCount
+        - albumUrl
+        - entries
+    ImmichAlbumBrowseResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        albums:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImmichBrowseAlbumResponse'
+      required:
+        - total
+        - albums
+    ImmichAlbumItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        photoEntryId:
+          type: string
+        albumId:
+          type: string
+        albumName:
+          type: string
+        albumUrl:
+          type: string
+        source:
+          $ref: '#/components/schemas/ImmichAlbumSource'
+        astroObjectId:
+          type: string
+          nullable: true
+        lastAssetCount:
+          type: number
+          nullable: true
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - photoEntryId
+        - albumId
+        - albumName
+        - albumUrl
+        - source
+        - createdAt
+        - updatedAt
+    ImmichAlbumListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        albums:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImmichAlbumItemResponse'
+      required:
+        - total
+        - albums
+    PreviewImmichAlbumDto:
+      type: object
+      properties:
+        photoEntryId:
+          type: string
+        source:
+          $ref: '#/components/schemas/ImmichAlbumSource'
+        astroObjectId:
+          type: string
+      required:
+        - photoEntryId
+    ImmichAssetPreviewResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        originalFileName:
+          type: string
+        type:
+          type: string
+        localDateTime:
+          type: string
+        thumbhash:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+      required:
+        - id
+        - thumbnailUrl
+    ImmichAlbumPreviewResponse:
+      type: object
+      properties:
+        photoEntryId:
+          type: string
+        source:
+          $ref: '#/components/schemas/ImmichAlbumSource'
+        folderPaths:
+          type: array
+          items:
+            type: string
+        total:
+          type: integer
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImmichAssetPreviewResponse'
+      required:
+        - photoEntryId
+        - source
+        - folderPaths
+        - total
+        - assets
+    CreateImmichAlbumDto:
+      type: object
+      properties:
+        photoEntryId:
+          type: string
+        source:
+          $ref: '#/components/schemas/ImmichAlbumSource'
+        astroObjectId:
+          type: string
+        albumName:
+          type: string
+          maxLength: 200
+      required:
+        - photoEntryId
+    ImmichAlbumSyncResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        albumId:
+          type: string
+        albumName:
+          type: string
+        albumUrl:
+          type: string
+        source:
+          $ref: '#/components/schemas/ImmichAlbumSource'
         created:
           type: boolean
         assetsFound:
@@ -8214,20 +8715,67 @@ components:
           type: number
         totalAlbumAssets:
           type: number
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImmichAssetPreviewResponse'
       required:
+        - id
         - albumId
         - albumName
+        - albumUrl
+        - source
         - created
         - assetsFound
         - assetsAdded
         - totalAlbumAssets
-    RefreshImmichAlbumDto:
+        - assets
+    CreateEmptyAlbumDto:
+      type: object
+      properties:
+        albumName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Komunia 2026
+      required:
+        - albumName
+    AttachEntryDto:
       type: object
       properties:
         photoEntryId:
           type: string
+        source:
+          $ref: '#/components/schemas/ImmichAlbumSource'
+        astroObjectId:
+          type: string
       required:
         - photoEntryId
+    ImmichAlbumRemovedResponse:
+      type: object
+      properties:
+        albumId:
+          type: string
+        removedLinks:
+          type: integer
+      required:
+        - albumId
+        - removedLinks
+    ImmichAlbumDeletedResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        removedAssets:
+          type: integer
+      required:
+        - id
+        - removedAssets
+    ThumbnailSize:
+      type: string
+      enum:
+        - thumbnail
+        - preview
     MyPermissionsResponseDto:
       type: object
       properties:

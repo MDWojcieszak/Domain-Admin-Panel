@@ -5,7 +5,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as argon2 from 'argon2';
-import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+import {
+  randomBytes,
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+} from 'crypto';
 import { GenerateTokenDto, SaveServiceTokenDto } from './dto';
 import { ApiKeyType, ConnectedServiceType } from '@prisma/client';
 import { PaginationDto } from '../common/dto';
@@ -28,10 +33,16 @@ export class TokenService {
     private prisma: PrismaService,
     private config: ConfigService,
   ) {
-    this.key = Buffer.from(
-      this.config.get<string>('EXTERNAL_TOKEN_KEY')!,
-      'hex',
-    );
+    const secret = this.config.get<string>('EXTERNAL_TOKEN_KEY');
+
+    if (!secret) {
+      throw new Error('EXTERNAL_TOKEN_KEY is not set');
+    }
+
+    // Derive a fixed 32-byte (256-bit) key for AES-256-GCM from the configured
+    // secret via SHA-256, so any secret string works (it need not be a 64-char
+    // hex string). Deterministic, so the same secret always yields the same key.
+    this.key = createHash('sha256').update(secret, 'utf8').digest();
   }
 
   async getTokenMetadata(userId: string, id: string) {
@@ -42,6 +53,8 @@ export class TokenService {
         service: true,
         name: true,
         type: true,
+        baseUrl: true,
+        libraryPath: true,
         expiresAt: true,
         createdAt: true,
         updatedAt: true,
@@ -66,6 +79,8 @@ export class TokenService {
           service: true,
           name: true,
           type: true,
+          baseUrl: true,
+          libraryPath: true,
           expiresAt: true,
           createdAt: true,
           updatedAt: true,
@@ -86,6 +101,8 @@ export class TokenService {
         service: true,
         name: true,
         type: true,
+        baseUrl: true,
+        libraryPath: true,
         expiresAt: true,
         createdAt: true,
         updatedAt: true,
@@ -137,9 +154,17 @@ export class TokenService {
     return { token: rawToken, expiresAt };
   }
 
-  async saveServiceToken(userId: string, dto: SaveServiceTokenDto) {
+  async saveServiceToken(
+    userId: string,
+    dto: SaveServiceTokenDto,
+    options: { baseUrl?: string; libraryPath?: string } = {},
+  ) {
     const { cipher, iv, tag } = this.encrypt(dto.value);
     const encryptedValue = JSON.stringify({ cipher, iv, tag });
+
+    const meta = { service: dto.service };
+    const baseUrl = options.baseUrl ?? null;
+    const libraryPath = options.libraryPath ?? null;
 
     const token = await this.prisma.apiKey.upsert({
       where: {
@@ -152,15 +177,19 @@ export class TokenService {
       update: {
         name: dto.name,
         value: encryptedValue,
-        meta: { service: dto.service },
+        baseUrl,
+        libraryPath,
+        meta,
       },
       create: {
         userId,
         service: dto.service,
         name: dto.name,
         value: encryptedValue,
+        baseUrl,
+        libraryPath,
         type: ApiKeyType.EXTERNAL,
-        meta: { service: dto.service },
+        meta,
       },
     });
 
@@ -169,6 +198,8 @@ export class TokenService {
       service: token.service,
       name: token.name,
       type: token.type,
+      baseUrl: token.baseUrl,
+      libraryPath: token.libraryPath,
       expiresAt: token.expiresAt,
       createdAt: token.createdAt,
       updatedAt: token.updatedAt,
@@ -195,6 +226,8 @@ export class TokenService {
         value: true,
         service: true,
         type: true,
+        baseUrl: true,
+        libraryPath: true,
         expiresAt: true,
         createdAt: true,
         updatedAt: true,
