@@ -299,6 +299,7 @@ model User {
   appDevices            AppDevice[]
   redeemedCodes         RedeemCode[]
   blogMediaAlbums       BlogMediaAlbum[]
+  galleries             Gallery[]
 }
 
 model PermissionGroup {
@@ -723,6 +724,19 @@ enum ImageScope {
   BLOG
 }
 
+enum ImageProcessingStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum ImageOrientation {
+  LANDSCAPE
+  PORTRAIT
+  SQUARE
+}
+
 model Image {
   id           String      @id @default(uuid())
   originalUrl  String
@@ -739,6 +753,30 @@ model Image {
   uploadedById String?
   createdAt    DateTime   @default(now())
 
+  // Derived-data processing state. Reprocess always rebuilds derived data from
+  // the original; status is just for observability / panel (failures, progress).
+  processingStatus ImageProcessingStatus @default(PENDING)
+  processingError  String?
+  processedAt      DateTime?
+
+  // Numeric dimensions + orientation (from the original) — for masonry layout
+  // and orientation filtering. The frontend derives its blur placeholder from
+  // the cover image, so no blur is stored here.
+  width       Int?
+  height      Int?
+  orientation ImageOrientation?
+
+  // EXIF auto-extracted from the original (no manual entry). Shown as "tech
+  // specs" on the portfolio. All optional — missing for screenshots/edits.
+  cameraMake   String?
+  cameraModel  String?
+  lens         String?
+  focalLength  Float?
+  fNumber      Float?
+  iso          Int?
+  exposureTime String?
+  takenAt      DateTime?
+
   blogVersionCovers   BlogPostVersion[]    @relation("VersionCover")
   blogVersionOgImages BlogPostVersion[]    @relation("VersionOgImage")
   blogSectionImages   BlogSectionImage[]
@@ -749,8 +787,69 @@ model Image {
   blogAlbumItems      BlogMediaAlbumItem[]
   blogAlbumCovers     BlogMediaAlbum[]     @relation("BlogAlbumCover")
   blogCountryCovers   BlogCountry[]        @relation("BlogCountryCover")
+  galleryCovers       Gallery[]            @relation("GalleryCover")
+  galleryItems        GalleryImage[]
 
   @@index([scope])
+  @@index([processingStatus])
+}
+
+enum GalleryStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  ARCHIVED
+}
+
+enum GalleryImageRole {
+  HERO
+  LARGE
+  NORMAL
+  HIDDEN
+}
+
+/// A curated portfolio gallery. Premium look is the frontend's job — the backend
+/// only stores ordering, per-image role, status and cover.
+model Gallery {
+  id          String        @id @default(uuid())
+  title       String
+  slug        String        @unique
+  description String?
+  status      GalleryStatus @default(DRAFT)
+  sortOrder   Int           @default(0)
+
+  coverImage   Image?  @relation("GalleryCover", fields: [coverImageId], references: [id])
+  coverImageId String?
+
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+  items GalleryImage[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
+  @@index([status, sortOrder])
+  @@index([createdById])
+}
+
+model GalleryImage {
+  id String @id @default(uuid())
+
+  gallery   Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  galleryId String
+
+  image   Image  @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  imageId String
+
+  order Int              @default(0)
+  role  GalleryImageRole @default(NORMAL)
+
+  createdAt DateTime @default(now())
+
+  @@unique([galleryId, imageId])
+  @@index([galleryId, order])
 }
 
 model Dimensions {
