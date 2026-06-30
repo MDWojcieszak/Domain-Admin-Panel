@@ -25,6 +25,7 @@ import { ServerSettingsModule } from './server-settings/server-settings.module';
 import { ServerProcessModule } from './server-process/server-process.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { GalleryModule } from './gallery/gallery.module';
+import { GalleriesModule } from './galleries/galleries.module';
 import { TokenService } from './token/token.service';
 import { TokenModule } from './token/token.module';
 import { PersonModule } from './person/person.module';
@@ -71,6 +72,7 @@ import { EcosystemModule } from './ecosystem/ecosystem.module';
     CronJobsModule,
     WebsocketModule,
     GalleryModule,
+    GalleriesModule,
     TokenModule,
     PersonModule,
     PlaceModule,
