@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileService } from './file.service';
@@ -12,12 +13,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ImageValidationPipe } from '../common/pipes/image-validation.pipe';
 import { Express } from 'express';
 import { ImageScope } from '@prisma/client';
 import { FileDto } from './dto';
-import { UploadResponseDto } from './responses';
+import { MultiUploadResponseDto, UploadResponseDto } from './responses';
 import { GetCurrentUser, RequirePermissions } from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
 
@@ -48,5 +49,33 @@ export class FileController {
     file: Express.Multer.File,
   ): Promise<UploadResponseDto> {
     return this.fileService.uploadImage(file, ImageScope.GALLERY, userId);
+  }
+
+  /** Upload one or many gallery images at once (best-effort per file). */
+  @RequirePermissions(PERMISSIONS.GALLERY_MANAGE)
+  @Post('upload/images')
+  @UseInterceptors(FilesInterceptor('files'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Images uploaded',
+    type: MultiUploadResponseDto,
+  })
+  uploadImages(
+    @GetCurrentUser('sub') userId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ): Promise<MultiUploadResponseDto> {
+    return this.fileService.uploadMany(files, ImageScope.GALLERY, userId);
   }
 }

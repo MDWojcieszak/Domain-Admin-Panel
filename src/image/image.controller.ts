@@ -3,18 +3,31 @@ import {
   Controller,
   Delete,
   Get,
+  Param,
+  ParseUUIDPipe,
   Post,
   Put,
   Query,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOkResponse,
   ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
-import { ImageDataDto, ImageDto, ImageSizeType } from './dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ImageDataDto,
+  ImageDto,
+  ImageSizeType,
+  ReprocessDto,
+  ReprocessTargetMode,
+} from './dto';
 import {
   GetCurrentUser,
   Public,
@@ -22,14 +35,71 @@ import {
 } from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
 import { ImageService } from './image.service';
+import { ImageProcessingService } from './image-processing.service';
+import { FileService } from '../file/file.service';
+import { ImageValidationPipe } from '../common/pipes/image-validation.pipe';
+import { FileDto } from '../file/dto';
+import { UploadResponseDto } from '../file/responses';
 import { Response } from 'express';
 import { PaginationDto } from '../common/dto';
-import { ImageDataResponseDto, ImageListResponseDto } from './responses';
+import {
+  ImageDataResponseDto,
+  ImageListResponseDto,
+  ImageProcessingSummaryResponse,
+  ReprocessStartedResponse,
+} from './responses';
 
 @ApiTags('Image')
 @Controller('image')
 export class ImageController {
-  constructor(private imageService: ImageService) {}
+  constructor(
+    private imageService: ImageService,
+    private imageProcessing: ImageProcessingService,
+    private fileService: FileService,
+  ) {}
+
+  @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.GALLERY_MANAGE)
+  @Get('processing/summary')
+  @ApiOkResponse({
+    description: 'Derived-data migration status across all images',
+    type: ImageProcessingSummaryResponse,
+  })
+  async processingSummary(): Promise<ImageProcessingSummaryResponse> {
+    return this.imageProcessing.getSummary();
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.GALLERY_MANAGE)
+  @Post('reprocess')
+  @ApiOkResponse({
+    description: 'Start (re)processing outdated images from originals',
+    type: ReprocessStartedResponse,
+  })
+  async reprocess(
+    @Body() dto: ReprocessDto,
+  ): Promise<ReprocessStartedResponse> {
+    const mode = dto.mode ?? ReprocessTargetMode.missing;
+    return this.imageProcessing.startBackfill(mode);
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.GALLERY_MANAGE)
+  @Post(':id/original')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: FileDto })
+  @ApiOkResponse({
+    description:
+      'Replace the original (e.g. higher quality) and rebuild derived',
+    type: UploadResponseDto,
+  })
+  async replaceOriginal(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile(new ImageValidationPipe()) file: Express.Multer.File,
+  ): Promise<UploadResponseDto> {
+    return this.fileService.replaceOriginal(id, file);
+  }
 
   @Public()
   @Get('list')
