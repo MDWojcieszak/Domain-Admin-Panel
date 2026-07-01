@@ -1,15 +1,24 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   Param,
+  ParseBoolPipe,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { GetCurrentUser, RequirePermissions } from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
@@ -17,11 +26,13 @@ import { GalleriesService } from './galleries.service';
 import {
   CreateGalleryDto,
   PatchGalleryStatusDto,
+  ReorderGalleriesDto,
   SetGalleryItemsDto,
   UpdateGalleryDto,
 } from './dto';
 import {
   GalleryDetailResponse,
+  GalleryLibraryResponse,
   GalleryListResponse,
   GalleryResponse,
 } from './responses';
@@ -52,6 +63,33 @@ export class GalleriesController {
   })
   list(): Promise<GalleryListResponse> {
     return this.galleries.list();
+  }
+
+  @Get('library')
+  @ApiQuery({ name: 'take', required: false, type: Number })
+  @ApiQuery({ name: 'skip', required: false, type: Number })
+  @ApiQuery({ name: 'unassignedOnly', required: false, type: Boolean })
+  @ApiOkResponse({
+    description:
+      'Image picker: all gallery images (used or not) with usage count',
+    type: GalleryLibraryResponse,
+  })
+  library(
+    @Query('take', new DefaultValuePipe(40), ParseIntPipe) take: number,
+    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
+    @Query('unassignedOnly', new DefaultValuePipe(false), ParseBoolPipe)
+    unassignedOnly: boolean,
+  ): Promise<GalleryLibraryResponse> {
+    return this.galleries.library(take, skip, unassignedOnly);
+  }
+
+  @Put('order')
+  @ApiOkResponse({
+    description: 'Reorder galleries in the portfolio',
+    type: GalleryListResponse,
+  })
+  reorder(@Body() dto: ReorderGalleriesDto): Promise<GalleryListResponse> {
+    return this.galleries.reorder(dto.ids);
   }
 
   @Post('import-existing')

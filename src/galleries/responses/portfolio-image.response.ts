@@ -28,6 +28,10 @@ export class PortfolioImageResponse {
   @IsEnum({ enum: { ImageOrientation }, optional: true, nullable: true })
   orientation: ImageOrientation | null;
 
+  /** Free-text location from ImageData (tile label). */
+  @IsString({ optional: true, nullable: true })
+  localization: string | null;
+
   @IsNested({ type: ImageExifResponse })
   exif: ImageExifResponse;
 }

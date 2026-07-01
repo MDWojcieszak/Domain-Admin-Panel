@@ -2,6 +2,8 @@ export * from './gallery.response';
 export * from './gallery-image-item.response';
 export * from './gallery-detail.response';
 export * from './gallery-list.response';
+export * from './gallery-library-item.response';
+export * from './gallery-library.response';
 export * from './image-exif.response';
 export * from './portfolio-image.response';
 export * from './portfolio-gallery.response';

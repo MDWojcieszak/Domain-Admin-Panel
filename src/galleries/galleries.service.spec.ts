@@ -23,7 +23,9 @@ function makeService() {
       findMany: jest.fn(),
     },
     image: { count: jest.fn(), findMany: jest.fn() },
-    $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
+    $transaction: jest.fn((arg: any) =>
+      typeof arg === 'function' ? arg({}) : Promise.all(arg),
+    ),
   };
   const service = new GalleriesService(prisma as any);
   return { service, prisma };
@@ -230,6 +232,7 @@ describe('GalleriesService', () => {
             iso: 200,
             exposureTime: '1/250',
             takenAt: new Date('2026-01-31T14:20:00.000Z'),
+            data: { localization: 'Kraków' },
           },
         },
       ]);
@@ -244,6 +247,7 @@ describe('GalleriesService', () => {
         lowResUrl: '/image/low-res?id=img1',
         width: 1600,
         orientation: 'LANDSCAPE',
+        localization: 'Kraków',
       });
       expect(res.items[0].exif).toMatchObject({
         cameraModel: 'X-T5',
@@ -251,6 +255,81 @@ describe('GalleriesService', () => {
         fNumber: 2,
         iso: 200,
         exposureTime: '1/250',
+      });
+    });
+  });
+
+  describe('library', () => {
+    it('lists gallery images with usage count and paging', async () => {
+      const { service, prisma } = makeService();
+      prisma.image.findMany.mockResolvedValue([
+        {
+          id: 'i1',
+          width: 1600,
+          height: 900,
+          orientation: 'LANDSCAPE',
+          processingStatus: 'DONE',
+          cameraModel: 'X-T5',
+          fNumber: 2,
+          data: { localization: 'Kraków' },
+          _count: { galleryItems: 2 },
+        },
+      ]);
+      prisma.image.count.mockResolvedValue(5);
+
+      const res = await service.library(40, 0, false);
+
+      const where = prisma.image.findMany.mock.calls[0][0].where;
+      expect(where.scope).toBe('GALLERY');
+      expect(where.galleryItems).toBeUndefined(); // not filtered
+      expect(res.total).toBe(5);
+      expect(res.images[0]).toMatchObject({
+        imageId: 'i1',
+        coverUrl: '/image/cover?id=i1',
+        usageCount: 2,
+        localization: 'Kraków',
+      });
+      expect(res.images[0].exif.cameraModel).toBe('X-T5');
+    });
+
+    it('filters to unassigned images when requested', async () => {
+      const { service, prisma } = makeService();
+      prisma.image.findMany.mockResolvedValue([]);
+      prisma.image.count.mockResolvedValue(0);
+
+      await service.library(40, 0, true);
+
+      const where = prisma.image.findMany.mock.calls[0][0].where;
+      expect(where.galleryItems).toEqual({ none: {} });
+    });
+
+    it('clamps take to the max', async () => {
+      const { service, prisma } = makeService();
+      prisma.image.findMany.mockResolvedValue([]);
+      prisma.image.count.mockResolvedValue(0);
+
+      const res = await service.library(9999, -3, false);
+
+      expect(res.take).toBe(100); // LIBRARY_MAX_TAKE
+      expect(res.skip).toBe(0);
+    });
+  });
+
+  describe('reorder', () => {
+    it('writes sortOrder by index', async () => {
+      const { service, prisma } = makeService();
+      prisma.gallery.update.mockResolvedValue({});
+      prisma.gallery.findMany.mockResolvedValue([]);
+
+      await service.reorder(['a', 'b', 'c']);
+
+      expect(prisma.gallery.update).toHaveBeenNthCalledWith(1, {
+        where: { id: 'a' },
+        data: { sortOrder: 0 },
+      });
+      expect(prisma.gallery.update).toHaveBeenNthCalledWith(3, {
+        where: { id: 'c' },
+        data: { sortOrder: 2 },
       });
     });
   });

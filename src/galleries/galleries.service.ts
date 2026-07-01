@@ -21,12 +21,15 @@ import {
 import { GalleryMapper } from './gallery.mapper';
 import {
   GalleryDetailResponse,
+  GalleryLibraryResponse,
   GalleryListResponse,
   GalleryResponse,
   PortfolioGalleryDetailResponse,
   PortfolioGalleryListResponse,
   PortfolioHeroResponse,
 } from './responses';
+
+const LIBRARY_MAX_TAKE = 100;
 
 const IMPORT_SLUG = 'zaimportowane';
 
@@ -43,6 +46,7 @@ const ITEM_IMAGE_SELECT = {
   iso: true,
   exposureTime: true,
   takenAt: true,
+  data: { select: { localization: true } },
 } satisfies Prisma.ImageSelect;
 
 @Injectable()
@@ -68,6 +72,72 @@ export class GalleriesService {
     });
 
     return GalleryMapper.mapGallery(gallery);
+  }
+
+  /**
+   * Image picker: all GALLERY images (used or not) with a usage count, paged.
+   * `unassignedOnly` restricts to images not in any gallery yet.
+   */
+  async library(
+    take: number,
+    skip: number,
+    unassignedOnly: boolean,
+  ): Promise<GalleryLibraryResponse> {
+    const safeTake = Math.min(Math.max(take, 1), LIBRARY_MAX_TAKE);
+    const safeSkip = Math.max(skip, 0);
+
+    const where: Prisma.ImageWhereInput = {
+      scope: ImageScope.GALLERY,
+      ...(unassignedOnly ? { galleryItems: { none: {} } } : {}),
+    };
+
+    const [images, total] = await this.prisma.$transaction([
+      this.prisma.image.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: safeTake,
+        skip: safeSkip,
+        select: {
+          id: true,
+          width: true,
+          height: true,
+          orientation: true,
+          processingStatus: true,
+          cameraMake: true,
+          cameraModel: true,
+          lens: true,
+          focalLength: true,
+          fNumber: true,
+          iso: true,
+          exposureTime: true,
+          takenAt: true,
+          data: { select: { localization: true } },
+          _count: { select: { galleryItems: true } },
+        },
+      }),
+      this.prisma.image.count({ where }),
+    ]);
+
+    return {
+      total,
+      take: safeTake,
+      skip: safeSkip,
+      images: images.map((image) => GalleryMapper.mapLibraryItem(image)),
+    };
+  }
+
+  /** Reorders galleries in the portfolio (index → sortOrder). */
+  async reorder(ids: string[]): Promise<GalleryListResponse> {
+    await this.prisma.$transaction(
+      ids.map((id, index) =>
+        this.prisma.gallery.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+
+    return this.list();
   }
 
   async list(): Promise<GalleryListResponse> {
