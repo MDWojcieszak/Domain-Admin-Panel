@@ -9,6 +9,8 @@ import {
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import { Public } from '../common/decorators';
+import { GearService } from '../gear/gear.service';
+import { GearOverviewResponse } from '../gear/responses';
 import { GalleriesService } from './galleries.service';
 import { PortfolioGalleryQueryDto } from './dto';
 import {
@@ -21,7 +23,10 @@ import {
 @ApiTags('Portfolio')
 @Controller('portfolio')
 export class PortfolioController {
-  constructor(private readonly galleries: GalleriesService) {}
+  constructor(
+    private readonly galleries: GalleriesService,
+    private readonly gearService: GearService,
+  ) {}
 
   @Public()
   @Get('galleries')
@@ -44,6 +49,16 @@ export class PortfolioController {
     @Query('limit', new DefaultValuePipe(12), ParseIntPipe) limit: number,
   ): Promise<PortfolioHeroResponse> {
     return this.galleries.listHero(limit);
+  }
+
+  @Public()
+  @Get('gear')
+  @ApiOkResponse({
+    description: 'Photographer gear grouped by camera system (visible only)',
+    type: GearOverviewResponse,
+  })
+  gear(): Promise<GearOverviewResponse> {
+    return this.gearService.listPublic();
   }
 
   @Public()

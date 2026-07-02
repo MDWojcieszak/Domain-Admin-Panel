@@ -16,6 +16,7 @@ import {
   CreateGalleryDto,
   PatchGalleryStatusDto,
   SetGalleryItemsDto,
+  SetHeroDto,
   UpdateGalleryDto,
 } from './dto';
 import { GalleryMapper } from './gallery.mapper';
@@ -370,18 +371,47 @@ export class GalleriesService {
     return GalleryMapper.mapPublicDetail(gallery, items);
   }
 
+  /** Public homepage hero — the hand-picked HeroImage list, in curated order. */
   async listHero(limit = 12): Promise<PortfolioHeroResponse> {
-    const items = await this.prisma.galleryImage.findMany({
-      where: {
-        role: GalleryImageRole.HERO,
-        gallery: { status: GalleryStatus.PUBLISHED },
-      },
-      orderBy: [{ gallery: { sortOrder: 'asc' } }, { order: 'asc' }],
+    const heroes = await this.prisma.heroImage.findMany({
+      orderBy: { order: 'asc' },
       take: limit,
       include: { image: { select: ITEM_IMAGE_SELECT } },
     });
 
-    return { images: items.map((item) => GalleryMapper.mapPublicItem(item)) };
+    return { images: heroes.map((hero) => GalleryMapper.mapHeroItem(hero)) };
+  }
+
+  // ----------------------------------------------------------------
+  // Hero curation (admin)
+  // ----------------------------------------------------------------
+
+  /** Current homepage hero selection (admin), in curated order. */
+  async getHero(): Promise<PortfolioHeroResponse> {
+    const heroes = await this.prisma.heroImage.findMany({
+      orderBy: { order: 'asc' },
+      include: { image: { select: ITEM_IMAGE_SELECT } },
+    });
+
+    return { images: heroes.map((hero) => GalleryMapper.mapHeroItem(hero)) };
+  }
+
+  /**
+   * Replaces the whole homepage hero selection (drag & drop). The order of
+   * `imageIds` becomes the display order; duplicates collapse to first position.
+   */
+  async setHero(dto: SetHeroDto): Promise<PortfolioHeroResponse> {
+    const imageIds = [...new Set(dto.imageIds)];
+    await this.assertGalleryImages(imageIds);
+
+    await this.prisma.$transaction([
+      this.prisma.heroImage.deleteMany({}),
+      this.prisma.heroImage.createMany({
+        data: imageIds.map((imageId, index) => ({ imageId, order: index })),
+      }),
+    ]);
+
+    return this.getHero();
   }
 
   // ----------------------------------------------------------------

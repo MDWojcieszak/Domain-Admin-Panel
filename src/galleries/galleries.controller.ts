@@ -28,6 +28,7 @@ import {
   PatchGalleryStatusDto,
   ReorderGalleriesDto,
   SetGalleryItemsDto,
+  SetHeroDto,
   UpdateGalleryDto,
 } from './dto';
 import {
@@ -35,6 +36,7 @@ import {
   GalleryLibraryResponse,
   GalleryListResponse,
   GalleryResponse,
+  PortfolioHeroResponse,
 } from './responses';
 
 @ApiTags('Galleries')
@@ -90,6 +92,24 @@ export class GalleriesController {
   })
   reorder(@Body() dto: ReorderGalleriesDto): Promise<GalleryListResponse> {
     return this.galleries.reorder(dto.ids);
+  }
+
+  @Get('hero')
+  @ApiOkResponse({
+    description: 'Current homepage hero selection (curated order)',
+    type: PortfolioHeroResponse,
+  })
+  getHero(): Promise<PortfolioHeroResponse> {
+    return this.galleries.getHero();
+  }
+
+  @Put('hero')
+  @ApiOkResponse({
+    description: 'Replace the homepage hero selection (drag & drop)',
+    type: PortfolioHeroResponse,
+  })
+  setHero(@Body() dto: SetHeroDto): Promise<PortfolioHeroResponse> {
+    return this.galleries.setHero(dto);
   }
 
   @Post('import-existing')

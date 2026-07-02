@@ -23,6 +23,11 @@ function makeService() {
       findMany: jest.fn(),
     },
     image: { count: jest.fn(), findMany: jest.fn() },
+    heroImage: {
+      findMany: jest.fn(),
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
     $transaction: jest.fn((arg: any) =>
       typeof arg === 'function' ? arg({}) : Promise.all(arg),
     ),
@@ -312,6 +317,77 @@ describe('GalleriesService', () => {
 
       expect(res.take).toBe(100); // LIBRARY_MAX_TAKE
       expect(res.skip).toBe(0);
+    });
+  });
+
+  describe('setHero', () => {
+    it('validates scope, dedupes preserving order, replaces in a transaction', async () => {
+      const { service, prisma } = makeService();
+      prisma.image.count.mockResolvedValue(2); // 2 unique valid gallery images
+      prisma.heroImage.findMany.mockResolvedValue([
+        {
+          order: 0,
+          image: {
+            id: 'a',
+            width: 100,
+            height: 100,
+            orientation: 'SQUARE',
+            data: { localization: 'Kraków' },
+          },
+        },
+      ]);
+
+      const res = await service.setHero({ imageIds: ['a', 'b', 'a'] });
+
+      expect(prisma.heroImage.deleteMany).toHaveBeenCalledWith({});
+      const created = prisma.heroImage.createMany.mock.calls[0][0].data;
+      expect(created).toEqual([
+        { imageId: 'a', order: 0 },
+        { imageId: 'b', order: 1 },
+      ]);
+      expect(res.images[0]).toMatchObject({
+        imageId: 'a',
+        role: GalleryImageRole.HERO,
+        coverUrl: '/image/cover?id=a',
+        localization: 'Kraków',
+      });
+    });
+
+    it('rejects when an image is not a gallery image', async () => {
+      const { service, prisma } = makeService();
+      prisma.image.count.mockResolvedValue(0);
+
+      await expect(service.setHero({ imageIds: ['x'] })).rejects.toThrow(
+        /gallery images/,
+      );
+    });
+  });
+
+  describe('listHero', () => {
+    it('reads the HeroImage list in curated order (public)', async () => {
+      const { service, prisma } = makeService();
+      prisma.heroImage.findMany.mockResolvedValue([
+        {
+          order: 0,
+          image: {
+            id: 'h1',
+            width: 1600,
+            height: 900,
+            orientation: 'LANDSCAPE',
+          },
+        },
+      ]);
+
+      const res = await service.listHero(5);
+
+      const args = prisma.heroImage.findMany.mock.calls[0][0];
+      expect(args.orderBy).toEqual({ order: 'asc' });
+      expect(args.take).toBe(5);
+      expect(res.images[0]).toMatchObject({
+        imageId: 'h1',
+        role: GalleryImageRole.HERO,
+        lowResUrl: '/image/low-res?id=h1',
+      });
     });
   });
 

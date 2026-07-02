@@ -789,6 +789,9 @@ model Image {
   blogCountryCovers   BlogCountry[]        @relation("BlogCountryCover")
   galleryCovers       Gallery[]            @relation("GalleryCover")
   galleryItems        GalleryImage[]
+  heroImage           HeroImage?           @relation("HeroImage")
+  gearItems           GearItem[]           @relation("GearImage")
+  gearSystemCovers    GearSystem[]         @relation("GearSystemImage")
 
   @@index([scope])
   @@index([processingStatus])
@@ -850,6 +853,79 @@ model GalleryImage {
 
   @@unique([galleryId, imageId])
   @@index([galleryId, order])
+}
+
+/// Homepage hero selection — a hand-picked, ordered list of images shown as the
+/// portfolio "Selected Work". Decoupled from GalleryImageRole (which now only
+/// affects a gallery's own layout). One row per featured image.
+model HeroImage {
+  id      String @id @default(uuid())
+  image   Image  @relation("HeroImage", fields: [imageId], references: [id], onDelete: Cascade)
+  imageId String @unique
+  order   Int    @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([order])
+}
+
+enum GearCategory {
+  CAMERA
+  LENS
+  TRIPOD
+  BAG
+  LIGHTING
+  ACCESSORY
+  OTHER
+}
+
+/// A camera system / format the photographer shoots (e.g. "Fujifilm X" — APS-C,
+/// "Fujifilm GFX" — Medium Format). Groups gear items into labelled sections on
+/// the portfolio, each with its own rationale ("why this system").
+model GearSystem {
+  id          String  @id @default(uuid())
+  name        String // e.g. "Fujifilm X"
+  label       String? // short format tag, e.g. "APS-C", "Medium Format"
+  description String? // why this system
+
+  image   Image?  @relation("GearSystemImage", fields: [imageId], references: [id], onDelete: SetNull)
+  imageId String?
+
+  order   Int     @default(0)
+  visible Boolean @default(true)
+
+  items GearItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([visible, order])
+}
+
+/// A piece of the photographer's current kit, shown on the portfolio "My gear"
+/// section. Optionally belongs to a GearSystem; grouped by category, hand-ordered,
+/// with an optional photo.
+model GearItem {
+  id          String       @id @default(uuid())
+  category    GearCategory
+  brand       String
+  model       String
+  description String?
+
+  system   GearSystem? @relation(fields: [systemId], references: [id], onDelete: SetNull)
+  systemId String?
+
+  image   Image?  @relation("GearImage", fields: [imageId], references: [id], onDelete: SetNull)
+  imageId String?
+
+  order   Int     @default(0)
+  visible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([visible, category, order])
+  @@index([systemId])
 }
 
 model Dimensions {

@@ -132,6 +132,29 @@ export class GalleryMapper {
     };
   }
 
+  /**
+   * Maps a hand-picked hero row (image joined directly, no gallery item) to the
+   * public image shape. Role is fixed to HERO — these are the homepage features.
+   */
+  static mapHeroItem(hero: {
+    order: number;
+    image: ItemImage;
+  }): PortfolioImageResponse {
+    const img = hero.image;
+    return {
+      imageId: img.id,
+      order: hero.order,
+      role: GalleryImageRole.HERO,
+      coverUrl: coverUrlFor(img.id),
+      lowResUrl: lowResUrlFor(img.id),
+      width: img.width,
+      height: img.height,
+      orientation: img.orientation,
+      localization: localizationOf(img),
+      exif: buildExif(img),
+    };
+  }
+
   static mapPublicGallery(
     gallery: PublicGalleryCore,
     imageCount: number,
