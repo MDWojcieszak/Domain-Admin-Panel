@@ -821,6 +821,11 @@ model Gallery {
   status      GalleryStatus @default(DRAFT)
   sortOrder   Int           @default(0)
 
+  // Homepage presentation: whether this gallery gets a preview section on the
+  // home page, and how many photos to preview there (null = global default).
+  showOnHome       Boolean @default(true)
+  homePreviewCount Int?
+
   coverImage   Image?  @relation("GalleryCover", fields: [coverImageId], references: [id])
   coverImageId String?
 
@@ -835,6 +840,17 @@ model Gallery {
 
   @@index([status, sortOrder])
   @@index([createdById])
+}
+
+/// Singleton config for the public portfolio home (opinionated, no page builder).
+/// Backend enforces these limits so the frontend never over-fetches.
+model PortfolioSettings {
+  id                  String   @id @default(uuid())
+  heroLimit           Int      @default(12) // hero images on "Selected Work"
+  galleryPreviewCount Int      @default(6) // default preview photos per gallery on home
+  homeGalleryLimit    Int? // how many galleries on home (null = all featured)
+  galleryPageSize     Int      @default(24) // suggested page size for gallery detail
+  updatedAt           DateTime @updatedAt
 }
 
 model GalleryImage {

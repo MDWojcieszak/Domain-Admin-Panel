@@ -10,3 +10,6 @@ export * from './portfolio-gallery.response';
 export * from './portfolio-gallery-detail.response';
 export * from './portfolio-gallery-list.response';
 export * from './portfolio-hero.response';
+export * from './portfolio-settings.response';
+export * from './portfolio-home-section.response';
+export * from './portfolio-home.response';

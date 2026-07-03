@@ -18,6 +18,7 @@ import {
   SetGalleryItemsDto,
   SetHeroDto,
   UpdateGalleryDto,
+  UpdatePortfolioSettingsDto,
 } from './dto';
 import { GalleryMapper } from './gallery.mapper';
 import {
@@ -28,11 +29,17 @@ import {
   PortfolioGalleryDetailResponse,
   PortfolioGalleryListResponse,
   PortfolioHeroResponse,
+  PortfolioHomeResponse,
+  PortfolioSettingsResponse,
 } from './responses';
 
 const LIBRARY_MAX_TAKE = 100;
 
 const IMPORT_SLUG = 'zaimportowane';
+
+// Fixed id for the settings singleton so concurrent first-creates collide on the
+// primary key (only one wins) instead of inserting duplicate rows.
+const PORTFOLIO_SETTINGS_ID = 'portfolio-settings';
 
 const ITEM_IMAGE_SELECT = {
   id: true,
@@ -68,6 +75,8 @@ export class GalleriesService {
         slug,
         sortOrder,
         createdById: userId,
+        showOnHome: dto.showOnHome,
+        homePreviewCount: dto.homePreviewCount,
       },
       include: { _count: { select: { items: true } } },
     });
@@ -189,6 +198,8 @@ export class GalleriesService {
         description: dto.description,
         slug,
         coverImageId: dto.coverImageId,
+        showOnHome: dto.showOnHome,
+        homePreviewCount: dto.homePreviewCount,
       },
       include: { _count: { select: { items: true } } },
     });
@@ -344,6 +355,8 @@ export class GalleriesService {
   async getPublishedBySlug(
     slug: string,
     orientation?: ImageOrientation,
+    take?: number,
+    skip?: number,
   ): Promise<PortfolioGalleryDetailResponse> {
     const gallery = await this.prisma.gallery.findFirst({
       where: { slug, status: GalleryStatus.PUBLISHED },
@@ -358,17 +371,30 @@ export class GalleriesService {
 
     if (!gallery) throw new NotFoundException('Gallery not found');
 
-    const items = await this.prisma.galleryImage.findMany({
-      where: {
-        galleryId: gallery.id,
-        role: { not: GalleryImageRole.HIDDEN },
-        ...(orientation ? { image: { orientation } } : {}),
-      },
-      orderBy: { order: 'asc' },
-      include: { image: { select: ITEM_IMAGE_SELECT } },
-    });
+    const where: Prisma.GalleryImageWhereInput = {
+      galleryId: gallery.id,
+      role: { not: GalleryImageRole.HIDDEN },
+      ...(orientation ? { image: { orientation } } : {}),
+    };
 
-    return GalleryMapper.mapPublicDetail(gallery, items);
+    // Pagination is opt-in: without `take`, the whole gallery is returned (and
+    // `imageCount` = items.length). With `take`, `imageCount` is the real total.
+    const paged = take != null || skip != null;
+
+    const [items, total] = await Promise.all([
+      this.prisma.galleryImage.findMany({
+        where,
+        orderBy: { order: 'asc' },
+        ...(take != null ? { take: Math.max(1, take) } : {}),
+        ...(skip != null ? { skip: Math.max(0, skip) } : {}),
+        include: { image: { select: ITEM_IMAGE_SELECT } },
+      }),
+      paged
+        ? this.prisma.galleryImage.count({ where })
+        : Promise.resolve(undefined),
+    ]);
+
+    return GalleryMapper.mapPublicDetail(gallery, items, total);
   }
 
   /** Public homepage hero — the hand-picked HeroImage list, in curated order. */
@@ -412,6 +438,118 @@ export class GalleriesService {
     ]);
 
     return this.getHero();
+  }
+
+  // ----------------------------------------------------------------
+  // Portfolio home + settings
+  // ----------------------------------------------------------------
+
+  /** Public home: hero + featured galleries, each with a limited photo preview. */
+  async listHome(): Promise<PortfolioHomeResponse> {
+    const settings = await this.settingsRow();
+
+    const heroes = await this.prisma.heroImage.findMany({
+      orderBy: { order: 'asc' },
+      take: settings.heroLimit,
+      include: { image: { select: ITEM_IMAGE_SELECT } },
+    });
+    const hero = heroes.map((heroImage) =>
+      GalleryMapper.mapHeroItem(heroImage),
+    );
+
+    const galleries = await this.prisma.gallery.findMany({
+      where: { status: GalleryStatus.PUBLISHED, showOnHome: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      ...(settings.homeGalleryLimit != null
+        ? { take: settings.homeGalleryLimit }
+        : {}),
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        coverImageId: true,
+        homePreviewCount: true,
+      },
+    });
+
+    const sections = await Promise.all(
+      galleries.map(async (gallery) => {
+        const take = gallery.homePreviewCount ?? settings.galleryPreviewCount;
+        const where: Prisma.GalleryImageWhereInput = {
+          galleryId: gallery.id,
+          role: { not: GalleryImageRole.HIDDEN },
+        };
+        const [previewItems, imageCount] = await Promise.all([
+          this.prisma.galleryImage.findMany({
+            where,
+            orderBy: { order: 'asc' },
+            take: Math.max(1, take),
+            include: { image: { select: ITEM_IMAGE_SELECT } },
+          }),
+          this.prisma.galleryImage.count({ where }),
+        ]);
+        return GalleryMapper.mapHomeSection(gallery, imageCount, previewItems);
+      }),
+    );
+
+    return { hero, sections };
+  }
+
+  /** Public read of the portfolio home settings. */
+  async getSettings(): Promise<PortfolioSettingsResponse> {
+    return GalleryMapper.mapSettings(await this.settingsRow());
+  }
+
+  /** Admin update of the singleton portfolio settings. */
+  async updateSettings(
+    dto: UpdatePortfolioSettingsDto,
+  ): Promise<PortfolioSettingsResponse> {
+    const current = await this.settingsRow();
+    const pos = (value: number) => Math.max(1, Math.trunc(value));
+
+    const updated = await this.prisma.portfolioSettings.update({
+      where: { id: current.id },
+      data: {
+        heroLimit: dto.heroLimit !== undefined ? pos(dto.heroLimit) : undefined,
+        galleryPreviewCount:
+          dto.galleryPreviewCount !== undefined
+            ? pos(dto.galleryPreviewCount)
+            : undefined,
+        homeGalleryLimit:
+          dto.homeGalleryLimit === undefined
+            ? undefined
+            : dto.homeGalleryLimit === null
+              ? null
+              : pos(dto.homeGalleryLimit),
+        galleryPageSize:
+          dto.galleryPageSize !== undefined
+            ? pos(dto.galleryPageSize)
+            : undefined,
+      },
+    });
+
+    return GalleryMapper.mapSettings(updated);
+  }
+
+  /**
+   * Fetch-or-create the singleton settings row. Reads adopt any existing row;
+   * the first create uses a fixed id so concurrent creates collide on the PK
+   * (one wins) — then we re-read instead of inserting a duplicate.
+   */
+  private async settingsRow() {
+    const existing = await this.prisma.portfolioSettings.findFirst();
+    if (existing) return existing;
+
+    try {
+      return await this.prisma.portfolioSettings.create({
+        data: { id: PORTFOLIO_SETTINGS_ID },
+      });
+    } catch (err) {
+      const row = await this.prisma.portfolioSettings.findFirst();
+      if (row) return row; // lost the create race — use the winner's row
+      throw err;
+    }
   }
 
   // ----------------------------------------------------------------

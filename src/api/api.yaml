@@ -1458,6 +1458,37 @@ paths:
                 $ref: '#/components/schemas/PortfolioHeroResponse'
       tags: *ref_16
       security: *ref_17
+  /galleries/settings:
+    get:
+      operationId: GalleriesController_getSettings
+      parameters: []
+      responses:
+        '200':
+          description: Portfolio home settings (display limits)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioSettingsResponse'
+      tags: *ref_16
+      security: *ref_17
+    put:
+      operationId: GalleriesController_updateSettings
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePortfolioSettingsDto'
+      responses:
+        '200':
+          description: Update portfolio home settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioSettingsResponse'
+      tags: *ref_16
+      security: *ref_17
   /galleries/import-existing:
     post:
       operationId: GalleriesController_importExisting
@@ -1603,6 +1634,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/PortfolioHeroResponse'
       tags: *ref_18
+  /portfolio/home:
+    get:
+      operationId: PortfolioController_home
+      parameters: []
+      responses:
+        '200':
+          description: 'Composed home page: hero + featured galleries with previews'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioHomeResponse'
+      tags: *ref_18
+  /portfolio/settings:
+    get:
+      operationId: PortfolioController_settings
+      parameters: []
+      responses:
+        '200':
+          description: Public portfolio home settings (display limits)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioSettingsResponse'
+      tags: *ref_18
   /portfolio/gear:
     get:
       operationId: PortfolioController_gear
@@ -1629,6 +1684,16 @@ paths:
           in: query
           schema:
             $ref: '#/components/schemas/ImageOrientation'
+        - name: take
+          required: false
+          in: query
+          schema:
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            type: number
       responses:
         '200':
           description: A published gallery with its ordered, visible images
@@ -7528,6 +7593,11 @@ components:
           type: string
           maxLength: 200
           example: komunie
+        showOnHome:
+          type: boolean
+        homePreviewCount:
+          type: integer
+          nullable: true
       required:
         - title
     GalleryStatus:
@@ -7561,6 +7631,11 @@ components:
           nullable: true
         imageCount:
           type: integer
+        showOnHome:
+          type: boolean
+        homePreviewCount:
+          type: integer
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -7578,6 +7653,7 @@ components:
         - status
         - sortOrder
         - imageCount
+        - showOnHome
         - createdAt
         - updatedAt
     GalleryListResponse:
@@ -7753,6 +7829,34 @@ components:
             type: string
       required:
         - imageIds
+    PortfolioSettingsResponse:
+      type: object
+      properties:
+        heroLimit:
+          type: integer
+        galleryPreviewCount:
+          type: integer
+        homeGalleryLimit:
+          type: integer
+          nullable: true
+        galleryPageSize:
+          type: integer
+      required:
+        - heroLimit
+        - galleryPreviewCount
+        - galleryPageSize
+    UpdatePortfolioSettingsDto:
+      type: object
+      properties:
+        heroLimit:
+          type: integer
+        galleryPreviewCount:
+          type: integer
+        homeGalleryLimit:
+          type: integer
+          nullable: true
+        galleryPageSize:
+          type: integer
     GalleryImageItemResponse:
       type: object
       properties:
@@ -7814,6 +7918,11 @@ components:
           nullable: true
         imageCount:
           type: integer
+        showOnHome:
+          type: boolean
+        homePreviewCount:
+          type: integer
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -7835,6 +7944,7 @@ components:
         - status
         - sortOrder
         - imageCount
+        - showOnHome
         - createdAt
         - updatedAt
         - items
@@ -7854,6 +7964,11 @@ components:
           maxLength: 200
         coverImageId:
           type: string
+          nullable: true
+        showOnHome:
+          type: boolean
+        homePreviewCount:
+          type: integer
           nullable: true
     PatchGalleryStatusDto:
       type: object
@@ -7917,6 +8032,47 @@ components:
       required:
         - total
         - galleries
+    PortfolioHomeSectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverUrl:
+          type: string
+          nullable: true
+        imageCount:
+          type: integer
+        previewItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioImageResponse'
+      required:
+        - id
+        - title
+        - slug
+        - imageCount
+        - previewItems
+    PortfolioHomeResponse:
+      type: object
+      properties:
+        hero:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioImageResponse'
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioHomeSectionResponse'
+      required:
+        - hero
+        - sections
     GearCategory:
       type: string
       enum:

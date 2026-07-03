@@ -28,6 +28,11 @@ function makeService() {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
     },
+    portfolioSettings: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
     $transaction: jest.fn((arg: any) =>
       typeof arg === 'function' ? arg({}) : Promise.all(arg),
     ),
@@ -388,6 +393,121 @@ describe('GalleriesService', () => {
         role: GalleryImageRole.HERO,
         lowResUrl: '/image/low-res?id=h1',
       });
+    });
+  });
+
+  describe('settings', () => {
+    it('getSettings creates a default row when none exists', async () => {
+      const { service, prisma } = makeService();
+      prisma.portfolioSettings.findFirst.mockResolvedValue(null);
+      prisma.portfolioSettings.create.mockResolvedValue({
+        id: 's',
+        heroLimit: 12,
+        galleryPreviewCount: 6,
+        homeGalleryLimit: null,
+        galleryPageSize: 24,
+      });
+
+      const res = await service.getSettings();
+
+      expect(prisma.portfolioSettings.create).toHaveBeenCalledWith({
+        data: { id: 'portfolio-settings' },
+      });
+      expect(res).toMatchObject({
+        heroLimit: 12,
+        galleryPreviewCount: 6,
+        homeGalleryLimit: null,
+        galleryPageSize: 24,
+      });
+    });
+
+    it('updateSettings clamps to >= 1 and passes null through', async () => {
+      const { service, prisma } = makeService();
+      prisma.portfolioSettings.findFirst.mockResolvedValue({
+        id: 's',
+        heroLimit: 12,
+        galleryPreviewCount: 6,
+        homeGalleryLimit: 5,
+        galleryPageSize: 24,
+      });
+      prisma.portfolioSettings.update.mockResolvedValue({
+        id: 's',
+        heroLimit: 1,
+        galleryPreviewCount: 6,
+        homeGalleryLimit: null,
+        galleryPageSize: 24,
+      });
+
+      await service.updateSettings({ heroLimit: 0, homeGalleryLimit: null });
+
+      const data = prisma.portfolioSettings.update.mock.calls[0][0].data;
+      expect(data.heroLimit).toBe(1); // clamped up
+      expect(data.homeGalleryLimit).toBeNull();
+      expect(data.galleryPreviewCount).toBeUndefined(); // not provided
+    });
+  });
+
+  describe('listHome', () => {
+    it('returns hero (limited) + gallery sections with per-gallery preview limits', async () => {
+      const { service, prisma } = makeService();
+      prisma.portfolioSettings.findFirst.mockResolvedValue({
+        id: 's',
+        heroLimit: 2,
+        galleryPreviewCount: 6,
+        homeGalleryLimit: null,
+        galleryPageSize: 24,
+      });
+      prisma.heroImage.findMany.mockResolvedValue([
+        { order: 0, image: { id: 'h1' } },
+      ]);
+      prisma.gallery.findMany.mockResolvedValue([
+        {
+          id: 'g1',
+          title: 'A',
+          slug: 'a',
+          description: null,
+          coverImageId: null,
+          homePreviewCount: 3, // override
+        },
+      ]);
+      prisma.galleryImage.findMany.mockResolvedValue([
+        { imageId: 'i1', order: 0, role: 'NORMAL', image: { id: 'i1' } },
+      ]);
+      prisma.galleryImage.count.mockResolvedValue(30);
+
+      const res = await service.listHome();
+
+      expect(prisma.heroImage.findMany.mock.calls[0][0].take).toBe(2);
+      // preview take uses the per-gallery override (3), not the global 6
+      expect(prisma.galleryImage.findMany.mock.calls[0][0].take).toBe(3);
+      expect(res.hero).toHaveLength(1);
+      expect(res.sections[0]).toMatchObject({ slug: 'a', imageCount: 30 });
+      expect(res.sections[0].previewItems).toHaveLength(1);
+    });
+  });
+
+  describe('getPublishedBySlug pagination', () => {
+    it('paginates when take is given and reports the real total', async () => {
+      const { service, prisma } = makeService();
+      prisma.gallery.findFirst.mockResolvedValue({
+        id: 'g1',
+        title: 'A',
+        slug: 'a',
+        description: null,
+        coverImageId: null,
+      });
+      prisma.galleryImage.findMany.mockResolvedValue([
+        { imageId: 'i1', order: 0, role: 'NORMAL', image: { id: 'i1' } },
+      ]);
+      prisma.galleryImage.count.mockResolvedValue(30);
+
+      const res = await service.getPublishedBySlug('a', undefined, 10, 0);
+
+      const args = prisma.galleryImage.findMany.mock.calls[0][0];
+      expect(args.take).toBe(10);
+      expect(args.skip).toBe(0);
+      expect(res.imageCount).toBe(30); // real total, not page size
+      expect(res.items).toHaveLength(1);
     });
   });
 

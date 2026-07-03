@@ -4,6 +4,7 @@ import {
   GalleryImageRole,
   Image,
   ImageOrientation,
+  PortfolioSettings,
 } from '@prisma/client';
 
 import {
@@ -14,7 +15,9 @@ import {
   ImageExifResponse,
   PortfolioGalleryDetailResponse,
   PortfolioGalleryResponse,
+  PortfolioHomeSectionResponse,
   PortfolioImageResponse,
+  PortfolioSettingsResponse,
 } from './responses';
 
 /** Servable (stream) URLs — never expose the raw filesystem path / original. */
@@ -67,6 +70,8 @@ export class GalleryMapper {
       coverImageId: gallery.coverImageId,
       coverUrl: gallery.coverImageId ? coverUrlFor(gallery.coverImageId) : null,
       imageCount: gallery._count?.items ?? 0,
+      showOnHome: gallery.showOnHome,
+      homePreviewCount: gallery.homePreviewCount,
       createdAt: gallery.createdAt,
       updatedAt: gallery.updatedAt,
       publishedAt: gallery.publishedAt,
@@ -172,10 +177,31 @@ export class GalleryMapper {
   static mapPublicDetail(
     gallery: PublicGalleryCore,
     items: GalleryItemWithImage[],
+    imageCount?: number,
   ): PortfolioGalleryDetailResponse {
     return {
-      ...this.mapPublicGallery(gallery, items.length),
+      ...this.mapPublicGallery(gallery, imageCount ?? items.length),
       items: items.map((item) => this.mapPublicItem(item)),
+    };
+  }
+
+  static mapHomeSection(
+    gallery: PublicGalleryCore,
+    imageCount: number,
+    previewItems: GalleryItemWithImage[],
+  ): PortfolioHomeSectionResponse {
+    return {
+      ...this.mapPublicGallery(gallery, imageCount),
+      previewItems: previewItems.map((item) => this.mapPublicItem(item)),
+    };
+  }
+
+  static mapSettings(settings: PortfolioSettings): PortfolioSettingsResponse {
+    return {
+      heroLimit: settings.heroLimit,
+      galleryPreviewCount: settings.galleryPreviewCount,
+      homeGalleryLimit: settings.homeGalleryLimit,
+      galleryPageSize: settings.galleryPageSize,
     };
   }
 }

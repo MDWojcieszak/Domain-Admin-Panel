@@ -5,3 +5,4 @@ export * from './set-gallery-items.dto';
 export * from './set-hero.dto';
 export * from './reorder-galleries.dto';
 export * from './portfolio-query.dto';
+export * from './update-portfolio-settings.dto';

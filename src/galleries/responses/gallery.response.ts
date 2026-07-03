@@ -1,5 +1,11 @@
 import { GalleryStatus } from '@prisma/client';
-import { IsDate, IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
+import {
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsNumber,
+  IsString,
+} from 'nestjs-swagger-dto';
 
 export class GalleryResponse {
   @IsString()
@@ -29,6 +35,14 @@ export class GalleryResponse {
 
   @IsNumber({ type: 'integer' })
   imageCount: number;
+
+  /** Whether this gallery gets a preview section on the public home page. */
+  @IsBoolean()
+  showOnHome: boolean;
+
+  /** Preview photos on home for this gallery (null = global default). */
+  @IsNumber({ type: 'integer', optional: true, nullable: true })
+  homePreviewCount: number | null;
 
   @IsDate({ format: 'date-time' })
   createdAt: Date;

@@ -30,6 +30,7 @@ import {
   SetGalleryItemsDto,
   SetHeroDto,
   UpdateGalleryDto,
+  UpdatePortfolioSettingsDto,
 } from './dto';
 import {
   GalleryDetailResponse,
@@ -37,6 +38,7 @@ import {
   GalleryListResponse,
   GalleryResponse,
   PortfolioHeroResponse,
+  PortfolioSettingsResponse,
 } from './responses';
 
 @ApiTags('Galleries')
@@ -110,6 +112,26 @@ export class GalleriesController {
   })
   setHero(@Body() dto: SetHeroDto): Promise<PortfolioHeroResponse> {
     return this.galleries.setHero(dto);
+  }
+
+  @Get('settings')
+  @ApiOkResponse({
+    description: 'Portfolio home settings (display limits)',
+    type: PortfolioSettingsResponse,
+  })
+  getSettings(): Promise<PortfolioSettingsResponse> {
+    return this.galleries.getSettings();
+  }
+
+  @Put('settings')
+  @ApiOkResponse({
+    description: 'Update portfolio home settings',
+    type: PortfolioSettingsResponse,
+  })
+  updateSettings(
+    @Body() dto: UpdatePortfolioSettingsDto,
+  ): Promise<PortfolioSettingsResponse> {
+    return this.galleries.updateSettings(dto);
   }
 
   @Post('import-existing')

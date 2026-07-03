@@ -17,6 +17,8 @@ import {
   PortfolioGalleryDetailResponse,
   PortfolioGalleryListResponse,
   PortfolioHeroResponse,
+  PortfolioHomeResponse,
+  PortfolioSettingsResponse,
 } from './responses';
 
 /** Public, no-auth portfolio API. Only PUBLISHED galleries / non-hidden images. */
@@ -52,6 +54,26 @@ export class PortfolioController {
   }
 
   @Public()
+  @Get('home')
+  @ApiOkResponse({
+    description: 'Composed home page: hero + featured galleries with previews',
+    type: PortfolioHomeResponse,
+  })
+  home(): Promise<PortfolioHomeResponse> {
+    return this.galleries.listHome();
+  }
+
+  @Public()
+  @Get('settings')
+  @ApiOkResponse({
+    description: 'Public portfolio home settings (display limits)',
+    type: PortfolioSettingsResponse,
+  })
+  settings(): Promise<PortfolioSettingsResponse> {
+    return this.galleries.getSettings();
+  }
+
+  @Public()
   @Get('gear')
   @ApiOkResponse({
     description: 'Photographer gear grouped by camera system (visible only)',
@@ -63,6 +85,8 @@ export class PortfolioController {
 
   @Public()
   @Get('galleries/:slug')
+  @ApiQuery({ name: 'take', required: false, type: Number })
+  @ApiQuery({ name: 'skip', required: false, type: Number })
   @ApiOkResponse({
     description: 'A published gallery with its ordered, visible images',
     type: PortfolioGalleryDetailResponse,
@@ -70,7 +94,14 @@ export class PortfolioController {
   bySlug(
     @Param('slug') slug: string,
     @Query() query: PortfolioGalleryQueryDto,
+    @Query('take', new ParseIntPipe({ optional: true })) take?: number,
+    @Query('skip', new ParseIntPipe({ optional: true })) skip?: number,
   ): Promise<PortfolioGalleryDetailResponse> {
-    return this.galleries.getPublishedBySlug(slug, query.orientation);
+    return this.galleries.getPublishedBySlug(
+      slug,
+      query.orientation,
+      take,
+      skip,
+    );
   }
 }

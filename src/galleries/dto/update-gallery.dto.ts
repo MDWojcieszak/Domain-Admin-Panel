@@ -1,4 +1,4 @@
-import { IsString } from 'nestjs-swagger-dto';
+import { IsBoolean, IsNumber, IsString } from 'nestjs-swagger-dto';
 
 export class UpdateGalleryDto {
   @IsString({ optional: true, minLength: 1, maxLength: 200 })
@@ -13,4 +13,12 @@ export class UpdateGalleryDto {
   /** Image id used as the gallery cover (must be a GALLERY image). */
   @IsString({ optional: true, nullable: true })
   coverImageId?: string | null;
+
+  /** Show a preview section for this gallery on the home page. */
+  @IsBoolean({ optional: true })
+  showOnHome?: boolean;
+
+  /** Preview photos on home for this gallery (null = global default). */
+  @IsNumber({ type: 'integer', optional: true, nullable: true })
+  homePreviewCount?: number | null;
 }
