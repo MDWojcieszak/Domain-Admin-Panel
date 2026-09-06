@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -23,6 +25,8 @@ const POLL_INTERVAL_SECONDS = 5;
 
 @Injectable()
 export class DeviceAuthorizationService {
+  private readonly logger = new Logger(DeviceAuthorizationService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokens: IntegrationTokenService,
@@ -252,11 +256,30 @@ export class DeviceAuthorizationService {
     return createHash('sha256').update(value, 'utf8').digest('hex');
   }
 
+  /**
+   * `INTERFACE_URL` is the panel, not this API — it is the one address the
+   * device flow genuinely cannot guess.
+   *
+   * There used to be a `http://localhost:3000` fallback here, which is this
+   * service's own default port: the app would open a browser on the API, get
+   * nothing usable, and sit on `authorization_pending` until the code expired,
+   * with no error anywhere to explain it. Failing loudly at the first call is
+   * strictly better than handing out a URL that resolves to the wrong thing.
+   */
   private baseUrl(): string {
-    return (
-      this.config.get<string>('INTERFACE_URL')?.replace(/\/+$/, '') ??
-      'http://localhost:3000'
-    );
+    const url = this.config.get<string>('INTERFACE_URL')?.trim();
+
+    if (!url) {
+      this.logger.error(
+        'INTERFACE_URL is not set — the device flow cannot build an approval URL. ' +
+          'Point it at the panel (e.g. http://localhost:5173 in dev).',
+      );
+      throw new InternalServerErrorException(
+        'Device authorization is not configured on this server',
+      );
+    }
+
+    return url.replace(/\/+$/, '');
   }
 
   /** RFC 8628 §3.5 shape: HTTP 400 with an `error` code the client switches on. */

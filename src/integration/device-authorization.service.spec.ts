@@ -5,7 +5,11 @@ import { DeviceAuthorizationService } from './device-authorization.service';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-function makeService() {
+// `null` means "not configured" — passing `undefined` would just re-trigger
+// the default parameter and quietly test the configured path instead.
+function makeService(
+  interfaceUrl: string | null = 'https://panel.example.com/',
+) {
   const prisma = {
     deviceAuthorization: {
       create: jest.fn().mockResolvedValue({}),
@@ -21,7 +25,7 @@ function makeService() {
       expiresAt: null,
     }),
   };
-  const config = { get: () => 'https://panel.example.com/' };
+  const config = { get: () => interfaceUrl ?? undefined };
   const service = new DeviceAuthorizationService(
     prisma as any,
     tokens as any,
@@ -69,6 +73,22 @@ describe('DeviceAuthorizationService', () => {
         `https://panel.example.com/activate?code=${result.userCode}`,
       );
       expect(result.interval).toBeGreaterThan(0);
+    });
+
+    it('fails loudly when INTERFACE_URL is not configured', async () => {
+      const { service, prisma } = makeService(null);
+      prisma.deviceAuthorization.findUnique.mockResolvedValue(null);
+
+      // The alternative — defaulting to this API's own address — hands the app
+      // a URL that resolves to the wrong service, then leaves it polling
+      // authorization_pending until the code expires with nothing to explain it.
+      await expect(
+        service.authorize({
+          clientName: 'Photo Desktop',
+          platform: IntegrationPlatform.WINDOWS,
+          scopes: ['photoEntry.read'],
+        }),
+      ).rejects.toMatchObject({ status: 500 });
     });
 
     it('stores only the hash of the device code', async () => {
