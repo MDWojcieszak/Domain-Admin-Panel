@@ -10,6 +10,7 @@ import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { TOKEN_KEY } from '../decorators';
+import { IntegrationTokenService } from '../../integration/integration-token.service';
 
 @Injectable()
 export class AuthorizationGuard implements CanActivate {
@@ -17,6 +18,7 @@ export class AuthorizationGuard implements CanActivate {
     private reflector: Reflector,
     private jwtService: JwtService,
     private config: ConfigService,
+    private integrationTokens: IntegrationTokenService,
   ) {}
 
   async canActivate(context: ExecutionContext) {
@@ -40,6 +42,27 @@ export class AuthorizationGuard implements CanActivate {
     if (!token) {
       throw new UnauthorizedException();
     }
+
+    // Integration tokens (desktop app, CLI) authenticate the same routes as a
+    // session does. `request.user` is filled with the same shape a JWT produces,
+    // so @GetCurrentUser and PermissionsGuard need no special casing — except
+    // for `scopes`, which PermissionsGuard uses to cap what the token may do.
+    if (IntegrationTokenService.looksLikeIntegrationToken(token)) {
+      const verified = await this.integrationTokens.verify(token, request.ip);
+
+      if (!verified) {
+        throw new UnauthorizedException();
+      }
+
+      request['user'] = {
+        sub: verified.userId,
+        role: verified.role,
+        scopes: verified.scopes,
+        integrationTokenId: verified.id,
+      };
+      return true;
+    }
+
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.config.get('JWT_SECRET'),

@@ -45,6 +45,8 @@ import { ImmichModule } from './immich/immich.module';
 import { ApiDocsModule } from './api-docs/api-docs.module';
 import { AclModule } from './acl/acl.module';
 import { AclCoreModule } from './common/acl/acl-core.module';
+import { IntegrationCoreModule } from './integration/integration-core.module';
+import { IntegrationModule } from './integration/integration.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { BlogModule } from './blog/blog.module';
 import { EcosystemModule } from './ecosystem/ecosystem.module';
@@ -90,6 +92,8 @@ import { EcosystemModule } from './ecosystem/ecosystem.module';
     ApiDocsModule,
     AclModule,
     AclCoreModule,
+    IntegrationCoreModule,
+    IntegrationModule,
     DashboardModule,
     BlogModule,
     EcosystemModule,

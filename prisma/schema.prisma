@@ -282,10 +282,12 @@ model User {
   notifications     NotificationLog[]
   attachments       Attachment[]
 
-  apiKeys           ApiKey[]
-  connectedServices ConnectedService[]
-  createdLocations  Location[]
-  placeMember       PlaceMember[]
+  apiKeys              ApiKey[]
+  integrationTokens    IntegrationToken[]
+  deviceAuthorizations DeviceAuthorization[]
+  connectedServices    ConnectedService[]
+  createdLocations     Location[]
+  placeMember          PlaceMember[]
 
   permissionGroups PermissionGroup[] @relation("UserPermissionGroups")
 
@@ -583,26 +585,119 @@ model NotificationLog {
 }
 
 model ApiKey {
-  id        String               @id @default(uuid())
-  user      User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String?
-  name      String?
-  value     String
-  service   ConnectedServiceType
-  type      ApiKeyType
+  id          String               @id @default(uuid())
+  user        User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String?
+  name        String?
+  value       String
+  service     ConnectedServiceType
+  type        ApiKeyType
   // Base URL of the connected service (e.g. the Immich API endpoint). Stored
   // as a first-class column rather than inside `meta`.
-  baseUrl   String?
+  baseUrl     String?
   // Root path of the service's external library on the server (e.g. Immich's
   // /media/vault). The album-folder paths are built on top of this prefix.
   libraryPath String?
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
-  expiresAt DateTime?
-  meta      Json?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  expiresAt   DateTime?
+  meta        Json?
 
   @@unique([userId, service, type])
   @@index([type])
+}
+
+enum IntegrationPlatform {
+  WINDOWS
+  MACOS
+  LINUX
+  IOS
+  ANDROID
+  OTHER
+}
+
+enum DeviceAuthorizationStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+/// A long-lived bearer token issued to an external application (desktop app,
+/// CLI, script). Presented as `whcp_<tokenId>_<secret>`.
+///
+/// The token is split on purpose: `tokenId` is a public, indexed lookup key, so
+/// verifying a request is one indexed read plus one hash — not a scan that
+/// hashes the presented value against every row in the table.
+model IntegrationToken {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  /// Public half of the token. Not a secret; safe to index and log.
+  tokenId String @unique
+
+  /// SHA-256 of the secret half. Deliberately *not* argon2: the secret is 32
+  /// bytes of CSPRNG output, so there is no dictionary to attack and preimage
+  /// resistance is the whole guarantee. A slow KDF would only add ~100 ms to
+  /// every single API call the desktop app makes.
+  tokenHash String
+
+  /// Last 4 chars of the secret, so the UI can show "…a3f9" next to a token.
+  lastFour String
+
+  name     String
+  platform IntegrationPlatform @default(OTHER)
+
+  /// Permission keys from the ACL catalog. Effective access is the intersection
+  /// of these and the owning user's own permissions — a token can never grant
+  /// more than its user has.
+  scopes String[]
+
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  lastUsedIp String?
+  revokedAt  DateTime?
+
+  deviceAuthorizations DeviceAuthorization[]
+
+  @@index([userId])
+}
+
+/// One in-flight "authorize this device" handshake (OAuth 2.0 device grant,
+/// RFC 8628). The desktop app holds `deviceCode`, the user sees `userCode`.
+model DeviceAuthorization {
+  id String @id @default(uuid())
+
+  /// Carried in the approval URL and shown on screen. Short, unambiguous
+  /// alphabet, so it stays readable if someone retypes it by hand.
+  userCode String @unique
+
+  /// SHA-256 of the secret the desktop app polls with (same reasoning as
+  /// `IntegrationToken.tokenHash`), indexed so polling is a single lookup.
+  deviceCodeHash String @unique
+
+  clientName String
+  platform   IntegrationPlatform @default(OTHER)
+  scopes     String[]
+
+  status DeviceAuthorizationStatus @default(PENDING)
+
+  approvedBy   User?   @relation(fields: [approvedById], references: [id], onDelete: Cascade)
+  approvedById String?
+
+  /// Set when the app collects its token. The raw secret is minted at *collect*
+  /// time, never at approval time, so no plaintext is ever parked in this row —
+  /// and a replayed device code finds this already set and gets nothing.
+  issuedToken   IntegrationToken? @relation(fields: [issuedTokenId], references: [id], onDelete: SetNull)
+  issuedTokenId String?
+
+  expiresAt    DateTime
+  lastPolledAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([expiresAt])
+  @@index([approvedById])
 }
 
 model AiContext {
