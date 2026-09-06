@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   ForbiddenException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -75,6 +77,10 @@ export class ImageService {
   async readImage(id: string, type: ImageSizeType): Promise<ReadStream> {
     try {
       const image = await this.prisma.image.findUnique({ where: { id } });
+      // Unknown id used to blow up on `null` and surface as a misleading 403.
+      if (!image) {
+        throw new NotFoundException('Image not found');
+      }
       let filePath: string;
       switch (type) {
         case ImageSizeType.ORIGINAL:
@@ -87,15 +93,19 @@ export class ImageService {
           filePath = image.lowResUrl;
           break;
         default:
-          throw new ForbiddenException('Invalid image type');
+          throw new BadRequestException('Invalid image type');
       }
 
       if (!existsSync(filePath)) {
         throw new ForbiddenException('File not found');
       }
       return createReadStream(filePath);
-    } catch (_) {
-      throw new ForbiddenException('Error reading the image');
+    } catch (e) {
+      // Deliberate 404/403/400 pass through; only real failures (DB down, fs
+      // error) become 500 — they used to masquerade as 403 "Error reading".
+      if (e instanceof HttpException) throw e;
+      Logger.error(e);
+      throw new InternalServerErrorException('Error reading the image');
     }
   }
 

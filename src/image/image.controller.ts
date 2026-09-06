@@ -34,6 +34,7 @@ import {
   RequirePermissions,
 } from '../common/decorators';
 import { PERMISSIONS } from '../common/acl/permissions';
+import { streamFileToResponse } from '../common/helpers/stream-file.helper';
 import { ImageService } from './image.service';
 import { ImageProcessingService } from './image-processing.service';
 import { FileService } from '../file/file.service';
@@ -158,7 +159,7 @@ export class ImageController {
   })
   async getCoverImage(@Query() dto: ImageDto, @Res() res: Response) {
     const file = await this.imageService.readImage(dto.id, ImageSizeType.COVER);
-    file.pipe(res);
+    streamFileToResponse(file, res);
   }
 
   @Public()
@@ -173,7 +174,7 @@ export class ImageController {
       dto.id,
       ImageSizeType.LOW_RES,
     );
-    file.pipe(res);
+    streamFileToResponse(file, res);
   }
 
   @ApiBearerAuth()
@@ -188,7 +189,7 @@ export class ImageController {
       dto.id,
       ImageSizeType.ORIGINAL,
     );
-    file.pipe(res);
+    streamFileToResponse(file, res);
   }
 
   @ApiBearerAuth()
