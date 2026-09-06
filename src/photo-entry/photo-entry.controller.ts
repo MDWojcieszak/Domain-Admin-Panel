@@ -8,7 +8,12 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { PhotoEntryService } from './photo-entry.service';
 import {
@@ -19,6 +24,7 @@ import {
 } from './dto';
 import {
   PhotoEntryDetailsResponse,
+  PhotoEntryFolderStructureResponse,
   PhotoEntryListResponse,
   PhotoEntryResponse,
 } from './responses';
@@ -56,6 +62,29 @@ export class PhotoEntryController {
     @Param('id') id: string,
   ): Promise<PhotoEntryDetailsResponse> {
     return this.photoEntryService.getById(userId, id);
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_READ)
+  @Get(':id/folder-structure')
+  @ApiOperation({
+    summary: 'Folder layout of a single entry',
+    description:
+      'For external tools that create or mirror the entry folders themselves. ' +
+      'Returns the entry root folder plus the sub-folders to create under it, ' +
+      'each tagged with a stable `role` — match on the role, not on the path. ' +
+      'GENERAL and WORK entries only: ASTRO entries are filed per astro object ' +
+      'and have no single root.',
+  })
+  @ApiOkResponse({
+    description: 'Entry root folder and its sub-folder structure',
+    type: PhotoEntryFolderStructureResponse,
+  })
+  async getFolderStructure(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ): Promise<PhotoEntryFolderStructureResponse> {
+    return this.photoEntryService.getFolderStructure(userId, id);
   }
 
   @ApiBearerAuth()

@@ -3,51 +3,17 @@ import { access, mkdir } from 'fs/promises';
 import { constants as fsConstants } from 'fs';
 import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
-type EntryStructureType = 'general' | 'work' | 'astro';
+import {
+  ENTRY_STRUCTURES,
+  EntryStructureType,
+  PhotoEntryFolder,
+} from './entry-structure';
 
 @Injectable()
 export class PhotoStorageService {
   private readonly rootPath: string;
   private readonly smbHost: string;
   private readonly smbShare: string;
-
-  private static readonly ENTRY_STRUCTURES: Record<
-    EntryStructureType,
-    string[]
-  > = {
-    general: [
-      '01_SOURCE',
-      '01_SOURCE/RAW',
-      '01_SOURCE/JPEG',
-      '01_SOURCE/VIDEO',
-      '01_SOURCE/SEQUENCES',
-      '02_SELECTS',
-      '03_EDIT',
-      '04_EXPORT',
-    ],
-
-    work: [
-      '01_SOURCE',
-      '01_SOURCE/RAW',
-      '01_SOURCE/JPEG',
-      '01_SOURCE/VIDEO',
-      '01_SOURCE/SEQUENCES',
-      '02_SELECTS',
-      '03_EDIT',
-      '04_EXPORT',
-      '05_DELIVERY',
-    ],
-    astro: [
-      '01_SOURCE',
-      '01_SOURCE/LIGHTS',
-      '01_SOURCE/DARKS',
-      '01_SOURCE/FLATS',
-      '01_SOURCE/BIASES',
-      '01_SOURCE/REJECTED',
-      '02_WORKSPACE',
-      '04_EXPORT',
-    ],
-  };
 
   constructor(private readonly config: ConfigService) {
     this.rootPath = this.config.get<string>('PHOTO_LIBRARY_PATH');
@@ -143,13 +109,18 @@ export class PhotoStorageService {
     return rootPath;
   }
 
+  /** The folders an entry of this type consists of, root-relative and ordered. */
+  getEntryStructure(type: EntryStructureType): readonly PhotoEntryFolder[] {
+    return ENTRY_STRUCTURES[type];
+  }
+
   async ensureEntryStructure(
     relativeRootPath: string,
     type: EntryStructureType,
   ): Promise<void> {
     await this.ensureDirectories(
       relativeRootPath,
-      PhotoStorageService.ENTRY_STRUCTURES[type],
+      this.getEntryStructure(type).map((folder) => folder.path),
     );
   }
 

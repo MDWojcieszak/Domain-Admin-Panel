@@ -21,6 +21,7 @@ import {
 } from './dto';
 import {
   PhotoEntryDetailsResponse,
+  PhotoEntryFolderStructureResponse,
   PhotoEntryListResponse,
   PhotoEntryResponse,
 } from './responses';
@@ -291,6 +292,52 @@ export class PhotoEntryService {
     });
 
     return PhotoEntryMapper.toResponse(updated);
+  }
+
+  /**
+   * The on-disk layout of a single entry, for external tools that create or
+   * mirror the folders themselves (ingest scripts, Lightroom/Capture One
+   * helpers, the desktop uploader).
+   *
+   * Deliberately scoped to GENERAL and WORK. An ASTRO entry has no single root:
+   * its frames are filed per catalogued object under `ASTRO_OBJECTS/<object>/…`,
+   * so one `rootPath` + one folder list cannot describe it.
+   */
+  async getFolderStructure(
+    userId: string,
+    id: string,
+  ): Promise<PhotoEntryFolderStructureResponse> {
+    const existing = await this.getEntryWithAstroObjectsOrThrow(id, userId);
+
+    if (existing.type === PhotoEntryType.ASTRO) {
+      throw new BadRequestException(
+        'Folder structure is available for GENERAL and WORK entries only; ' +
+          'ASTRO entries are filed per astro object',
+      );
+    }
+
+    // Once folders exist, the stored path is authoritative — recomputing could
+    // disagree with what is actually on disk if the naming rules ever change.
+    const rootPath =
+      existing.rootPath ?? this.buildPathsForEntry(existing).entryRootPath;
+
+    if (!rootPath) {
+      throw new BadRequestException('Could not resolve entry rootPath');
+    }
+
+    return {
+      id: existing.id,
+      name: existing.name,
+      type: existing.type,
+      folderName: rootPath.split('/').pop(),
+      rootPath,
+      foldersCreated: existing.foldersCreated,
+      folders: this.photoStorageService
+        .getEntryStructure(
+          existing.type === PhotoEntryType.WORK ? 'work' : 'general',
+        )
+        .map((folder) => ({ path: folder.path, role: folder.role })),
+    };
   }
 
   async createFolders(userId: string, id: string): Promise<PhotoEntryResponse> {
