@@ -15,6 +15,7 @@ import { PERMISSIONS } from '../common/acl/permissions';
 export enum WsRoom {
   SERVERS = 'servers',
   PROCESSES = 'processes',
+  DEPLOYMENTS = 'deployments',
 }
 
 @WebSocketGateway({ cors: true })
@@ -54,6 +55,7 @@ export class WebsocketGateway implements OnGatewayConnection {
 
       if (can(PERMISSIONS.SERVER_READ)) client.join(WsRoom.SERVERS);
       if (can(PERMISSIONS.PROCESS_READ)) client.join(WsRoom.PROCESSES);
+      if (can(PERMISSIONS.DEPLOY_READ)) client.join(WsRoom.DEPLOYMENTS);
     } catch {
       this.logger.warn(`Rejected socket ${client.id}: invalid token`);
       client.disconnect();
