@@ -302,6 +302,9 @@ model User {
   redeemedCodes         RedeemCode[]
   blogMediaAlbums       BlogMediaAlbum[]
   galleries             Gallery[]
+
+  deployReleases Release[]
+  auditLogs      AuditLog[]
 }
 
 model PermissionGroup {
@@ -1112,6 +1115,7 @@ model ServerCategory {
   settings        ServerSettings[]
   processes       Process[]
   serverTransfers ServerTransfer[]
+  application     Application?
 
   @@unique([serverId, value])
 }
@@ -1242,6 +1246,7 @@ model Process {
   progress        Int?                 @default(0)
   logs            ProcessLog[]
   serverTransfers ServerTransfer[]
+  release         Release?
 }
 
 model ProcessLog {
@@ -2269,4 +2274,230 @@ model PoiCollectionTranslation {
 
   @@unique([collectionId, locale])
   @@index([locale])
+}
+
+// ---------------------------------------------------------------------------
+// Deploy — homelab deployment panel (see docs/deploy-design.md)
+// ---------------------------------------------------------------------------
+
+enum ApplicationTier {
+  BOOTSTRAP // agent, socket-proxy — not deployable from the panel (I1)
+  INFRASTRUCTURE // Postgres, RabbitMQ, Traefik — deployed "blind"
+  APPLICATION // everything else
+}
+
+enum AppSourceType {
+  RENDERED // compose produced by the renderer
+  GIT // compose from a cloned repo
+  HOST // compose already present on the host
+}
+
+enum BuildMode {
+  COMPOSE // agent runs `compose build` from sources before `up -d`
+  REGISTRY // image is built elsewhere (CI); the agent only pulls
+  NONE // third-party image, nothing to build
+}
+
+enum ContainerOrigin {
+  MANAGED // created by the panel (homelab.app label)
+  ADOPTABLE // foreign compose stack — can be adopted
+  TRUENAS // TrueNAS-managed app — view + restart only (I11)
+  STANDALONE // plain docker run, no compose
+}
+
+enum ReleaseStatus {
+  PENDING
+  DEPLOYING
+  ACTIVE
+  FAILED
+  SUPERSEDED
+  ROLLED_BACK
+  DEFERRED // Tier 1 — outcome awaited from the agent journal
+  UNKNOWN // TTL elapsed without a terminal status
+}
+
+enum ReleaseTrigger {
+  MANUAL
+  WEBHOOK
+  SCHEDULE
+  AUTO_UPDATE
+  ROLLBACK
+  AUTO_ROLLBACK // health gate did not pass
+}
+
+enum AuditSource {
+  PANEL
+  WEBHOOK
+  SCHEDULE
+  SYSTEM
+}
+
+model GitAccount {
+  id String @id @default(uuid())
+
+  name     String @unique // "github-mdwojcieszak"
+  provider String @default("github.com")
+  username String
+  token    String // encrypted (secretbox)
+
+  repos GitRepo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GitRepo {
+  id String @id @default(uuid())
+
+  name      String  @unique // "photo-gallery-backend"
+  repo      String // "MDWojcieszak/photo-gallery-backend"
+  branch    String  @default("main")
+  clonePath String? // defaults to /mnt/VAULT/APPS/repos/<repo>
+
+  account   GitAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId String? // null = public repo
+
+  lastCommit    String?
+  lastFetchedAt DateTime?
+
+  applications Application[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+model Application {
+  id   String @id @default(uuid())
+  slug String @unique
+
+  displayName String?
+  description String?
+
+  tier       ApplicationTier @default(APPLICATION)
+  sourceType AppSourceType   @default(RENDERED)
+  origin     ContainerOrigin @default(MANAGED)
+  buildMode  BuildMode       @default(REGISTRY)
+
+  image String? // ghcr.io/... (dla RENDERED)
+
+  gitRepo   GitRepo? @relation(fields: [gitRepoId], references: [id], onDelete: SetNull)
+  gitRepoId String?
+
+  spec Json // AppSpec — see docs/deploy-design.md §9.1
+
+  // Service state — independent of Process (D7), fed by docker events
+  runtimeStatus  CommandRuntimeStatus @default(IDLE)
+  runtimeSince   DateTime?
+  runtimeMessage String?
+
+  // Image update detection (spec.pollForUpdates)
+  availableDigest String?
+  lastPolledAt    DateTime?
+
+  webhookSecret  String? // encrypted
+  webhookEnabled Boolean @default(false)
+
+  serverCategory   ServerCategory @relation(fields: [serverCategoryId], references: [id], onDelete: Cascade)
+  serverCategoryId String         @unique
+
+  currentRelease   Release? @relation("CurrentRelease", fields: [currentReleaseId], references: [id], onDelete: SetNull)
+  currentReleaseId String?  @unique
+
+  envs     ApplicationEnv[]
+  releases Release[]        @relation("ApplicationReleases")
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tier, isDeleted])
+  @@index([gitRepoId])
+}
+
+model Release {
+  id String @id @default(uuid())
+
+  application   Application @relation("ApplicationReleases", fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId String
+
+  version String? // 0.3.0 (RENDERED)
+  digest  String? // sha256:... — the real image identity
+  commit  String? // commit aplikacji GIT
+
+  status ReleaseStatus @default(PENDING)
+
+  // Deployment job — reuses the existing Process model (D7)
+  process   Process? @relation(fields: [processId], references: [id], onDelete: SetNull)
+  processId String?  @unique
+
+  renderedCompose   String? // exactly what was written to disk
+  renderedEnvKeys   String[] // keys ONLY — never values (I3)
+  homelabCommit     String? // commit in the homelab repo
+  previousReleaseId String? // rollback target (no FK — the predecessor may be deleted)
+
+  triggeredBy   User?          @relation(fields: [triggeredById], references: [id], onDelete: SetNull)
+  triggeredById String?
+  trigger       ReleaseTrigger @default(MANUAL)
+
+  failureReason String?
+
+  currentOf Application? @relation("CurrentRelease")
+
+  createdAt  DateTime  @default(now())
+  deployedAt DateTime?
+
+  @@index([applicationId, status])
+  @@index([applicationId, createdAt])
+  @@index([triggeredById])
+}
+
+model Variable {
+  id String @id @default(uuid())
+
+  key         String  @unique // DB_HOST, TZ, DOMAIN_SUFFIX
+  value       String // encrypted when isSecret
+  isSecret    Boolean @default(false)
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApplicationEnv {
+  id String @id @default(uuid())
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId String
+
+  key      String
+  value    String // may contain [[KEY]]; encrypted when isSecret
+  isSecret Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([applicationId, key])
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  actor   User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorId String?
+  source  AuditSource @default(PANEL)
+
+  action     String // application.update, variable.delete, release.deploy
+  entityType String // Application, Variable, GitAccount
+  entityId   String
+  entityName String? // stays readable after the entity is deleted
+
+  diff Json? // { pole: { from, to } } — sekrety zredagowane (I12)
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
 }
