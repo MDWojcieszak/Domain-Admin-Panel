@@ -17,6 +17,14 @@ servers:
       target server queue. Configure the real broker URL via the RABBITMQ_URL
       environment variable.
 channels:
+  agent.heartbeat:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_agent_heartbeat
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/AgentHeartbeatDto'
   commands.register:
     description: 'Direction: Server → Backend'
     publish:
@@ -33,6 +41,62 @@ channels:
       x-interaction: message
       message:
         $ref: '#/components/messages/UpdateServerCommandDto'
+  containers.changed:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_containers_changed
+      x-direction: server->backend
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/ContainerChangedDto'
+  containers.snapshot:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_containers_snapshot
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/ContainerSnapshotDto'
+  deploy.git.credentials:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_deploy_git_credentials
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/deploy_git_credentialsMessage'
+  deploy.process.log:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_deploy_process_log
+      x-direction: server->backend
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/RegisterProcessLogDto'
+  deploy.process.register:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_deploy_process_register
+      x-direction: server->backend
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/RegisterProcessDto'
+  deploy.process.status:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_deploy_process_status
+      x-direction: server->backend
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/ProcessStatusDto'
+  deploy.release.result:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_deploy_release_result
+      x-direction: server->backend
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/DeployResultDto'
   process.register:
     description: 'Direction: Server → Backend'
     publish:
@@ -154,6 +218,67 @@ channels:
       x-interaction: event
       message:
         $ref: '#/components/messages/SetSettingEvent'
+  containers.snapshot-request:
+    description: >-
+      Direction: Backend → Server. Ask the agent to republish the full container
+      list as containers.snapshot.
+    subscribe:
+      operationId: send_containers_snapshot_request
+      x-direction: backend->server
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/ContainersSnapshotRequestEvent'
+  deploy.execute:
+    description: >-
+      Direction: Backend → Server. Materialise the stack files and run a
+      deployment. Progress is reported on deploy.process.log / .status.
+    subscribe:
+      operationId: send_deploy_execute
+      x-direction: backend->server
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/DeployCommandEvent'
+  stack.action:
+    description: >-
+      Direction: Backend → Server. Run a lifecycle action (start/restart/stop)
+      on a compose stack. Replies with an acknowledgement; resulting state
+      arrives via containers.changed.
+    subscribe:
+      operationId: send_stack_action
+      x-direction: backend->server
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/StackActionEvent'
+  stack.check-update:
+    description: >-
+      Direction: Backend → Server. Compare the running image digest against the
+      registry. Replies with { current, available }.
+    subscribe:
+      operationId: send_stack_check_update
+      x-direction: backend->server
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/StackCheckUpdateEvent'
+  stack.logs:
+    description: >-
+      Direction: Backend → Server. Fetch the last N log lines of a compose stack
+      or container.
+    subscribe:
+      operationId: send_stack_logs
+      x-direction: backend->server
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/StackLogsEvent'
+  stack.read-files:
+    description: >-
+      Direction: Backend → Server. Read the compose files of a stack. Replies
+      with { files: [{ path, content }] }.
+    subscribe:
+      operationId: send_stack_read_files
+      x-direction: backend->server
+      x-interaction: message
+      message:
+        $ref: '#/components/messages/StackReadFilesEvent'
   server.transfer.set:
     description: >-
       Direction: Backend → Server. Push a transfer task configuration to the
@@ -166,6 +291,12 @@ channels:
         $ref: '#/components/messages/SetServerTransferEvent'
 components:
   messages:
+    AgentHeartbeatDto:
+      name: AgentHeartbeatDto
+      title: AgentHeartbeatDto
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AgentHeartbeatDto'
     RegisterServerCommandsDto:
       name: RegisterServerCommandsDto
       title: RegisterServerCommandsDto
@@ -178,24 +309,48 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/UpdateServerCommandDto'
-    RegisterProcessDto:
-      name: RegisterProcessDto
-      title: RegisterProcessDto
+    ContainerChangedDto:
+      name: ContainerChangedDto
+      title: ContainerChangedDto
       contentType: application/json
       payload:
-        $ref: '#/components/schemas/RegisterProcessDto'
+        $ref: '#/components/schemas/ContainerChangedDto'
+    ContainerSnapshotDto:
+      name: ContainerSnapshotDto
+      title: ContainerSnapshotDto
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ContainerSnapshotDto'
+    deploy_git_credentialsMessage:
+      name: deploy_git_credentialsMessage
+      title: deploy_git_credentialsMessage
+      contentType: application/json
+      payload:
+        type: object
     RegisterProcessLogDto:
       name: RegisterProcessLogDto
       title: RegisterProcessLogDto
       contentType: application/json
       payload:
         $ref: '#/components/schemas/RegisterProcessLogDto'
+    RegisterProcessDto:
+      name: RegisterProcessDto
+      title: RegisterProcessDto
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RegisterProcessDto'
     ProcessStatusDto:
       name: ProcessStatusDto
       title: ProcessStatusDto
       contentType: application/json
       payload:
         $ref: '#/components/schemas/ProcessStatusDto'
+    DeployResultDto:
+      name: DeployResultDto
+      title: DeployResultDto
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/DeployResultDto'
     HeartbeatDto:
       name: HeartbeatDto
       title: HeartbeatDto
@@ -250,6 +405,42 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/SetSettingEvent'
+    ContainersSnapshotRequestEvent:
+      name: ContainersSnapshotRequestEvent
+      title: ContainersSnapshotRequestEvent
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ContainersSnapshotRequestEvent'
+    DeployCommandEvent:
+      name: DeployCommandEvent
+      title: DeployCommandEvent
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/DeployCommandEvent'
+    StackActionEvent:
+      name: StackActionEvent
+      title: StackActionEvent
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/StackActionEvent'
+    StackCheckUpdateEvent:
+      name: StackCheckUpdateEvent
+      title: StackCheckUpdateEvent
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/StackCheckUpdateEvent'
+    StackLogsEvent:
+      name: StackLogsEvent
+      title: StackLogsEvent
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/StackLogsEvent'
+    StackReadFilesEvent:
+      name: StackReadFilesEvent
+      title: StackReadFilesEvent
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/StackReadFilesEvent'
     SetServerTransferEvent:
       name: SetServerTransferEvent
       title: SetServerTransferEvent
@@ -257,6 +448,17 @@ components:
       payload:
         $ref: '#/components/schemas/SetServerTransferEvent'
   schemas:
+    AgentHeartbeatDto:
+      type: object
+      properties:
+        version:
+          type: string
+        uptimeSeconds:
+          type: number
+        containerCount:
+          type: number
+        dockerReachable:
+          type: boolean
     CommandType:
       type: string
       enum:
@@ -312,6 +514,74 @@ components:
         - serverName
         - commandName
         - category
+    AgentContainerDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+        imageDigest:
+          type: string
+          nullable: true
+        state:
+          type: string
+        health:
+          type: string
+          nullable: true
+        exitCode:
+          type: number
+          nullable: true
+        labels:
+          type: object
+        createdAt:
+          type: string
+          nullable: true
+      required:
+        - id
+        - name
+        - image
+        - state
+        - labels
+    ContainerChangedDto:
+      type: object
+      properties:
+        container:
+          $ref: '#/components/schemas/AgentContainerDto'
+        removed:
+          type: boolean
+      required:
+        - container
+    ContainerSnapshotDto:
+      type: object
+      properties:
+        containers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentContainerDto'
+      required:
+        - containers
+    ProcessLogLevel:
+      type: string
+      enum:
+        - LOG
+        - SUCCESS
+        - WARNING
+        - ERROR
+    RegisterProcessLogDto:
+      type: object
+      properties:
+        processId:
+          type: string
+        message:
+          type: string
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+      required:
+        - processId
+        - message
     ServerProcessStatus:
       type: string
       enum:
@@ -338,25 +608,6 @@ components:
         - categoryId
         - userId
         - name
-    ProcessLogLevel:
-      type: string
-      enum:
-        - LOG
-        - SUCCESS
-        - WARNING
-        - ERROR
-    RegisterProcessLogDto:
-      type: object
-      properties:
-        processId:
-          type: string
-        message:
-          type: string
-        level:
-          $ref: '#/components/schemas/ProcessLogLevel'
-      required:
-        - processId
-        - message
     ProcessStatusDto:
       type: object
       properties:
@@ -367,6 +618,28 @@ components:
       required:
         - processId
         - status
+    DeployResultDto:
+      type: object
+      properties:
+        releaseId:
+          type: string
+        success:
+          type: boolean
+        healthy:
+          type: boolean
+        digest:
+          type: string
+          nullable: true
+        homelabCommit:
+          type: string
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+      required:
+        - releaseId
+        - success
+        - healthy
     HeartbeatDto:
       type: object
       properties:
@@ -719,6 +992,225 @@ components:
         - name
         - value
         - category
+    ContainersSnapshotRequestEvent:
+      type: object
+      properties:
+        reason:
+          type: string
+      required:
+        - reason
+    BuildMode:
+      type: string
+      enum:
+        - COMPOSE
+        - REGISTRY
+        - NONE
+    DeployFileDto:
+      type: object
+      properties:
+        path:
+          type: string
+        content:
+          type: string
+        mode:
+          type: string
+        gitignore:
+          type: boolean
+      required:
+        - path
+        - content
+    DeployRunDto:
+      type: object
+      properties:
+        runDirectory:
+          type: string
+        filePaths:
+          type: array
+          items:
+            type: string
+        envFilePath:
+          type: string
+        projectName:
+          type: string
+        autoPull:
+          type: boolean
+        destroyBeforeDeploy:
+          type: boolean
+        preDeploy:
+          type: string
+          nullable: true
+        postDeploy:
+          type: string
+          nullable: true
+        extraArgs:
+          type: array
+          items:
+            type: string
+        ignoreServices:
+          type: array
+          items:
+            type: string
+        healthTimeout:
+          type: number
+      required:
+        - runDirectory
+        - filePaths
+        - envFilePath
+        - autoPull
+        - destroyBeforeDeploy
+        - extraArgs
+        - ignoreServices
+        - healthTimeout
+    DeployGitDto:
+      type: object
+      properties:
+        repoId:
+          type: string
+        repo:
+          type: string
+        provider:
+          type: string
+        branch:
+          type: string
+        commit:
+          type: string
+          nullable: true
+        clonePath:
+          type: string
+        reclone:
+          type: boolean
+      required:
+        - repoId
+        - repo
+        - provider
+        - branch
+        - clonePath
+        - reclone
+    DeployCommandEvent:
+      type: object
+      properties:
+        releaseId:
+          type: string
+        processId:
+          type: string
+        slug:
+          type: string
+        stackDirectory:
+          type: string
+        buildMode:
+          $ref: '#/components/schemas/BuildMode'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeployFileDto'
+        run:
+          $ref: '#/components/schemas/DeployRunDto'
+        git:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/DeployGitDto'
+        commitMessage:
+          type: string
+      required:
+        - releaseId
+        - processId
+        - slug
+        - stackDirectory
+        - buildMode
+        - files
+        - run
+        - commitMessage
+    StackActionType:
+      type: string
+      enum:
+        - start
+        - restart
+        - stop
+    StackActionEvent:
+      type: object
+      properties:
+        action:
+          $ref: '#/components/schemas/StackActionType'
+        project:
+          type: string
+        runDirectory:
+          type: string
+          nullable: true
+        filePaths:
+          type: array
+          items:
+            type: string
+        containerIds:
+          type: array
+          items:
+            type: string
+        timeoutSeconds:
+          type: number
+      required:
+        - action
+        - project
+        - runDirectory
+        - filePaths
+        - containerIds
+    StackCheckUpdateEvent:
+      type: object
+      properties:
+        project:
+          type: string
+        runDirectory:
+          type: string
+          nullable: true
+        filePaths:
+          type: array
+          items:
+            type: string
+        image:
+          type: string
+      required:
+        - project
+        - runDirectory
+        - filePaths
+        - image
+    StackLogsEvent:
+      type: object
+      properties:
+        project:
+          type: string
+        runDirectory:
+          type: string
+          nullable: true
+        filePaths:
+          type: array
+          items:
+            type: string
+        containerIds:
+          type: array
+          items:
+            type: string
+        tail:
+          type: number
+      required:
+        - project
+        - runDirectory
+        - filePaths
+        - containerIds
+        - tail
+    StackReadFilesEvent:
+      type: object
+      properties:
+        project:
+          type: string
+        runDirectory:
+          type: string
+          nullable: true
+        filePaths:
+          type: array
+          items:
+            type: string
+      required:
+        - project
+        - runDirectory
+        - filePaths
     SetServerTransferEvent:
       type: object
       properties:

@@ -26,6 +26,7 @@ import { ServerProcessModule } from './server-process/server-process.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { GalleriesModule } from './galleries/galleries.module';
+import { DeployModule } from './deploy/deploy.module';
 import { GearModule } from './gear/gear.module';
 import { TokenService } from './token/token.service';
 import { TokenModule } from './token/token.module';
@@ -97,6 +98,7 @@ import { EcosystemModule } from './ecosystem/ecosystem.module';
     DashboardModule,
     BlogModule,
     EcosystemModule,
+    DeployModule,
   ],
   providers: [
     {

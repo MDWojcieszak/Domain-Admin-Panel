@@ -6664,6 +6664,550 @@ paths:
                 $ref: '#/components/schemas/PublicKeyResponse'
       tags:
         - Ecosystem · License
+  /deploy/applications:
+    get:
+      operationId: DeployController_listApplications
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: &ref_74
+        - Deploy
+      security: &ref_75
+        - bearer: []
+    post:
+      operationId: DeployController_createApplication
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApplicationDto'
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}:
+    get:
+      operationId: DeployController_getApplication
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    patch:
+      operationId: DeployController_updateApplication
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApplicationDto'
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    delete:
+      operationId: DeployController_deleteApplication
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}/render:
+    post:
+      operationId: DeployController_renderApplication
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}/releases:
+    post:
+      operationId: DeployController_createRelease
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReleaseDto'
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    get:
+      operationId: DeployController_listReleases
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/releases/{id}/rollback:
+    post:
+      operationId: DeployController_rollback
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}/webhook/rotate:
+    post:
+      operationId: DeployController_rotateWebhookSecret
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}/webhook:
+    delete:
+      operationId: DeployController_disableWebhook
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}/import/preview:
+    post:
+      operationId: DeployController_previewImport
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}/import:
+    post:
+      operationId: DeployController_applyImport
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/git/accounts:
+    get:
+      operationId: DeployController_listGitAccounts
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    post:
+      operationId: DeployController_createGitAccount
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertGitAccountDto'
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/git/accounts/{id}:
+    patch:
+      operationId: DeployController_updateGitAccount
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertGitAccountDto'
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    delete:
+      operationId: DeployController_deleteGitAccount
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/git/repos:
+    get:
+      operationId: DeployController_listGitRepos
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    post:
+      operationId: DeployController_createGitRepo
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertGitRepoDto'
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/git/repos/{id}:
+    get:
+      operationId: DeployController_getGitRepo
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    patch:
+      operationId: DeployController_updateGitRepo
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertGitRepoDto'
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    delete:
+      operationId: DeployController_deleteGitRepo
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}/env:
+    get:
+      operationId: DeployController_listEnv
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/applications/{id}/env/{key}:
+    put:
+      operationId: DeployController_upsertEnv
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: key
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertApplicationEnvDto'
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    delete:
+      operationId: DeployController_deleteEnv
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: key
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/variables:
+    get:
+      operationId: DeployController_listVariables
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+    put:
+      operationId: DeployController_upsertVariable
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertVariableDto'
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/variables/{id}:
+    delete:
+      operationId: DeployController_deleteVariable
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/containers:
+    get:
+      operationId: DeployController_listContainers
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/containers/{project}:
+    get:
+      operationId: DeployController_getContainerStack
+      parameters:
+        - name: project
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/containers/{project}/adopt:
+    post:
+      operationId: DeployController_adoptStack
+      parameters:
+        - name: project
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: serverId
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/containers/{project}/actions/{action}:
+    post:
+      operationId: DeployController_runStackAction
+      parameters:
+        - name: project
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: action
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: serverId
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/containers/{project}/logs:
+    get:
+      operationId: DeployController_stackLogs
+      parameters:
+        - name: project
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: tail
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: serverId
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/containers/refresh:
+    post:
+      operationId: DeployController_refreshContainers
+      parameters:
+        - name: serverId
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/agent:
+    get:
+      operationId: DeployController_agentStatus
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
+  /deploy/audit/{entityType}/{entityId}:
+    get:
+      operationId: DeployController_listAudit
+      parameters:
+        - name: entityType
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: entityId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: take
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_74
+      security: *ref_75
 info:
   title: WHCP Backend
   description: XD
@@ -14781,3 +15325,256 @@ components:
           type: string
       required:
         - publicKey
+    ApplicationTier:
+      type: string
+      enum:
+        - BOOTSTRAP
+        - INFRASTRUCTURE
+        - APPLICATION
+    AppSourceType:
+      type: string
+      enum:
+        - RENDERED
+        - GIT
+        - HOST
+    CreateApplicationDto:
+      type: object
+      properties:
+        slug:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$
+        displayName:
+          type: string
+        description:
+          type: string
+        tier:
+          $ref: '#/components/schemas/ApplicationTier'
+        sourceType:
+          $ref: '#/components/schemas/AppSourceType'
+        image:
+          type: string
+        gitRepoId:
+          type: string
+        serverCategoryId:
+          type: string
+      required:
+        - slug
+        - serverCategoryId
+    UpdateApplicationDto:
+      type: object
+      properties:
+        displayName:
+          type: string
+        description:
+          type: string
+        tier:
+          $ref: '#/components/schemas/ApplicationTier'
+        image:
+          type: string
+        gitRepoId:
+          type: string
+          nullable: true
+        webhookEnabled:
+          type: boolean
+    ReleaseTrigger:
+      type: string
+      enum:
+        - MANUAL
+        - WEBHOOK
+        - SCHEDULE
+        - AUTO_UPDATE
+        - ROLLBACK
+        - AUTO_ROLLBACK
+    CreateReleaseDto:
+      type: object
+      properties:
+        composeHash:
+          type: string
+        version:
+          type: string
+        digest:
+          type: string
+        trigger:
+          $ref: '#/components/schemas/ReleaseTrigger'
+      required:
+        - composeHash
+    UpsertGitAccountDto:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$
+        provider:
+          type: string
+        username:
+          type: string
+        token:
+          type: string
+      required:
+        - name
+        - username
+    UpsertGitRepoDto:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-.]{0,61}[a-z0-9]$
+        repo:
+          type: string
+          pattern: ^[\w.-]+\/[\w.-]+$
+        branch:
+          type: string
+        clonePath:
+          type: string
+          nullable: true
+        accountId:
+          type: string
+          nullable: true
+      required:
+        - name
+        - repo
+    UpsertApplicationEnvDto:
+      type: object
+      properties:
+        value:
+          type: string
+        isSecret:
+          type: boolean
+      required:
+        - value
+    UpsertVariableDto:
+      type: object
+      properties:
+        key:
+          type: string
+          pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+        value:
+          type: string
+        isSecret:
+          type: boolean
+        description:
+          type: string
+      required:
+        - key
+        - value
+    AgentContainerDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+        imageDigest:
+          type: string
+          nullable: true
+        state:
+          type: string
+        health:
+          type: string
+          nullable: true
+        exitCode:
+          type: number
+          nullable: true
+        labels:
+          type: object
+        createdAt:
+          type: string
+          nullable: true
+      required:
+        - id
+        - name
+        - image
+        - state
+        - labels
+    ContainerSnapshotDto:
+      type: object
+      properties:
+        containers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentContainerDto'
+      required:
+        - containers
+    ContainerChangedDto:
+      type: object
+      properties:
+        container:
+          $ref: '#/components/schemas/AgentContainerDto'
+        removed:
+          type: boolean
+      required:
+        - container
+    AgentHeartbeatDto:
+      type: object
+      properties:
+        version:
+          type: string
+        uptimeSeconds:
+          type: number
+        containerCount:
+          type: number
+        dockerReachable:
+          type: boolean
+    RegisterProcessDto:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        commandValue:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerProcessStatus'
+      required:
+        - categoryId
+        - userId
+        - name
+    RegisterProcessLogDto:
+      type: object
+      properties:
+        processId:
+          type: string
+        message:
+          type: string
+        level:
+          $ref: '#/components/schemas/ProcessLogLevel'
+      required:
+        - processId
+        - message
+    ProcessStatusDto:
+      type: object
+      properties:
+        processId:
+          type: string
+        status:
+          $ref: '#/components/schemas/ServerProcessStatus'
+      required:
+        - processId
+        - status
+    DeployResultDto:
+      type: object
+      properties:
+        releaseId:
+          type: string
+        success:
+          type: boolean
+        healthy:
+          type: boolean
+        digest:
+          type: string
+          nullable: true
+        homelabCommit:
+          type: string
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+      required:
+        - releaseId
+        - success
+        - healthy
