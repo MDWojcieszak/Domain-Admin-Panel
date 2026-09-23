@@ -60,6 +60,13 @@ export const PERMISSIONS = {
 
   ACL_MANAGE: 'acl.manage',
   ACL_ASSIGN: 'acl.assign',
+
+  DEPLOY_READ: 'deploy.read',
+  DEPLOY_MANAGE: 'deploy.manage',
+  DEPLOY_EXECUTE: 'deploy.execute',
+  DEPLOY_INFRASTRUCTURE: 'deploy.infrastructure',
+  DEPLOY_SECRETS: 'deploy.secrets',
+  DEPLOY_GIT: 'deploy.git',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -305,5 +312,38 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
     key: PERMISSIONS.ACL_ASSIGN,
     resource: 'acl',
     description: 'Assign users to permission groups',
+  },
+
+  {
+    key: PERMISSIONS.DEPLOY_READ,
+    resource: 'deploy',
+    description:
+      'View applications, containers, release history and deployment logs',
+  },
+  {
+    key: PERMISSIONS.DEPLOY_MANAGE,
+    resource: 'deploy',
+    description: 'Create and edit applications, their spec and non-secret env',
+  },
+  {
+    key: PERMISSIONS.DEPLOY_EXECUTE,
+    resource: 'deploy',
+    description: 'Deploy, roll back and restart application-tier stacks',
+  },
+  {
+    key: PERMISSIONS.DEPLOY_INFRASTRUCTURE,
+    resource: 'deploy',
+    description:
+      'Deploy infrastructure-tier stacks (database, broker, proxy) — wider blast radius than deploy.execute',
+  },
+  {
+    key: PERMISSIONS.DEPLOY_SECRETS,
+    resource: 'deploy',
+    description: 'Manage global variables and secret environment values',
+  },
+  {
+    key: PERMISSIONS.DEPLOY_GIT,
+    resource: 'deploy',
+    description: 'Manage git accounts and repositories, including credentials',
   },
 ];
