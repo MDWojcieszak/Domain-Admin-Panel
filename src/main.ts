@@ -100,6 +100,15 @@ async function bootstrap() {
     },
     { inheritAppConfig: true },
   );
+  // Deployment agent on its own queue, with manual ack so a crash mid-drain
+  // cannot lose a deployment's logs or final status (config.ts, §12.3).
+  app.connectMicroservice(
+    {
+      transport: Transport.RMQ,
+      options: config().deployQueueConfig,
+    },
+    { inheritAppConfig: true },
+  );
   app.startAllMicroservices();
   // Explicit origin allow-list (comma-separated ALLOWED_ORIGINS). No credentials:
   // auth is Bearer-header-only, there are no cookies to protect. (audit H1)

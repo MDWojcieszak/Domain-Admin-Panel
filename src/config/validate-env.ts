@@ -30,6 +30,13 @@ const REQUIRED_IN_PRODUCTION = [
   // clear message instead. Must stay STABLE per env (rotating it makes existing
   // encrypted tokens undecryptable).
   'EXTERNAL_TOKEN_KEY',
+  // Encryption key for deployment secrets (global variables, per-application
+  // env values, git tokens). Same rules as EXTERNAL_TOKEN_KEY: must stay STABLE
+  // per environment, because rotating it makes stored secrets undecryptable.
+  'DEPLOY_SECRET_KEY',
+  // Dedicated RabbitMQ queue for the deployment agent. Separate from MAIN_QUEUE
+  // because it runs with manual acknowledgement (§12.3).
+  'DEPLOY_QUEUE',
 ];
 
 export function validateEnv(): void {
