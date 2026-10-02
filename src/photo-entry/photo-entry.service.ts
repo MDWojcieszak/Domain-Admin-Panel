@@ -29,6 +29,10 @@ import {
 } from './responses';
 import { PhotoEntryMapper } from './mappers';
 import { statusChangeConflict } from './gear/photo-entry-gear-rules';
+import {
+  emptySummary,
+  loadCommentSummaries,
+} from './comments/photo-entry-comment.service';
 
 type PhotoEntryWithAstroObjects = PhotoEntry & {
   astroObjects: Array<{
@@ -109,10 +113,18 @@ export class PhotoEntryService {
       this.prisma.photoEntry.count({ where }),
     ]);
 
+    const summaries = await loadCommentSummaries(
+      this.prisma,
+      photoEntries.map((e) => e.id),
+    );
+
     return {
       total,
       photoEntries: photoEntries.map((photoEntry) =>
-        PhotoEntryMapper.toResponse(photoEntry),
+        PhotoEntryMapper.toResponse(
+          photoEntry,
+          summaries.get(photoEntry.id) ?? emptySummary(),
+        ),
       ),
     };
   }
@@ -147,7 +159,11 @@ export class PhotoEntryService {
       throw new NotFoundException('PhotoEntry not found');
     }
 
-    return PhotoEntryMapper.toDetailsResponse(photoEntry);
+    const summaries = await loadCommentSummaries(this.prisma, [photoEntry.id]);
+    return PhotoEntryMapper.toDetailsResponse(
+      photoEntry,
+      summaries.get(photoEntry.id) ?? emptySummary(),
+    );
   }
 
   async create(

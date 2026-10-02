@@ -1,5 +1,6 @@
 import { PhotoEntry } from '@prisma/client';
 import { PhotoEntryDetailsResponse, PhotoEntryResponse } from '../responses';
+import { PhotoEntryCommentSummaryResponse } from '../comments/responses';
 import {
   isHappeningNow,
   remainingToEdit,
@@ -29,7 +30,10 @@ type PhotoEntryWithAstroObjects = PhotoEntry & {
 };
 
 export class PhotoEntryMapper {
-  static toResponse(photoEntry: PhotoEntry): PhotoEntryResponse {
+  static toResponse(
+    photoEntry: PhotoEntry,
+    commentSummary?: PhotoEntryCommentSummaryResponse,
+  ): PhotoEntryResponse {
     return {
       id: photoEntry.id,
       name: photoEntry.name,
@@ -59,14 +63,16 @@ export class PhotoEntryMapper {
         photoEntry.selectedCount,
         photoEntry.editedCount,
       ),
+      ...(commentSummary ? { commentSummary } : {}),
     };
   }
 
   static toDetailsResponse(
     photoEntry: PhotoEntryWithAstroObjects,
+    commentSummary?: PhotoEntryCommentSummaryResponse,
   ): PhotoEntryDetailsResponse {
     return {
-      ...this.toResponse(photoEntry),
+      ...this.toResponse(photoEntry, commentSummary),
       astroObjects: (photoEntry.astroObjects ?? []).map((item) => ({
         id: item.id,
         astroObjectId: item.astroObjectId,

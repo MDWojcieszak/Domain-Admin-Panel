@@ -8,9 +8,12 @@ import {
   IsBoolean,
   IsDate,
   IsEnum,
+  IsNested,
   IsNumber,
   IsString,
 } from 'nestjs-swagger-dto';
+
+import { PhotoEntryCommentSummaryResponse } from '../comments/responses';
 
 export class PhotoEntryResponse {
   @IsString()
@@ -88,4 +91,11 @@ export class PhotoEntryResponse {
 
   @IsDate({ format: 'date-time' })
   updatedAt: Date;
+
+  /**
+   * Comment counts (§8): open TODOs, highlights, problems. Present on the list
+   * and details views; omitted on write responses.
+   */
+  @IsNested({ type: PhotoEntryCommentSummaryResponse, optional: true })
+  commentSummary?: PhotoEntryCommentSummaryResponse;
 }

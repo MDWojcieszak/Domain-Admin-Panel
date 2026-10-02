@@ -6,16 +6,23 @@ import { NotificationModule } from '../notification/notification.module';
 import { PhotoEntryGearController } from './gear/photo-entry-gear.controller';
 import { PhotoEntryGearService } from './gear/photo-entry-gear.service';
 import { PendingMediaReminderService } from './gear/pending-media-reminder.service';
+import { PhotoEntryCommentController } from './comments/photo-entry-comment.controller';
+import { PhotoEntryCommentService } from './comments/photo-entry-comment.service';
 
 @Module({
   imports: [NotificationModule],
-  // Gear controller FIRST: it owns static paths such as GET
-  // /photo-entry/pending-media, which GET /photo-entry/:id would otherwise
-  // swallow — Nest registers routes in controller order.
-  controllers: [PhotoEntryGearController, PhotoEntryController],
+  // Sub-resource controllers FIRST: they own static paths such as GET
+  // /photo-entry/pending-media and /photo-entry/comments/:commentId, which the
+  // :id routes would otherwise swallow — Nest registers in controller order.
+  controllers: [
+    PhotoEntryGearController,
+    PhotoEntryCommentController,
+    PhotoEntryController,
+  ],
   providers: [
     PhotoEntryService,
     PhotoEntryGearService,
+    PhotoEntryCommentService,
     PendingMediaReminderService,
     PhotoStorageService,
   ],
