@@ -373,6 +373,9 @@ describe('PhotoEntryService.patchProgress', () => {
       photoCount: 200,
       selectedCount: 42,
       editedCount: 20,
+      // Marks the write so the nightly folder scan does not overwrite it.
+      countsSource: 'REPORTED',
+      countsUpdatedAt: expect.any(Date),
     });
   });
 

@@ -55,6 +55,8 @@ export class PhotoEntryMapper {
       photoCount: photoEntry.photoCount,
       selectedCount: photoEntry.selectedCount,
       editedCount: photoEntry.editedCount,
+      countsSource: photoEntry.countsSource,
+      countsUpdatedAt: photoEntry.countsUpdatedAt,
 
       // Computed here rather than stored, so they cannot go stale (D2, D3, §7).
       isHappeningNow: isHappeningNow(photoEntry),

@@ -245,6 +245,12 @@ enum PhotoEntryPostStage {
 
 /// Notes left for oneself while working (§8). `kind` covers the "label" need
 /// without a tag system.
+/// Origin of the progress counts on a photo entry (§7).
+enum PhotoEntryCountsSource {
+  REPORTED // by hand from the panel, or by the culling app
+  SCANNED // counted from the entry folders on disk
+}
+
 enum PhotoEntryCommentKind {
   NOTE
   TODO // has resolvedAt, so notes do not become a second backlog
@@ -1448,6 +1454,12 @@ model PhotoEntry {
   photoCount    Int?
   selectedCount Int?
   editedCount   Int?
+
+  /// Who wrote the counts last and when. An automatic folder scan overwrites
+  /// REPORTED counts only when the folders changed after that write — the
+  /// newer fact wins, so the culling app is not overwritten every night (§7).
+  countsSource    PhotoEntryCountsSource?
+  countsUpdatedAt DateTime?
 
   astroObjects PhotoEntryAstroObject[]
   immichAlbums PhotoEntryImmichAlbum[]

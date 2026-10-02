@@ -3,7 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PhotoEntry, PhotoEntryType, Prisma } from '@prisma/client';
+import {
+  PhotoEntry,
+  PhotoEntryCountsSource,
+  PhotoEntryType,
+  Prisma,
+} from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PhotoStorageService } from '../photo-storage-service/photo-storage.service';
@@ -390,7 +395,13 @@ export class PhotoEntryService {
 
     const updated = await this.prisma.photoEntry.update({
       where: { id: existing.id },
-      data: next,
+      // Marked REPORTED so the nightly folder scan leaves it alone until the
+      // folders change after this write (§7, phase 6).
+      data: {
+        ...next,
+        countsSource: PhotoEntryCountsSource.REPORTED,
+        countsUpdatedAt: new Date(),
+      },
     });
 
     return PhotoEntryMapper.toResponse(updated);

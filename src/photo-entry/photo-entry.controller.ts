@@ -16,7 +16,9 @@ import {
 } from '@nestjs/swagger';
 
 import { PhotoEntryService } from './photo-entry.service';
+import { PhotoEntryMapper } from './mappers';
 import { PhotoEntryGearService } from './gear/photo-entry-gear.service';
+import { PhotoEntryCountsService } from './counts/photo-entry-counts.service';
 import {
   CreatePhotoEntryDto,
   GetPhotoEntriesQueryDto,
@@ -40,6 +42,7 @@ export class PhotoEntryController {
   constructor(
     private readonly photoEntryService: PhotoEntryService,
     private readonly photoEntryGearService: PhotoEntryGearService,
+    private readonly photoEntryCountsService: PhotoEntryCountsService,
   ) {}
 
   @ApiBearerAuth()
@@ -197,7 +200,32 @@ export class PhotoEntryController {
   async markMediaUploaded(
     @Param('id') id: string,
   ): Promise<PhotoEntryResponse> {
-    return this.photoEntryGearService.markMediaUploaded(id);
+    const marked = await this.photoEntryGearService.markMediaUploaded(id);
+    // The uploader has just copied the source in, so this is the moment the
+    // photo count is worth reading off the disk.
+    const recounted =
+      await this.photoEntryCountsService.refreshAutomatically(id);
+    return recounted ? PhotoEntryMapper.toResponse(recounted) : marked;
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
+  @Post(':id/refresh-counts')
+  @ApiOperation({
+    summary: 'Count photos from the entry folders',
+    description:
+      'photoCount from SOURCE (RAW+JPEG pairs count once; VIDEO and SEQUENCES ' +
+      'excluded), selectedCount from SELECTS, editedCount from EXPORT. A stage ' +
+      'holding fewer frames than the next one is reported as unknown. Always ' +
+      'applies; the nightly run instead keeps counts reported after the folders ' +
+      'last changed. GENERAL and WORK entries with created folders only.',
+  })
+  @ApiOkResponse({ type: PhotoEntryResponse })
+  async refreshCounts(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ): Promise<PhotoEntryResponse> {
+    return this.photoEntryCountsService.refresh(userId, id);
   }
 
   @ApiBearerAuth()

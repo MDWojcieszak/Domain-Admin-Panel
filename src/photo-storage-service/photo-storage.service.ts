@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { access, mkdir } from 'fs/promises';
+import { access, mkdir, readdir, stat } from 'fs/promises';
 import { constants as fsConstants } from 'fs';
 import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
@@ -8,6 +8,20 @@ import {
   EntryStructureType,
   PhotoEntryFolder,
 } from './entry-structure';
+
+/** Files under a folder, plus when its directory tree last changed. */
+export interface FolderListing {
+  /** Paths relative to the walked folder, with forward slashes. */
+  files: string[];
+  /**
+   * Latest mtime of the walked folder and every sub-folder. A directory's
+   * mtime moves whenever an entry is added, removed or renamed in it, so this
+   * says when the set of files last changed without stat-ing every file.
+   */
+  changedAt: Date;
+}
+
+const MAX_WALK_DEPTH = 8;
 
 @Injectable()
 export class PhotoStorageService {
@@ -57,6 +71,51 @@ export class PhotoStorageService {
     for (const directory of directories) {
       await this.ensureDirectory(`${relativeRootPath}/${directory}`);
     }
+  }
+
+  /**
+   * Lists every file under `relativePath`, recursively. Null when the folder
+   * does not exist. Symlinks are never followed (no cycles, no escaping the
+   * library), and `skipDir` prunes sub-folders by their path relative to the
+   * walked folder or by name.
+   */
+  async listFiles(
+    relativePath: string,
+    skipDir: (relativeDir: string, name: string) => boolean = () => false,
+  ): Promise<FolderListing | null> {
+    const root = this.buildAbsolutePath(relativePath);
+    let changedAt: Date;
+    try {
+      const info = await stat(root);
+      if (!info.isDirectory()) return null;
+      changedAt = info.mtime;
+    } catch {
+      return null;
+    }
+
+    const files: string[] = [];
+    const walk = async (relativeDir: string, depth: number): Promise<void> => {
+      const absolute = relativeDir ? join(root, relativeDir) : root;
+      for (const entry of await readdir(absolute, { withFileTypes: true })) {
+        const childPath = relativeDir
+          ? `${relativeDir}/${entry.name}`
+          : entry.name;
+        if (entry.isFile()) {
+          files.push(childPath);
+        } else if (
+          entry.isDirectory() &&
+          depth < MAX_WALK_DEPTH &&
+          !skipDir(childPath, entry.name)
+        ) {
+          const { mtime } = await stat(join(root, childPath));
+          if (mtime > changedAt) changedAt = mtime;
+          await walk(childPath, depth + 1);
+        }
+      }
+    };
+    await walk('', 0);
+
+    return { files, changedAt };
   }
 
   buildAstroObjectFolderName(code?: string, name?: string): string {

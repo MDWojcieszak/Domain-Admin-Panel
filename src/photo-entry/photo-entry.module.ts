@@ -8,6 +8,7 @@ import { PhotoEntryGearService } from './gear/photo-entry-gear.service';
 import { PendingMediaReminderService } from './gear/pending-media-reminder.service';
 import { PhotoEntryCommentController } from './comments/photo-entry-comment.controller';
 import { PhotoEntryCommentService } from './comments/photo-entry-comment.service';
+import { PhotoEntryCountsService } from './counts/photo-entry-counts.service';
 
 @Module({
   imports: [NotificationModule],
@@ -23,6 +24,7 @@ import { PhotoEntryCommentService } from './comments/photo-entry-comment.service
     PhotoEntryService,
     PhotoEntryGearService,
     PhotoEntryCommentService,
+    PhotoEntryCountsService,
     PendingMediaReminderService,
     PhotoStorageService,
   ],

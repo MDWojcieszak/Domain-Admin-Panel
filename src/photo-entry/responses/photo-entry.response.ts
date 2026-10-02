@@ -2,6 +2,7 @@ import {
   MediaStatus,
   PhotoEntryPostStage,
   PhotoEntryStatus,
+  PhotoEntryCountsSource,
   PhotoEntryType,
 } from '@prisma/client';
 import {
@@ -63,6 +64,13 @@ export class PhotoEntryResponse {
 
   @IsNumber({ optional: true, nullable: true })
   editedCount: number | null;
+
+  /** Who wrote the counts last: REPORTED (panel, culling app) or SCANNED. */
+  @IsEnum({ enum: { PhotoEntryCountsSource }, optional: true, nullable: true })
+  countsSource: PhotoEntryCountsSource | null;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  countsUpdatedAt: Date | null;
 
   /** Derived: selectedCount - editedCount, or null if either is unknown. */
   @IsNumber({ optional: true, nullable: true })
