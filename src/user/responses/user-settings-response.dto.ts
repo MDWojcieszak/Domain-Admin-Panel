@@ -18,4 +18,7 @@ export class UserSettingsResponseDto {
 
   @IsBoolean()
   processPushNotifications: boolean;
+
+  @IsBoolean()
+  photoMediaEmailNotifications: boolean;
 }

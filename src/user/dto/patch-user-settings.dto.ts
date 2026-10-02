@@ -15,4 +15,8 @@ export class PatchUserSettingsDto {
 
   @IsBoolean({ optional: true })
   processPushNotifications?: boolean;
+
+  /** Reminder about unsecured photo media (cards, film, tethered frames). */
+  @IsBoolean({ optional: true })
+  photoMediaEmailNotifications?: boolean;
 }

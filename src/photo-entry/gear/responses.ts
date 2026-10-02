@@ -8,6 +8,7 @@ import {
   IsString,
 } from 'nestjs-swagger-dto';
 
+import { GearMediaSource } from '../../gear/gear-media-source';
 import { GearItemResponse } from '../../gear/responses';
 import { EntryGearPhase, EntryGearWarning } from './photo-entry-gear-rules';
 
@@ -100,4 +101,77 @@ export class PhotoEntryShoppingListResponse {
   /** Sum of the known estimated prices. */
   @IsNumber({ type: 'integer' })
   total: number;
+}
+
+export class PendingMediaItemResponse {
+  @IsNested({ type: GearItemResponse })
+  gear: GearItemResponse;
+
+  @IsEnum({ enum: { GearMediaSource } })
+  mediaSource: GearMediaSource;
+
+  @IsString()
+  secureAction: string;
+
+  /** When the material started waiting: end of the shoot, or when added. */
+  @IsDate({ format: 'date-time' })
+  since: Date;
+
+  @IsNumber({ type: 'integer' })
+  daysPending: number;
+
+  /** The source's threshold: 7 days for cards and tethered, 90 for film. */
+  @IsNumber({ type: 'integer' })
+  reminderDays: number;
+
+  @IsBoolean()
+  overdue: boolean;
+}
+
+export class PendingMediaEntryResponse {
+  @IsString()
+  photoEntryId: string;
+
+  @IsString()
+  name: string;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  startDate: Date | null;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  endDate: Date | null;
+
+  /** Any item past its threshold. */
+  @IsBoolean()
+  overdue: boolean;
+
+  @IsNested({ type: PendingMediaItemResponse, isArray: true })
+  items: PendingMediaItemResponse[];
+}
+
+export class UndeclaredEntryResponse {
+  @IsString()
+  photoEntryId: string;
+
+  @IsString()
+  name: string;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  startDate: Date | null;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  endDate: Date | null;
+}
+
+export class PendingMediaResponse {
+  /** Declared gear with media still to secure; most overdue first. */
+  @IsNested({ type: PendingMediaEntryResponse, isArray: true })
+  unsecured: PendingMediaEntryResponse[];
+
+  /**
+   * SHOT entries whose gear was never declared — unknown, not unsecured (§6),
+   * so they are listed to be asked about but never trigger an email.
+   */
+  @IsNested({ type: UndeclaredEntryResponse, isArray: true })
+  undeclared: UndeclaredEntryResponse[];
 }

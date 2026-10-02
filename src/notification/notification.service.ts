@@ -17,13 +17,15 @@ import { TestNotificationResultDto } from './responses';
 export type NotificationSetting =
   | 'serverStatusEmailNotifications'
   | 'serverIdleEmailNotifications'
-  | 'processEmailNotifications';
+  | 'processEmailNotifications'
+  | 'photoMediaEmailNotifications';
 
 /** Schema defaults — decides whether a user with NO settings row opts in. */
 const DEFAULT_ON: Record<NotificationSetting, boolean> = {
   serverStatusEmailNotifications: true,
   processEmailNotifications: true,
   serverIdleEmailNotifications: false,
+  photoMediaEmailNotifications: true,
 };
 
 export interface EmailNotification {
@@ -39,6 +41,9 @@ export interface EmailNotification {
   detail: string;
   meta?: Prisma.InputJsonValue;
 }
+
+/** A notification about something one user owns — no permission involved. */
+export type DirectEmailNotification = Omit<EmailNotification, 'permission'>;
 
 type Recipient = {
   id: string;
@@ -119,6 +124,36 @@ export class NotificationService {
   }
 
   /**
+   * Emails ONE user about something they own (e.g. their photo entries), if
+   * they are active and opted in. Never throws; resolves to whether the email
+   * went out, so callers can retry later instead of recording a reminder that
+   * never arrived.
+   */
+  async emailUser(
+    userId: string,
+    n: DirectEmailNotification,
+  ): Promise<boolean> {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          accountStatus: AccountStatus.ACTIVE,
+          deletedAt: null,
+          ...this.settingFilter(n.setting),
+        },
+        select: { id: true, email: true, firstName: true, role: true },
+      });
+      if (!user) return false;
+      return await this.dispatch(user, n);
+    } catch (err) {
+      this.logger.error(
+        `Notification (${n.logType}) failed: ${(err as Error).message}`,
+      );
+      return false;
+    }
+  }
+
+  /**
    * Sends one notification type to the caller's OWN email (admin self-test).
    * Ignores settings/permissions (it only ever reaches the requester). Surfaces
    * delivery failure to the caller, and records the attempt in NotificationLog.
@@ -160,16 +195,11 @@ export class NotificationService {
     setting: NotificationSetting,
     permission: string,
   ): Promise<Recipient[]> {
-    const enabled = { [setting]: true } as Prisma.UserSettingsWhereInput;
-    const settingFilter: Prisma.UserWhereInput = DEFAULT_ON[setting]
-      ? { OR: [{ userSettings: { is: null } }, { userSettings: enabled }] }
-      : { userSettings: enabled };
-
     const users = await this.prisma.user.findMany({
       where: {
         accountStatus: AccountStatus.ACTIVE,
         deletedAt: null,
-        ...settingFilter,
+        ...this.settingFilter(setting),
       },
       select: { id: true, email: true, firstName: true, role: true },
     });
@@ -186,10 +216,18 @@ export class NotificationService {
     return allowed;
   }
 
+  /** Opted in to `setting`; the schema default applies when there is no row. */
+  private settingFilter(setting: NotificationSetting): Prisma.UserWhereInput {
+    const enabled = { [setting]: true } as Prisma.UserSettingsWhereInput;
+    return DEFAULT_ON[setting]
+      ? { OR: [{ userSettings: { is: null } }, { userSettings: enabled }] }
+      : { userSettings: enabled };
+  }
+
   private async dispatch(
     user: Recipient,
-    n: EmailNotification,
-  ): Promise<void> {
+    n: DirectEmailNotification,
+  ): Promise<boolean> {
     try {
       await this.mail.sendNotification({
         email: user.email,
@@ -201,11 +239,13 @@ export class NotificationService {
         panelUrl: this.panelUrl,
       });
       await this.log(user.id, n.logType, 'SENT', n.meta);
+      return true;
     } catch (err) {
       this.logger.error(
         `Notification email to ${user.email} failed: ${(err as Error).message}`,
       );
       await this.log(user.id, n.logType, 'FAILED', n.meta);
+      return false;
     }
   }
 

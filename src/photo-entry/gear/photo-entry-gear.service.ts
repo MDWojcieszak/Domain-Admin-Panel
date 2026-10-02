@@ -36,9 +36,13 @@ import {
   rowWarning,
   uploadStatusOf,
 } from './photo-entry-gear-rules';
+import { assessRow } from './pending-media';
 import {
+  PendingMediaEntryResponse,
+  PendingMediaResponse,
   PhotoEntryGearListResponse,
   PhotoEntryShoppingListResponse,
+  UndeclaredEntryResponse,
 } from './responses';
 
 type Tx = Prisma.TransactionClient;
@@ -285,6 +289,69 @@ export class PhotoEntryGearService {
     return PhotoEntryMapper.toResponse(updated);
   }
 
+  /**
+   * Everything still waiting to be brought in, across the user's entries (§6).
+   * Undeclared entries are listed apart: their state is unknown, not unsecured.
+   */
+  async pendingMedia(
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<PendingMediaResponse> {
+    const entries = await this.prisma.photoEntry.findMany({
+      where: {
+        userId,
+        status: PhotoEntryStatus.SHOT,
+        OR: [
+          { gearConfirmedAt: null },
+          { gear: { some: { used: true, secured: false } } },
+        ],
+      },
+      include: {
+        gear: {
+          where: { used: true, secured: false },
+          include: { gearItem: true },
+          orderBy: ROW_ORDER,
+        },
+      },
+    });
+
+    const unsecured: PendingMediaEntryResponse[] = [];
+    const undeclared: UndeclaredEntryResponse[] = [];
+
+    for (const entry of entries) {
+      const ref = {
+        photoEntryId: entry.id,
+        name: entry.name,
+        startDate: entry.startDate,
+        endDate: entry.endDate,
+      };
+      if (!entry.gearConfirmedAt) {
+        undeclared.push(ref);
+        continue;
+      }
+      const items = entry.gear.flatMap((row) => {
+        const a = assessRow(
+          entry,
+          { ...row, category: row.gearItem.category },
+          now,
+        );
+        if (!a) return [];
+        const { remindDue: _remindDue, ...item } = a;
+        return [{ gear: GearMapper.mapItem(row.gearItem), ...item }];
+      });
+      if (items.length === 0) continue; // only gear without media was used
+      unsecured.push({ ...ref, overdue: items.some((i) => i.overdue), items });
+    }
+
+    const oldest = (e: PendingMediaEntryResponse) =>
+      Math.max(...e.items.map((i) => i.daysPending));
+    unsecured.sort((a, b) => oldest(b) - oldest(a));
+    // Most recent first: those are the ones whose cards may still be intact.
+    undeclared.sort((a, b) => shootTime(b) - shootTime(a));
+
+    return { unsecured, undeclared };
+  }
+
   // ----------------------------------------------------------------
   // Helpers
   // ----------------------------------------------------------------
@@ -435,6 +502,9 @@ export class PhotoEntryGearService {
     };
   }
 }
+
+const shootTime = (e: { startDate: Date | null; endDate: Date | null }) =>
+  (e.endDate ?? e.startDate)?.getTime() ?? 0; // undated last
 
 const toRowState = (row: RowWithGear) => ({
   category: row.gearItem.category,

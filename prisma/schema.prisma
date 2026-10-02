@@ -791,6 +791,8 @@ model UserSettings {
   serverPushNotifications        Boolean @default(false)
   processEmailNotifications      Boolean @default(true)
   processPushNotifications       Boolean @default(false)
+  /// Reminder about unsecured photo media (cards, film, tethered frames).
+  photoMediaEmailNotifications   Boolean @default(true)
 }
 
 model SocialMedia {
@@ -1541,8 +1543,11 @@ model PhotoEntryGear {
 
   /// Material secured: card offloaded, or film developed and scanned. One field
   /// for both routes — the obligation is identical, only the mechanism differs (D5).
-  secured   Boolean   @default(false)
-  securedAt DateTime?
+  secured    Boolean   @default(false)
+  securedAt  DateTime?
+  /// Last reminder about this row being unsecured. Reminders repeat every
+  /// source threshold until secured, so "forgot" cannot become "lost" (§6).
+  remindedAt DateTime?
 
   note String? // "card 2 full", "battery died after an hour"
 

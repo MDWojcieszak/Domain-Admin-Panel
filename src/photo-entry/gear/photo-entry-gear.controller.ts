@@ -25,6 +25,7 @@ import {
 } from './dto';
 import { PhotoEntryGearService } from './photo-entry-gear.service';
 import {
+  PendingMediaResponse,
   PhotoEntryGearListResponse,
   PhotoEntryShoppingListResponse,
 } from './responses';
@@ -38,6 +39,22 @@ import {
 @Controller('photo-entry')
 export class PhotoEntryGearController {
   constructor(private readonly gear: PhotoEntryGearService) {}
+
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_READ)
+  @Get('pending-media')
+  @ApiOperation({
+    summary: 'Media still waiting to be secured',
+    description:
+      '`unsecured`: declared gear with media not yet offloaded/scanned/copied, ' +
+      'with per-source thresholds (cards 7 days, film 90). `undeclared`: SHOT ' +
+      'entries whose gear was never declared — unknown, never emailed about.',
+  })
+  @ApiOkResponse({ type: PendingMediaResponse })
+  pendingMedia(
+    @GetCurrentUser('sub') userId: string,
+  ): Promise<PendingMediaResponse> {
+    return this.gear.pendingMedia(userId);
+  }
 
   @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_READ)
   @Get(':id/gear')
