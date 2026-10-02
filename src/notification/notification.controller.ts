@@ -14,7 +14,8 @@ export class NotificationController {
 
   @Post('test')
   @ApiOkResponse({
-    description: 'Send a chosen notification type to your own email (self-test)',
+    description:
+      'Send a chosen notification type to your own email (self-test)',
     type: TestNotificationResultDto,
   })
   async sendTest(

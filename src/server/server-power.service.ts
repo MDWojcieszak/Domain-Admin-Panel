@@ -99,12 +99,17 @@ export class ServerPowerService {
   async markPresence(serverId: string): Promise<void> {
     const props = await this.prisma.serverProperties.findUnique({
       where: { serverId },
-      select: { isOnline: true, status: true, server: { select: { name: true } } },
+      select: {
+        isOnline: true,
+        status: true,
+        server: { select: { name: true } },
+      },
     });
     if (!props) return;
 
     const now = new Date();
-    const becameOnline = !props.isOnline || props.status !== ServerStatus.ONLINE;
+    const becameOnline =
+      !props.isOnline || props.status !== ServerStatus.ONLINE;
 
     await this.prisma.serverProperties.update({
       where: { serverId },
@@ -118,7 +123,11 @@ export class ServerPowerService {
     });
 
     if (becameOnline) {
-      this.websocketGateway.emitToRoom(WsRoom.SERVERS, 'server.online', serverId);
+      this.websocketGateway.emitToRoom(
+        WsRoom.SERVERS,
+        'server.online',
+        serverId,
+      );
       this.emitStatus(serverId, ServerStatus.ONLINE, true, now);
       this.serverNotify('ONLINE', serverId, props.server.name);
     }
@@ -138,7 +147,11 @@ export class ServerPowerService {
     // online → offline: was online, heartbeat went stale.
     const wentOffline = await this.prisma.serverProperties.findMany({
       where: { isOnline: true, lastSeenAt: { lt: offlineThreshold } },
-      select: { serverId: true, status: true, server: { select: { name: true } } },
+      select: {
+        serverId: true,
+        status: true,
+        server: { select: { name: true } },
+      },
     });
     if (wentOffline.length) {
       const ids = wentOffline.map((s) => s.serverId);
@@ -153,7 +166,11 @@ export class ServerPowerService {
         },
       });
       for (const s of wentOffline) {
-        this.websocketGateway.emitToRoom(WsRoom.SERVERS, 'server.offline', s.serverId);
+        this.websocketGateway.emitToRoom(
+          WsRoom.SERVERS,
+          'server.offline',
+          s.serverId,
+        );
         this.emitStatus(s.serverId, ServerStatus.OFFLINE, false, ts);
         // Planned shutdown (SHUTDOWN_IN_PROGRESS) is expected → no alert.
         if (s.status !== ServerStatus.SHUTDOWN_IN_PROGRESS) {

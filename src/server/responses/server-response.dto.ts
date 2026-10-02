@@ -1,5 +1,11 @@
 import { ServerStatus } from '@prisma/client';
-import { IsBoolean, IsDate, IsEnum, IsNested, IsString } from 'nestjs-swagger-dto';
+import {
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsNested,
+  IsString,
+} from 'nestjs-swagger-dto';
 
 /** Compact status for list/badge rendering (no heavy CPU/disk/memory payload). */
 export class ServerStatusSummaryDto {

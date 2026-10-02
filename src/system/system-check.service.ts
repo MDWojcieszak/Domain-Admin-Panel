@@ -3,10 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createTransport } from 'nodemailer';
 
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  SubsystemCheckResponse,
-  SystemStatusResponse,
-} from './responses';
+import { SubsystemCheckResponse, SystemStatusResponse } from './responses';
 
 // amqplib ships no bundled types in this setup — loose require for the check.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -18,7 +15,10 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
     p,
     new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+      setTimeout(
+        () => reject(new Error(`${label} timed out after ${ms}ms`)),
+        ms,
+      ),
     ),
   ]);
 }
@@ -52,7 +52,11 @@ export class SystemCheckService {
   async checkDatabase(): Promise<SubsystemCheckResponse> {
     const t0 = Date.now();
     try {
-      await withTimeout(this.prisma.$queryRaw`SELECT 1`, PROBE_TIMEOUT_MS, 'db');
+      await withTimeout(
+        this.prisma.$queryRaw`SELECT 1`,
+        PROBE_TIMEOUT_MS,
+        'db',
+      );
       return done('database', 'up', t0, null);
     } catch (e) {
       return done('database', 'down', t0, (e as Error).message);

@@ -123,7 +123,10 @@ export class ServerController {
   @RequirePermissions(PERMISSIONS.SERVER_CATEGORY_MANAGE)
   @Patch('category/:id')
   @ApiOkResponse({ description: 'Changed correctly' })
-  async patchCategory(@Param('id') id: string, @Body() dto: PatchServerCategoryDto) {
+  async patchCategory(
+    @Param('id') id: string,
+    @Body() dto: PatchServerCategoryDto,
+  ) {
     return this.serverService.handlePatchCategory(id, dto);
   }
 

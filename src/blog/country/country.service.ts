@@ -34,7 +34,11 @@ type CountryWithTr = Prisma.BlogCountryGetPayload<{
   include: typeof COUNTRY_INCLUDE;
 }>;
 
-type CountEntry = { postCount: number; poiCount: number; collectionCount: number };
+type CountEntry = {
+  postCount: number;
+  poiCount: number;
+  collectionCount: number;
+};
 type Counts = Map<string, CountEntry>;
 
 const EMPTY_COUNTS: CountEntry = {
