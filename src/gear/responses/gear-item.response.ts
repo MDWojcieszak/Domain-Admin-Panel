@@ -1,5 +1,7 @@
-import { GearCategory } from '@prisma/client';
+import { GearCategory, GearOwnership } from '@prisma/client';
 import { IsBoolean, IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
+
+import { GearMediaSource } from '../gear-media-source';
 
 /** One piece of the photographer's kit, for the portfolio "My gear" section. */
 export class GearItemResponse {
@@ -14,6 +16,14 @@ export class GearItemResponse {
 
   @IsString()
   model: string;
+
+  /** Always OWNED on the public portfolio (P10). */
+  @IsEnum({ enum: { GearOwnership } })
+  ownership: GearOwnership;
+
+  /** Derived from the category, never stored (D5). */
+  @IsEnum({ enum: { GearMediaSource } })
+  mediaSource: GearMediaSource;
 
   /** Owning camera system (null = system-agnostic accessory). */
   @IsString({ optional: true, nullable: true })

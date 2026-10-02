@@ -1,10 +1,28 @@
-import { GearItem, GearSystem } from '@prisma/client';
+import { GearItem, GearKit, GearSystem } from '@prisma/client';
 
-import { GearItemResponse, GearSystemResponse } from './responses';
+import { mediaSourceOf } from './gear-media-source';
+import { GearNeed } from './gear-schedule';
+import {
+  GearEntryRefResponse,
+  GearItemAdminResponse,
+  GearItemResponse,
+  GearKitResponse,
+  GearSystemResponse,
+} from './responses';
 
 /** Servable (stream) URLs — never expose the raw filesystem path / original. */
 const coverUrlFor = (imageId: string) => `/image/cover?id=${imageId}`;
 const lowResUrlFor = (imageId: string) => `/image/low-res?id=${imageId}`;
+
+const entryRef = (entry: {
+  id: string;
+  name: string;
+  startDate: Date | null;
+}): GearEntryRefResponse => ({
+  id: entry.id,
+  name: entry.name,
+  startDate: entry.startDate,
+});
 
 export class GearMapper {
   static mapItem(item: GearItem): GearItemResponse {
@@ -13,12 +31,41 @@ export class GearMapper {
       category: item.category,
       brand: item.brand,
       model: item.model,
+      ownership: item.ownership,
+      mediaSource: mediaSourceOf(item.category),
       systemId: item.systemId,
       description: item.description,
       coverUrl: item.imageId ? coverUrlFor(item.imageId) : null,
       lowResUrl: item.imageId ? lowResUrlFor(item.imageId) : null,
       order: item.order,
       visible: item.visible,
+    };
+  }
+
+  static mapItemAdmin(item: GearItem, need: GearNeed): GearItemAdminResponse {
+    return {
+      ...GearMapper.mapItem(item),
+      acquiredAt: item.acquiredAt,
+      retiredAt: item.retiredAt,
+      priority: item.priority,
+      estimatedPrice: item.estimatedPrice,
+      purchaseUrl: item.purchaseUrl,
+      neededBy: need.neededBy,
+      neededFor: need.neededFor ? entryRef(need.neededFor) : null,
+      missedFor: need.missedFor.map(entryRef),
+    };
+  }
+
+  static mapKit(
+    kit: GearKit & { items: Array<{ gearItem: GearItem }> },
+  ): GearKitResponse {
+    return {
+      id: kit.id,
+      name: kit.name,
+      description: kit.description,
+      items: kit.items.map((i) => GearMapper.mapItem(i.gearItem)),
+      createdAt: kit.createdAt,
+      updatedAt: kit.updatedAt,
     };
   }
 

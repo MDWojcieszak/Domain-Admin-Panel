@@ -1,20 +1,47 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ImageScope, Prisma } from '@prisma/client';
+import {
+  GearCategory,
+  GearItem,
+  GearOwnership,
+  ImageScope,
+  PhotoEntryStatus,
+  Prisma,
+} from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateGearDto,
+  CreateGearKitDto,
   CreateGearSystemDto,
+  GearItemsSort,
+  GetGearItemsQueryDto,
   UpdateGearDto,
+  UpdateGearKitDto,
   UpdateGearSystemDto,
 } from './dto';
 import { GearMapper } from './gear.mapper';
 import {
+  mediaSourceOf,
+  reminderDaysFor,
+  SECURE_ACTION,
+} from './gear-media-source';
+import {
+  compareByNeed,
+  computeGearNeed,
+  deletionBlocked,
+  horizonEnd,
+} from './gear-schedule';
+import {
+  GearCategoryResponse,
+  GearItemAdminResponse,
+  GearItemListResponse,
   GearItemResponse,
+  GearKitResponse,
   GearOverviewResponse,
   GearSystemResponse,
 } from './responses';
@@ -24,6 +51,30 @@ const GEAR_ORDER_BY: Prisma.GearItemOrderByWithRelationInput[] = [
   { order: 'asc' },
   { createdAt: 'asc' },
 ];
+
+/**
+ * Entries that can give gear a deadline (PLANNED) or a "missed" flag (SHOT).
+ * CANCELLED never matters, so it is not even loaded.
+ */
+const NEED_ENTRIES = {
+  where: {
+    photoEntry: {
+      status: { in: [PhotoEntryStatus.PLANNED, PhotoEntryStatus.SHOT] },
+    },
+  },
+  select: {
+    photoEntry: {
+      select: { id: true, name: true, status: true, startDate: true },
+    },
+  },
+} satisfies Prisma.GearItem$entriesArgs;
+
+const KIT_INCLUDE = {
+  items: {
+    include: { gearItem: true },
+    orderBy: { gearItem: { category: 'asc' } },
+  },
+} satisfies Prisma.GearKitInclude;
 
 const SYSTEM_ORDER_BY: Prisma.GearSystemOrderByWithRelationInput[] = [
   { order: 'asc' },
@@ -38,7 +89,10 @@ export class GearService {
   // Overview (systems + items grouped)
   // ----------------------------------------------------------------
 
-  /** Public: only visible systems/items. */
+  /**
+   * Public: only visible systems and gear actually owned. The ownership filter
+   * is what keeps the wishlist off the public portfolio (P10).
+   */
   listPublic(): Promise<GearOverviewResponse> {
     return this.overview(false);
   }
@@ -52,6 +106,9 @@ export class GearService {
     includeHidden: boolean,
   ): Promise<GearOverviewResponse> {
     const visible = includeHidden ? {} : { visible: true };
+    const itemWhere: Prisma.GearItemWhereInput = includeHidden
+      ? {}
+      : { visible: true, ownership: GearOwnership.OWNED };
 
     const [systems, items] = await this.prisma.$transaction([
       this.prisma.gearSystem.findMany({
@@ -59,7 +116,7 @@ export class GearService {
         orderBy: SYSTEM_ORDER_BY,
       }),
       this.prisma.gearItem.findMany({
-        where: visible,
+        where: itemWhere,
         orderBy: GEAR_ORDER_BY,
       }),
     ]);
@@ -91,10 +148,79 @@ export class GearService {
   // Gear items
   // ----------------------------------------------------------------
 
-  async create(dto: CreateGearDto): Promise<GearItemResponse> {
+  /**
+   * Flat admin list with `neededBy` (§4). The wishlist and "what do I need
+   * soon" are both this view with a different `ownership` filter.
+   */
+  async listItems(query: GetGearItemsQueryDto): Promise<GearItemListResponse> {
+    const now = new Date();
+    const items = await this.prisma.gearItem.findMany({
+      where: { ownership: query.ownership, category: query.category },
+      orderBy: GEAR_ORDER_BY,
+      include: { entries: NEED_ENTRIES },
+    });
+
+    let mapped = items.map((item) =>
+      GearMapper.mapItemAdmin(
+        item,
+        computeGearNeed(
+          item.ownership,
+          item.entries.map((e) => e.photoEntry),
+          now,
+        ),
+      ),
+    );
+
+    if (query.neededWithinDays !== undefined) {
+      const end = horizonEnd(query.neededWithinDays, now).getTime();
+      mapped = mapped.filter(
+        (i) => i.neededBy !== null && i.neededBy.getTime() <= end,
+      );
+    }
+
+    if (query.sort === GearItemsSort.NEEDED_BY) mapped.sort(compareByNeed);
+
+    const wishlistTotal = mapped
+      .filter((i) => i.ownership === GearOwnership.WISHLIST)
+      .reduce((sum, i) => sum + (i.estimatedPrice ?? 0), 0);
+
+    return { items: mapped, wishlistTotal };
+  }
+
+  async getItem(id: string): Promise<GearItemAdminResponse> {
+    const item = await this.prisma.gearItem.findUnique({
+      where: { id },
+      include: { entries: NEED_ENTRIES },
+    });
+    if (!item) throw new NotFoundException('Gear item not found');
+    return GearMapper.mapItemAdmin(
+      item,
+      computeGearNeed(
+        item.ownership,
+        item.entries.map((e) => e.photoEntry),
+      ),
+    );
+  }
+
+  /** Every category with its media source, for the gear form's select. */
+  listCategories(): GearCategoryResponse[] {
+    return Object.values(GearCategory).map((category) => {
+      const mediaSource = mediaSourceOf(category);
+      return {
+        category,
+        mediaSource,
+        secureAction: SECURE_ACTION[mediaSource],
+        reminderDays: reminderDaysFor(category),
+      };
+    });
+  }
+
+  async create(dto: CreateGearDto): Promise<GearItemAdminResponse> {
     if (dto.imageId) await this.assertGalleryImage(dto.imageId);
     if (dto.systemId) await this.assertSystem(dto.systemId);
 
+    // No date stamping on create: an old body entered today was not bought
+    // today, and a wrong date is worse than none.
     const item = await this.prisma.gearItem.create({
       data: {
         category: dto.category,
@@ -105,18 +231,24 @@ export class GearService {
         imageId: dto.imageId ?? null,
         order: dto.order ?? (await this.nextItemOrder()),
         visible: dto.visible ?? true,
+        ownership: dto.ownership ?? GearOwnership.OWNED,
+        acquiredAt: toDate(dto.acquiredAt) ?? null,
+        retiredAt: toDate(dto.retiredAt) ?? null,
+        priority: dto.priority ?? null,
+        estimatedPrice: dto.estimatedPrice ?? null,
+        purchaseUrl: dto.purchaseUrl ?? null,
       },
     });
 
-    return GearMapper.mapItem(item);
+    return this.getItem(item.id);
   }
 
-  async update(id: string, dto: UpdateGearDto): Promise<GearItemResponse> {
-    await this.getItemOrThrow(id);
+  async update(id: string, dto: UpdateGearDto): Promise<GearItemAdminResponse> {
+    const existing = await this.getItemOrThrow(id);
     if (dto.imageId) await this.assertGalleryImage(dto.imageId);
     if (dto.systemId) await this.assertSystem(dto.systemId);
 
-    const item = await this.prisma.gearItem.update({
+    await this.prisma.gearItem.update({
       where: { id },
       data: {
         category: dto.category,
@@ -127,15 +259,39 @@ export class GearService {
         imageId: dto.imageId,
         order: dto.order,
         visible: dto.visible,
+        ownership: dto.ownership,
+        priority: dto.priority,
+        estimatedPrice: dto.estimatedPrice,
+        purchaseUrl: dto.purchaseUrl,
+        ...ownershipDates(existing, dto),
       },
     });
 
-    return GearMapper.mapItem(item);
+    return this.getItem(id);
   }
 
+  /**
+   * P12 — gear that only carries plans may go, and its plans go with it (a
+   * wishlist item you changed your mind about). Gear with recorded use is
+   * refused: deleting it would erase what archived photos were taken with.
+   */
   async remove(id: string): Promise<{ id: string }> {
     await this.getItemOrThrow(id);
-    await this.prisma.gearItem.delete({ where: { id } });
+
+    await this.prisma.$transaction(async (tx) => {
+      const rows = await tx.photoEntryGear.findMany({
+        where: { gearItemId: id },
+        select: { used: true, secured: true },
+      });
+      if (deletionBlocked(rows)) {
+        throw new ConflictException(
+          'Gear has recorded use on photo entries — retire it (ownership RETIRED) instead of deleting',
+        );
+      }
+      await tx.photoEntryGear.deleteMany({ where: { gearItemId: id } });
+      await tx.gearItem.delete({ where: { id } });
+    });
+
     return { id };
   }
 
@@ -213,6 +369,74 @@ export class GearService {
   }
 
   // ----------------------------------------------------------------
+  // Kits (§4) — reusable starting lists, expanded into entries by copy
+  // ----------------------------------------------------------------
+
+  async listKits(): Promise<GearKitResponse[]> {
+    const kits = await this.prisma.gearKit.findMany({
+      include: KIT_INCLUDE,
+      orderBy: { name: 'asc' },
+    });
+    return kits.map((kit) => GearMapper.mapKit(kit));
+  }
+
+  async getKit(id: string): Promise<GearKitResponse> {
+    const kit = await this.prisma.gearKit.findUnique({
+      where: { id },
+      include: KIT_INCLUDE,
+    });
+    if (!kit) throw new NotFoundException('Gear kit not found');
+    return GearMapper.mapKit(kit);
+  }
+
+  async createKit(dto: CreateGearKitDto): Promise<GearKitResponse> {
+    const gearItemIds = unique(dto.gearItemIds ?? []);
+    await this.assertItems(gearItemIds);
+
+    const kit = await this.prisma.gearKit.create({
+      data: {
+        name: await this.uniqueKitName(dto.name),
+        description: dto.description ?? null,
+        items: { create: gearItemIds.map((gearItemId) => ({ gearItemId })) },
+      },
+    });
+    return this.getKit(kit.id);
+  }
+
+  async updateKit(id: string, dto: UpdateGearKitDto): Promise<GearKitResponse> {
+    await this.getKitOrThrow(id);
+    const gearItemIds =
+      dto.gearItemIds === undefined ? undefined : unique(dto.gearItemIds);
+    if (gearItemIds) await this.assertItems(gearItemIds);
+    const name =
+      dto.name === undefined
+        ? undefined
+        : await this.uniqueKitName(dto.name, id);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.gearKit.update({
+        where: { id },
+        data: { name, description: dto.description },
+      });
+      if (gearItemIds) {
+        await tx.gearKitItem.deleteMany({ where: { kitId: id } });
+        await tx.gearKitItem.createMany({
+          data: gearItemIds.map((gearItemId) => ({ kitId: id, gearItemId })),
+        });
+      }
+    });
+
+    return this.getKit(id);
+  }
+
+  /** Entries expanded from the kit keep their rows — they were copies (§4). */
+  async removeKit(id: string): Promise<{ id: string }> {
+    await this.getKitOrThrow(id);
+    await this.prisma.gearKit.delete({ where: { id } });
+    return { id };
+  }
+
+  // ----------------------------------------------------------------
   // Helpers
   // ----------------------------------------------------------------
 
@@ -220,6 +444,32 @@ export class GearService {
     const item = await this.prisma.gearItem.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('Gear item not found');
     return item;
+  }
+
+  private async getKitOrThrow(id: string) {
+    const kit = await this.prisma.gearKit.findUnique({ where: { id } });
+    if (!kit) throw new NotFoundException('Gear kit not found');
+    return kit;
+  }
+
+  private async uniqueKitName(name: string, exceptId?: string) {
+    const trimmed = name.trim();
+    const clash = await this.prisma.gearKit.findFirst({
+      where: { name: trimmed, ...(exceptId ? { id: { not: exceptId } } : {}) },
+      select: { id: true },
+    });
+    if (clash) throw new ConflictException('A kit with this name exists');
+    return trimmed;
+  }
+
+  private async assertItems(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    const count = await this.prisma.gearItem.count({
+      where: { id: { in: ids } },
+    });
+    if (count !== ids.length) {
+      throw new BadRequestException('One or more gear items do not exist');
+    }
   }
 
   private async getSystemOrThrow(id: string) {
@@ -264,3 +514,45 @@ export class GearService {
     }
   }
 }
+
+const unique = (ids: string[]): string[] => [...new Set(ids)];
+
+/** undefined = leave alone, null = clear. */
+const toDate = (value: string | null | undefined): Date | null | undefined => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return new Date(value);
+};
+
+/**
+ * Ownership dates are information, not state (§4). Buying a wishlist item or
+ * retiring a body stamps the matching date — only when it is still empty and
+ * the caller did not send one. Creating gear never stamps (see `create`).
+ */
+export const ownershipDates = (
+  existing: Pick<GearItem, 'ownership' | 'acquiredAt' | 'retiredAt'>,
+  dto: Pick<UpdateGearDto, 'ownership' | 'acquiredAt' | 'retiredAt'>,
+  now: Date = new Date(),
+): { acquiredAt?: Date | null; retiredAt?: Date | null } => {
+  const bought =
+    dto.ownership === GearOwnership.OWNED &&
+    existing.ownership === GearOwnership.WISHLIST;
+  const retired =
+    dto.ownership === GearOwnership.RETIRED &&
+    existing.ownership !== GearOwnership.RETIRED;
+
+  return {
+    acquiredAt:
+      dto.acquiredAt !== undefined
+        ? toDate(dto.acquiredAt)
+        : bought && !existing.acquiredAt
+          ? now
+          : undefined,
+    retiredAt:
+      dto.retiredAt !== undefined
+        ? toDate(dto.retiredAt)
+        : retired && !existing.retiredAt
+          ? now
+          : undefined,
+  };
+};
