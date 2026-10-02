@@ -16,10 +16,13 @@ import {
 } from '@nestjs/swagger';
 
 import { PhotoEntryService } from './photo-entry.service';
+import { PhotoEntryGearService } from './gear/photo-entry-gear.service';
 import {
   CreatePhotoEntryDto,
   GetPhotoEntriesQueryDto,
   PatchPhotoEntryDto,
+  PatchPhotoEntryPostStageDto,
+  PatchPhotoEntryProgressDto,
   PatchPhotoEntryStatusDto,
 } from './dto';
 import {
@@ -34,7 +37,10 @@ import { PERMISSIONS } from '../common/acl/permissions';
 @Controller('photo-entry')
 @ApiTags('Photo Entry')
 export class PhotoEntryController {
-  constructor(private readonly photoEntryService: PhotoEntryService) {}
+  constructor(
+    private readonly photoEntryService: PhotoEntryService,
+    private readonly photoEntryGearService: PhotoEntryGearService,
+  ) {}
 
   @ApiBearerAuth()
   @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_READ)
@@ -132,6 +138,36 @@ export class PhotoEntryController {
   }
 
   @ApiBearerAuth()
+  /**
+   * The post-processing axis, independent of the shoot's status (D1). Most
+   * entries legitimately stay at NONE — that is a resting state, not a to-do.
+   */
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
+  @Patch(':id/post-stage')
+  @ApiOkResponse({ type: PhotoEntryResponse })
+  async patchPostStage(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: PatchPhotoEntryPostStageDto,
+  ): Promise<PhotoEntryResponse> {
+    return this.photoEntryService.patchPostStage(userId, id, dto);
+  }
+
+  /**
+   * Progress counts (§7) — entry level, never per photo. Written by hand from
+   * the panel or by the culling app; both are equal callers.
+   */
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
+  @Patch(':id/progress')
+  @ApiOkResponse({ type: PhotoEntryResponse })
+  async patchProgress(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: PatchPhotoEntryProgressDto,
+  ): Promise<PhotoEntryResponse> {
+    return this.photoEntryService.patchProgress(userId, id, dto);
+  }
+
   @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Post(':id/create-folders')
   @ApiOkResponse({
@@ -148,14 +184,20 @@ export class PhotoEntryController {
   @ApiBearerAuth()
   @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Post(':id/mark-media-uploaded')
+  @ApiOperation({
+    summary: 'Mark all media as secured',
+    description:
+      'Shortcut for "everything is offloaded": secures every used gear row that ' +
+      'produces media and declares the gear, then derives uploadStatus.',
+  })
   @ApiOkResponse({
-    description: 'Created photo entry folders',
+    description: 'Photo entry with media marked as uploaded',
     type: PhotoEntryResponse,
   })
   async markMediaUploaded(
     @Param('id') id: string,
   ): Promise<PhotoEntryResponse> {
-    return this.photoEntryService.markMediaUploaded(id);
+    return this.photoEntryGearService.markMediaUploaded(id);
   }
 
   @ApiBearerAuth()

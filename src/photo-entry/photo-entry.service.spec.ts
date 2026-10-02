@@ -1,4 +1,9 @@
-import { PhotoEntryStatus, PhotoEntryType } from '@prisma/client';
+import {
+  MediaStatus,
+  PhotoEntryPostStage,
+  PhotoEntryStatus,
+  PhotoEntryType,
+} from '@prisma/client';
 
 import { PhotoEntryService } from './photo-entry.service';
 import { PhotoStorageService } from '../photo-storage-service/photo-storage.service';
@@ -173,5 +178,216 @@ describe('PhotoEntryService.getFolderStructure', () => {
       advertised.rootPath,
       advertised.folders.map((f) => f.path),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Two axes: status (the shoot) and postStage (what was done with the material)
+// ---------------------------------------------------------------------------
+
+function makeAxisService() {
+  const prisma = {
+    photoEntry: { findFirst: jest.fn(), update: jest.fn() },
+    photoEntryGear: { findMany: jest.fn().mockResolvedValue([]) },
+  };
+  const storage = new PhotoStorageService({ get: () => undefined } as any);
+  const service = new PhotoEntryService(prisma as any, storage);
+  return { service, prisma };
+}
+
+const axisEntry = (overrides: Record<string, any> = {}) => ({
+  ...entry,
+  status: PhotoEntryStatus.SHOT,
+  postStage: PhotoEntryPostStage.NONE,
+  firstEditedAt: null,
+  gearConfirmedAt: null,
+  photoCount: null,
+  selectedCount: null,
+  editedCount: null,
+  uploadStatus: MediaStatus.NOT_UPLOADED,
+  ...overrides,
+});
+
+describe('PhotoEntryService.patchStatus', () => {
+  // P1 — claiming the shoot has not happened while its material is being
+  // processed. Refused rather than silently resetting the other axis.
+  it('refuses a move back to PLANNED while post-processing is under way', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(
+      axisEntry({ postStage: PhotoEntryPostStage.EDITING }),
+    );
+
+    await expect(
+      service.patchStatus('u1', 'pe1', { status: PhotoEntryStatus.PLANNED }),
+    ).rejects.toThrow(/has not happened/);
+
+    expect(prisma.photoEntry.update).not.toHaveBeenCalled();
+  });
+
+  it('allows PLANNED when nothing has been processed', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(axisEntry());
+    prisma.photoEntry.update.mockResolvedValue(
+      axisEntry({ status: PhotoEntryStatus.PLANNED }),
+    );
+
+    const result = await service.patchStatus('u1', 'pe1', {
+      status: PhotoEntryStatus.PLANNED,
+    });
+
+    expect(result.status).toBe(PhotoEntryStatus.PLANNED);
+  });
+});
+
+describe('PhotoEntryService.patchStatus — gear (P13)', () => {
+  it('refuses leaving SHOT while gear is recorded as used', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(axisEntry());
+    prisma.photoEntryGear.findMany.mockResolvedValue([
+      { used: true, secured: false },
+    ]);
+
+    await expect(
+      service.patchStatus('u1', 'pe1', { status: PhotoEntryStatus.CANCELLED }),
+    ).rejects.toThrow(/recorded as used/);
+
+    expect(prisma.photoEntry.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('PhotoEntryService.patchPostStage', () => {
+  it('refuses post-processing on an entry that has not happened', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(
+      axisEntry({ status: PhotoEntryStatus.PLANNED }),
+    );
+
+    await expect(
+      service.patchPostStage('u1', 'pe1', {
+        postStage: PhotoEntryPostStage.EDITING,
+      }),
+    ).rejects.toThrow(/has not happened/);
+  });
+
+  // P2 — the "was edited" fact has to survive a later move back to NONE.
+  it('stamps firstEditedAt on the first move away from NONE', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(axisEntry());
+    prisma.photoEntry.update.mockResolvedValue(
+      axisEntry({ postStage: PhotoEntryPostStage.SELECTING }),
+    );
+
+    await service.patchPostStage('u1', 'pe1', {
+      postStage: PhotoEntryPostStage.SELECTING,
+    });
+
+    expect(prisma.photoEntry.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ firstEditedAt: expect.any(Date) }),
+      }),
+    );
+  });
+
+  it('never re-stamps an entry that was already edited', async () => {
+    const { service, prisma } = makeAxisService();
+    const stamped = new Date(2026, 1, 1);
+    prisma.photoEntry.findFirst.mockResolvedValue(
+      axisEntry({
+        postStage: PhotoEntryPostStage.SELECTING,
+        firstEditedAt: stamped,
+      }),
+    );
+    prisma.photoEntry.update.mockResolvedValue(
+      axisEntry({
+        postStage: PhotoEntryPostStage.EDITING,
+        firstEditedAt: stamped,
+      }),
+    );
+
+    await service.patchPostStage('u1', 'pe1', {
+      postStage: PhotoEntryPostStage.EDITING,
+    });
+
+    expect(prisma.photoEntry.update.mock.calls[0][0].data).not.toHaveProperty(
+      'firstEditedAt',
+    );
+  });
+
+  it('does not stamp a move back to NONE', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(axisEntry());
+    prisma.photoEntry.update.mockResolvedValue(axisEntry());
+
+    await service.patchPostStage('u1', 'pe1', {
+      postStage: PhotoEntryPostStage.NONE,
+    });
+
+    expect(prisma.photoEntry.update.mock.calls[0][0].data).not.toHaveProperty(
+      'firstEditedAt',
+    );
+  });
+});
+
+describe('PhotoEntryService.patchProgress', () => {
+  // P7 — "10 of 200 left" becomes nonsense if the counts can outrun each other.
+  it('refuses more edited than selected', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(
+      axisEntry({ photoCount: 200, selectedCount: 40 }),
+    );
+
+    await expect(
+      service.patchProgress('u1', 'pe1', { editedCount: 50 }),
+    ).rejects.toThrow(/cannot exceed selectedCount/);
+  });
+
+  it('accepts a consistent set', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(axisEntry());
+    prisma.photoEntry.update.mockResolvedValue(
+      axisEntry({ photoCount: 200, selectedCount: 42, editedCount: 32 }),
+    );
+
+    const result = await service.patchProgress('u1', 'pe1', {
+      photoCount: 200,
+      selectedCount: 42,
+      editedCount: 32,
+    });
+
+    expect(result.remainingToEdit).toBe(10);
+  });
+
+  // Omitted means "leave alone"; explicit null means "back to unknown".
+  it('leaves omitted counts untouched', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(
+      axisEntry({ photoCount: 200, selectedCount: 42, editedCount: 10 }),
+    );
+    prisma.photoEntry.update.mockResolvedValue(
+      axisEntry({ photoCount: 200, selectedCount: 42, editedCount: 20 }),
+    );
+
+    await service.patchProgress('u1', 'pe1', { editedCount: 20 });
+
+    expect(prisma.photoEntry.update.mock.calls[0][0].data).toEqual({
+      photoCount: 200,
+      selectedCount: 42,
+      editedCount: 20,
+    });
+  });
+
+  it('clears a count back to unknown when sent null', async () => {
+    const { service, prisma } = makeAxisService();
+    prisma.photoEntry.findFirst.mockResolvedValue(
+      axisEntry({ photoCount: 200, selectedCount: 42, editedCount: 10 }),
+    );
+    prisma.photoEntry.update.mockResolvedValue(axisEntry({ photoCount: 200 }));
+
+    const result = await service.patchProgress('u1', 'pe1', {
+      selectedCount: null,
+      editedCount: null,
+    });
+
+    expect(result.remainingToEdit).toBeNull();
   });
 });

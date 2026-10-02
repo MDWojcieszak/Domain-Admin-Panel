@@ -1,5 +1,10 @@
 import { PhotoEntry } from '@prisma/client';
 import { PhotoEntryDetailsResponse, PhotoEntryResponse } from '../responses';
+import {
+  isHappeningNow,
+  remainingToEdit,
+  wasTouched,
+} from '../photo-entry-derived';
 
 type PhotoEntryWithAstroObjects = PhotoEntry & {
   astroObjects?: Array<{
@@ -38,6 +43,22 @@ export class PhotoEntryMapper {
       createdAt: photoEntry.createdAt,
       updatedAt: photoEntry.updatedAt,
       uploadStatus: photoEntry.uploadStatus,
+
+      postStage: photoEntry.postStage,
+      firstEditedAt: photoEntry.firstEditedAt,
+      gearConfirmedAt: photoEntry.gearConfirmedAt,
+
+      photoCount: photoEntry.photoCount,
+      selectedCount: photoEntry.selectedCount,
+      editedCount: photoEntry.editedCount,
+
+      // Computed here rather than stored, so they cannot go stale (D2, D3, §7).
+      isHappeningNow: isHappeningNow(photoEntry),
+      wasEdited: wasTouched(photoEntry.postStage),
+      remainingToEdit: remainingToEdit(
+        photoEntry.selectedCount,
+        photoEntry.editedCount,
+      ),
     };
   }
 

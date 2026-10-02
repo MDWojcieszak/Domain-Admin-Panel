@@ -3,12 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  MediaStatus,
-  PhotoEntry,
-  PhotoEntryType,
-  Prisma,
-} from '@prisma/client';
+import { PhotoEntry, PhotoEntryType, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PhotoStorageService } from '../photo-storage-service/photo-storage.service';
@@ -17,8 +12,15 @@ import {
   CreatePhotoEntryDto,
   GetPhotoEntriesQueryDto,
   PatchPhotoEntryDto,
+  PatchPhotoEntryPostStageDto,
+  PatchPhotoEntryProgressDto,
   PatchPhotoEntryStatusDto,
 } from './dto';
+import {
+  postStageConflict,
+  progressViolation,
+  shouldStampFirstEdited,
+} from './photo-entry-derived';
 import {
   PhotoEntryDetailsResponse,
   PhotoEntryFolderStructureResponse,
@@ -26,6 +28,7 @@ import {
   PhotoEntryResponse,
 } from './responses';
 import { PhotoEntryMapper } from './mappers';
+import { statusChangeConflict } from './gear/photo-entry-gear-rules';
 
 type PhotoEntryWithAstroObjects = PhotoEntry & {
   astroObjects: Array<{
@@ -64,6 +67,9 @@ export class PhotoEntryService {
       userId,
       ...(query?.type ? { type: query.type } : {}),
       ...(query?.status ? { status: query.status } : {}),
+      // The two axes filter independently (D1): status=SHOT&postStage=NONE is
+      // the resting pile, postStage=EDITING is what is actually in progress.
+      ...(query?.postStage ? { postStage: query.postStage } : {}),
       ...(query?.astroObjectId
         ? {
             astroObjects: {
@@ -284,11 +290,91 @@ export class PhotoEntryService {
   ): Promise<PhotoEntryResponse> {
     const existing = await this.getEntryWithAstroObjectsOrThrow(id, userId);
 
+    // P1 — moving back to PLANNED would claim the shoot has not happened while
+    // its material is being processed. Refused rather than silently resetting
+    // the other axis, which would throw away what the user recorded.
+    const conflict = postStageConflict(dto.status, existing.postStage);
+    if (conflict) throw new BadRequestException(conflict);
+
+    // P13 — gear recorded as used is a fact about a shoot that happened.
+    const gearRows = await this.prisma.photoEntryGear.findMany({
+      where: { photoEntryId: existing.id },
+      select: { used: true, secured: true },
+    });
+    const gearConflict = statusChangeConflict(dto.status, gearRows);
+    if (gearConflict) throw new BadRequestException(gearConflict);
+
     const updated = await this.prisma.photoEntry.update({
       where: { id: existing.id },
       data: {
         status: dto.status,
       },
+    });
+
+    return PhotoEntryMapper.toResponse(updated);
+  }
+
+  /**
+   * The post-processing axis (D1). Independent of the shoot's own status, so
+   * most entries legitimately stay at NONE forever.
+   */
+  async patchPostStage(
+    userId: string,
+    id: string,
+    dto: PatchPhotoEntryPostStageDto,
+  ): Promise<PhotoEntryResponse> {
+    const existing = await this.getEntryWithAstroObjectsOrThrow(id, userId);
+
+    const conflict = postStageConflict(existing.status, dto.postStage);
+    if (conflict) throw new BadRequestException(conflict);
+
+    const updated = await this.prisma.photoEntry.update({
+      where: { id: existing.id },
+      data: {
+        postStage: dto.postStage,
+        // P2 — stamped once and never cleared, so the "was edited" fact
+        // survives a later move back to NONE.
+        ...(shouldStampFirstEdited(dto.postStage, existing.firstEditedAt)
+          ? { firstEditedAt: new Date() }
+          : {}),
+      },
+    });
+
+    return PhotoEntryMapper.toResponse(updated);
+  }
+
+  /**
+   * Progress counts (§7). Written either by hand from the panel or by the
+   * culling app — the same endpoint serves both.
+   *
+   * An omitted field is left alone; an explicit null clears it back to unknown.
+   */
+  async patchProgress(
+    userId: string,
+    id: string,
+    dto: PatchPhotoEntryProgressDto,
+  ): Promise<PhotoEntryResponse> {
+    const existing = await this.getEntryWithAstroObjectsOrThrow(id, userId);
+
+    const next = {
+      photoCount:
+        dto.photoCount === undefined ? existing.photoCount : dto.photoCount,
+      selectedCount:
+        dto.selectedCount === undefined
+          ? existing.selectedCount
+          : dto.selectedCount,
+      editedCount:
+        dto.editedCount === undefined ? existing.editedCount : dto.editedCount,
+    };
+
+    // P7 — a count that outruns the one above it is a reporting bug, and
+    // accepting it would make "10 of 200 left" nonsense.
+    const violation = progressViolation(next);
+    if (violation) throw new BadRequestException(violation);
+
+    const updated = await this.prisma.photoEntry.update({
+      where: { id: existing.id },
+      data: next,
     });
 
     return PhotoEntryMapper.toResponse(updated);
@@ -454,19 +540,6 @@ export class PhotoEntryService {
       throw new NotFoundException('PhotoEntry not found after folder creation');
     }
 
-    return PhotoEntryMapper.toResponse(updated);
-  }
-
-  async markMediaUploaded(id: string): Promise<PhotoEntryResponse> {
-    const updated = await this.prisma.photoEntry.update({
-      where: { id },
-      data: {
-        uploadStatus: MediaStatus.UPLOADED,
-      },
-    });
-    if (!updated) {
-      throw new NotFoundException('PhotoEntry not found after folder creation');
-    }
     return PhotoEntryMapper.toResponse(updated);
   }
 
