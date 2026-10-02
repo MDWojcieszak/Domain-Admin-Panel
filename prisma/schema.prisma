@@ -225,12 +225,31 @@ enum PhotoEntryType {
   ASTRO
 }
 
+/// Lifecycle of the shoot itself — a fact about the world, not about intent.
+/// "Happening right now" is derived from startDate/endDate, never stored:
+/// see docs/photo-entry-redesign.md D2.
 enum PhotoEntryStatus {
-  PLANNED
-  ACTIVE
-  SELECTED
+  PLANNED // has not happened yet
+  SHOT // it happened — a RESTING state, not "unfinished"
+  CANCELLED // did not happen and will not
+}
+
+/// What was done with the material. Optional by design: NONE is a perfectly
+/// valid final state for most entries (D1).
+enum PhotoEntryPostStage {
+  NONE
+  SELECTING
   EDITING
-  COMPLETED
+  FINISHED
+}
+
+/// Notes left for oneself while working (§8). `kind` covers the "label" need
+/// without a tag system.
+enum PhotoEntryCommentKind {
+  NOTE
+  TODO // has resolvedAt, so notes do not become a second backlog
+  HIGHLIGHT
+  PROBLEM
 }
 
 enum MediaStatus {
@@ -305,6 +324,8 @@ model User {
 
   deployReleases Release[]
   auditLogs      AuditLog[]
+
+  photoEntryComments PhotoEntryComment[]
 }
 
 model PermissionGroup {
@@ -983,14 +1004,76 @@ model HeroImage {
   @@index([order])
 }
 
+/// Gear taxonomy, owned by code rather than by the user (D6). Whether a
+/// category produces material to secure is mapped in CATEGORY_MEDIA_SOURCE
+/// (src/gear/gear-media-source.ts) — an exhaustive Record, so a new value here
+/// does not compile until that decision is made.
 enum GearCategory {
-  CAMERA
+  // bodies and optics
+  CAMERA // digital — has a card
+  FILM_CAMERA // analogue — material comes out via scanning
   LENS
+  TELECONVERTER
+  ADAPTER
+  FILTER // ND, polariser, solar, black mist and other diffusion
+
+  // astro
+  TELESCOPE // classic tube — no electronics, no storage
+  SMART_TELESCOPE // Seestar, Dwarf, Vespera — own storage
+  ASTRO_CAMERA // ZWO ASI, QHY — frames land on a tethered computer
+  GUIDE_SCOPE
+  MOUNT // equatorial mount / star tracker
+  EYEPIECE
+  BINOCULARS
+  DIAGONAL
+  DEW_HEATER
+
+  // support
   TRIPOD
-  BAG
-  LIGHTING
+  HEAD // separate from the tripod; several per tripod is normal
+  GIMBAL
+
+  // light
+  FLASH
+  LIGHTING // pre-existing — continuous light
+  LIGHT_MODIFIER
+
+  // power
+  BATTERY
+  CHARGER
+  POWER_BANK
+  POWER_STATION // portable power station (EcoFlow, Jackery)
+
+  // other devices
+  DRONE
+  ACTION_CAM
+  REMOTE // cable release, intervalometer
+
+  // media and travel backup
+  MEMORY_CARD // a packing-list item, NOT a media source — see gear-media-source.ts
+  CARD_READER
+  STORAGE // disk / SSD for backup in the field
+  COMPUTER
+
+  // carrying and protection
+  BAG // pre-existing — backpack, shoulder bag, holster
+  STRAP // strap, clip, harness
+  RAIN_COVER
+  CLEANING
+  CABLE
+
+  // pre-existing, kept
   ACCESSORY
   OTHER
+}
+
+/// Do I have it, do I want it, or did I have it (§4). Stored rather than
+/// derived from dates: a long-owned item may have no acquiredAt, and a missing
+/// acquiredAt does not mean "on the wishlist".
+enum GearOwnership {
+  OWNED
+  WISHLIST
+  RETIRED
 }
 
 /// A camera system / format the photographer shoots (e.g. "Fujifilm X" — APS-C,
@@ -1026,6 +1109,22 @@ model GearItem {
   model       String
   description String?
 
+  /// Do I have it, want it, or did I have it (§4). Orthogonal to `visible`,
+  /// which is portfolio curation — a sold body may still be attached to past
+  /// entries, so gear queries for an entry never filter on `visible`.
+  ownership GearOwnership @default(OWNED)
+
+  acquiredAt DateTime? // information, not state
+  retiredAt  DateTime?
+
+  /// Wishlist details; summing estimatedPrice over an entry gives the trip budget.
+  priority       Int? // 0 = must-have
+  estimatedPrice Int?
+  purchaseUrl    String?
+
+  entries  PhotoEntryGear[]
+  kitItems GearKitItem[]
+
   system   GearSystem? @relation(fields: [systemId], references: [id], onDelete: SetNull)
   systemId String?
 
@@ -1040,6 +1139,7 @@ model GearItem {
 
   @@index([visible, category, order])
   @@index([systemId])
+  @@index([ownership])
 }
 
 model Dimensions {
@@ -1326,10 +1426,31 @@ model PhotoEntry {
   foldersCreated   Boolean   @default(false)
   foldersCreatedAt DateTime?
 
+  /// Maintained by the gear-securing logic rather than written by hand; the
+  /// precise truth lives on PhotoEntryGear.secured (D7, §6).
   uploadStatus MediaStatus @default(NOT_UPLOADED)
+
+  /// Second axis: what was done with the material (D1).
+  postStage PhotoEntryPostStage @default(NONE)
+
+  /// Set once, on first entry into SELECTING/EDITING; never cleared. Makes the
+  /// "was edited" label survive a revert to NONE (D3).
+  firstEditedAt DateTime?
+
+  /// "I have declared the gear" — even when the list stays empty. Without it,
+  /// an entry that genuinely used nothing with media would ask forever (§5).
+  gearConfirmedAt DateTime?
+
+  /// Progress at ENTRY level, never per photo (§7). Nullable: absent means
+  /// "unknown", not zero. Written by hand or by the culling app.
+  photoCount    Int?
+  selectedCount Int?
+  editedCount   Int?
 
   astroObjects PhotoEntryAstroObject[]
   immichAlbums PhotoEntryImmichAlbum[]
+  gear         PhotoEntryGear[]
+  comments     PhotoEntryComment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1397,6 +1518,93 @@ model PhotoEntryImmichAlbum {
 
   @@index([photoEntryId])
   @@index([albumId])
+}
+
+/// Gear attached to one entry. A single row serves BOTH phases: the packing
+/// checklist before the shoot and the securing checklist after it (D4).
+/// There is deliberately no `planned` flag — the row existing means "on the list".
+model PhotoEntryGear {
+  id String @id @default(uuid())
+
+  photoEntry   PhotoEntry @relation(fields: [photoEntryId], references: [id], onDelete: Cascade)
+  photoEntryId String
+
+  /// Restrict, not Cascade: deleting gear must never erase the record of what a
+  /// photo was taken with. Note this does NOT make gear undeletable — Restrict
+  /// only blocks while rows exist, so a wishlist item or a never-used item is
+  /// removed by deleting its planning rows first (§4).
+  gearItem   GearItem @relation(fields: [gearItemId], references: [id], onDelete: Restrict)
+  gearItemId String
+
+  packed Boolean @default(false)
+  used   Boolean @default(false)
+
+  /// Material secured: card offloaded, or film developed and scanned. One field
+  /// for both routes — the obligation is identical, only the mechanism differs (D5).
+  secured   Boolean   @default(false)
+  securedAt DateTime?
+
+  note String? // "card 2 full", "battery died after an hour"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([photoEntryId, gearItemId])
+  @@index([gearItemId])
+}
+
+/// A note left for oneself, stamped with the phase it was written in (§8).
+model PhotoEntryComment {
+  id String @id @default(uuid())
+
+  photoEntry   PhotoEntry @relation(fields: [photoEntryId], references: [id], onDelete: Cascade)
+  photoEntryId String
+
+  kind PhotoEntryCommentKind @default(NOTE)
+  body String
+
+  /// Context captured when written, set server-side and NEVER edited — it is the
+  /// whole value of the comment. Both axes, because postStage alone cannot tell
+  /// "not shot yet" from "shot, nothing done" (§8).
+  atStatus    PhotoEntryStatus
+  atPostStage PhotoEntryPostStage
+
+  /// TODO only. Without it, notes would become the very backlog this redesign fixes.
+  resolvedAt DateTime?
+
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([photoEntryId, atPostStage])
+  @@index([photoEntryId, resolvedAt])
+}
+
+/// A repeatable gear bundle, e.g. "GFX travel" or "eclipse" (§4).
+model GearKit {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+
+  items GearKitItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GearKitItem {
+  id String @id @default(uuid())
+
+  kit   GearKit @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  kitId String
+
+  gearItem   GearItem @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
+  gearItemId String
+
+  @@unique([kitId, gearItemId])
+  @@index([gearItemId])
 }
 
 // ============================================================
