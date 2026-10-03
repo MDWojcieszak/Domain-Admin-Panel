@@ -39,10 +39,11 @@ import {
   ExportFormat,
   isInside,
   needsConversion,
+  fileVersion,
   previewCacheName,
+  previewExpiry,
   PreviewSize,
   previewUrl,
-  PREVIEW_URL_TTL_SECONDS,
   publishAction,
   verifyPreview,
 } from './export-files';
@@ -117,7 +118,7 @@ export class ExportService implements OnApplicationBootstrap {
       (_dir, name) => isIgnoredDir(name),
     );
     const now = new Date();
-    const exp = Math.floor(now.getTime() / 1000) + PREVIEW_URL_TTL_SECONDS;
+    const exp = previewExpiry(Math.floor(now.getTime() / 1000));
 
     const candidates = (listing?.files ?? [])
       .map((relativePath) => ({
@@ -444,9 +445,10 @@ export class ExportService implements OnApplicationBootstrap {
     row: PhotoEntryPublication | null,
   ): ExportFileResponse {
     const key = encodeKey(file.relativePath);
+    const version = fileVersion(file.size, file.mtime.getTime());
     const url = (size: PreviewSize) =>
       file.kind.publishable
-        ? previewUrl(secret, entryId, key, size, exp)
+        ? previewUrl(secret, entryId, key, size, exp, version)
         : null;
     return {
       key,
@@ -562,9 +564,14 @@ const dimensionsOf = async (path: string) => {
   }
 };
 
-/** D3 — non-JPEG exports become a high-quality JPEG, metadata kept. */
-const toJpeg = (input: Buffer): Promise<Buffer> =>
+/**
+ * D3 — non-JPEG exports become a high-quality JPEG, metadata kept. JPEG has no
+ * alpha channel: a transparent PNG is flattened onto white, or its transparent
+ * areas would turn black.
+ */
+export const toJpeg = (input: Buffer): Promise<Buffer> =>
   sharp(input, { failOn: 'none' })
+    .flatten({ background: '#ffffff' })
     .withMetadata()
     .jpeg({ quality: 95, chromaSubsampling: '4:4:4' })
     .toBuffer();

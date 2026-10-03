@@ -73,8 +73,9 @@ export class PhotoEntryExportController {
   ): Promise<void> {
     const path = await this.exports.preview(id, query);
     res.setHeader('Content-Type', 'image/webp');
-    // private: shared caches must never keep unpublished photos.
-    res.setHeader('Cache-Control', 'private, max-age=3600');
+    // private: shared caches must never keep unpublished photos. The URL
+    // carries the file version, so its content never changes: immutable.
+    res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
     streamFileToResponse(createReadStream(path), res);
   }
 

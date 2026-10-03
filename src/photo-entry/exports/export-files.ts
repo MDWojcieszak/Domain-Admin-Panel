@@ -10,16 +10,26 @@ import { PHOTO_EXTENSIONS } from '../counts/folder-counts';
  * status rule is tested without a disk.
  */
 
-export type ExportFormat = 'jpeg' | 'png' | 'tiff' | 'webp' | 'avif' | 'heif';
+export type ExportFormat =
+  | 'jpeg'
+  | 'png'
+  | 'tiff'
+  | 'webp'
+  | 'avif'
+  | 'gif'
+  | 'heif';
 
 const RENDERED: Record<string, ExportFormat> = {
   jpg: 'jpeg',
   jpeg: 'jpeg',
+  jpe: 'jpeg',
+  jfif: 'jpeg',
   png: 'png',
   tif: 'tiff',
   tiff: 'tiff',
   webp: 'webp',
   avif: 'avif',
+  gif: 'gif',
   heic: 'heif',
   heif: 'heif',
   hif: 'heif',
@@ -36,6 +46,7 @@ const DECODABLE: ReadonlySet<ExportFormat> = new Set([
   'tiff',
   'webp',
   'avif',
+  'gif', // first frame
 ]);
 
 export interface ExportFileKind {
@@ -120,8 +131,26 @@ export const PREVIEW_PIXELS: Record<PreviewSize, number> = {
   [PreviewSize.PREVIEW]: 1600,
 };
 
-/** One hour: long enough for a session of picking, short enough to leak little. */
-export const PREVIEW_URL_TTL_SECONDS = 60 * 60;
+const HOUR_SECONDS = 60 * 60;
+
+/**
+ * Expiry of preview URLs, rounded to the hour: every scan within the same hour
+ * issues the SAME URLs, so the browser serves repeated scans (React StrictMode,
+ * polling while publishing) from its cache instead of fetching every thumbnail
+ * again. A URL stays valid between one and two hours.
+ */
+export const previewExpiry = (nowSeconds: number): number =>
+  (Math.floor(nowSeconds / HOUR_SECONDS) + 2) * HOUR_SECONDS;
+
+/**
+ * Busts the browser cache when the file changes: with stable URLs a re-export
+ * would otherwise keep showing the old thumbnail.
+ */
+export const fileVersion = (fileSize: number, mtimeMs: number): string =>
+  createHash('sha1')
+    .update(`${fileSize}:${Math.floor(mtimeMs)}`)
+    .digest('base64url')
+    .slice(0, 10);
 
 const payload = (
   entryId: string,
@@ -176,9 +205,10 @@ export const previewUrl = (
   key: string,
   size: PreviewSize,
   exp: number,
+  version: string,
 ): string =>
   `/photo-entry/${entryId}/exports/preview?key=${key}&size=${size}&exp=${exp}` +
-  `&sig=${signPreview(secret, entryId, key, size, exp)}`;
+  `&v=${version}&sig=${signPreview(secret, entryId, key, size, exp)}`;
 
 /**
  * Cache file name. Size and mtime are part of it, so a re-export can never

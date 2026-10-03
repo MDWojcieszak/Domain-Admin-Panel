@@ -37,6 +37,10 @@ export class ExportPreviewQueryDto {
   @IsNumber({ type: 'integer' })
   exp: number;
 
+  /** File version, only there to bust the browser cache on a re-export. */
+  @IsString({ optional: true })
+  v?: string;
+
   @IsString()
   sig: string;
 }

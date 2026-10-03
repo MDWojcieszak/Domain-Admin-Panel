@@ -7,9 +7,12 @@ import {
   encodeKey,
   ExportFileStatus,
   exportFileStatus,
+  fileVersion,
   isInside,
   previewCacheName,
   PreviewSize,
+  previewExpiry,
+  previewUrl,
   publishAction,
   signPreview,
   verifyPreview,
@@ -23,6 +26,21 @@ describe('classifyExportFile', () => {
       reason: null,
     });
     expect(classifyExportFile('pano.TIF')?.format).toBe('tiff');
+  });
+
+  it('accepts every common rendered format, in any letter case', () => {
+    for (const name of [
+      'a.JPG',
+      'b.jfif',
+      'c.jpe',
+      'd.PNG',
+      'e.webp',
+      'f.avif',
+      'g.gif',
+      'h.TIFF',
+    ]) {
+      expect(classifyExportFile(name)?.publishable).toBe(true);
+    }
   });
 
   it('lists RAW and HEIC but refuses to publish them', () => {
@@ -169,5 +187,42 @@ describe('exportFileStatus / publishAction (Q4)', () => {
     // a failed replace still owns its image
     expect(publishAction(ExportFileStatus.FAILED, true)).toBe('replace');
     expect(publishAction(ExportFileStatus.FAILED, false)).toBe('upload');
+  });
+});
+
+describe('stable preview URLs (browser cache)', () => {
+  const at = (iso: string) => Math.floor(Date.parse(iso) / 1000);
+
+  it('issues the same expiry for every scan within an hour', () => {
+    expect(previewExpiry(at('2026-10-03T10:00:05Z'))).toBe(
+      previewExpiry(at('2026-10-03T10:59:58Z')),
+    );
+    expect(previewExpiry(at('2026-10-03T11:00:00Z'))).toBeGreaterThan(
+      previewExpiry(at('2026-10-03T10:59:58Z')),
+    );
+  });
+
+  it('keeps every issued URL valid for at least an hour', () => {
+    const now = at('2026-10-03T10:59:58Z');
+    expect(previewExpiry(now) - now).toBeGreaterThanOrEqual(3600);
+    expect(previewExpiry(now) - now).toBeLessThanOrEqual(7200);
+  });
+
+  it('gives two scans of an unchanged file the same URL', () => {
+    const url = (nowIso: string) =>
+      previewUrl(
+        'secret',
+        'pe1',
+        encodeKey('a.jpg'),
+        PreviewSize.THUMB,
+        previewExpiry(at(nowIso)),
+        fileVersion(100, 1000),
+      );
+    expect(url('2026-10-03T10:00:01Z')).toBe(url('2026-10-03T10:00:04Z'));
+  });
+
+  it('changes the URL when the file is re-exported', () => {
+    expect(fileVersion(100, 1000)).not.toBe(fileVersion(100, 2000));
+    expect(fileVersion(100, 1000)).not.toBe(fileVersion(120, 1000));
   });
 });
