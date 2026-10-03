@@ -343,7 +343,11 @@ export class FileService {
     imageBuffer: Buffer,
   ): Promise<{ width: number; height: number }> {
     const metadata = await sharp(imageBuffer).metadata();
-    return { width: metadata.width, height: metadata.height };
+    // EXIF orientation 5–8 is a quarter turn: the stored pixels are sideways,
+    // so the displayed width and height are swapped.
+    return (metadata.orientation ?? 1) >= 5
+      ? { width: metadata.height, height: metadata.width }
+      : { width: metadata.width, height: metadata.height };
   }
 
   /** Resize to webp preserving aspect ratio (no crop), never upscaling. */
@@ -353,7 +357,10 @@ export class FileService {
     maxWidth: number,
     quality: number,
   ) {
+    // rotate() applies the EXIF orientation; webp keeps no EXIF, so without it
+    // a portrait shot straight from the camera would render sideways.
     await sharp(inputBuffer)
+      .rotate()
       .resize({
         width: maxWidth,
         fit: sharp.fit.inside,
