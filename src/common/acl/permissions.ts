@@ -67,6 +67,9 @@ export const PERMISSIONS = {
   DEPLOY_INFRASTRUCTURE: 'deploy.infrastructure',
   DEPLOY_SECRETS: 'deploy.secrets',
   DEPLOY_GIT: 'deploy.git',
+
+  INQUIRY_READ: 'inquiry.read',
+  INQUIRY_MANAGE: 'inquiry.manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -345,5 +348,18 @@ export const PERMISSION_CATALOG: PermissionDescriptor[] = [
     key: PERMISSIONS.DEPLOY_GIT,
     resource: 'deploy',
     description: 'Manage git accounts and repositories, including credentials',
+  },
+
+  {
+    key: PERMISSIONS.INQUIRY_READ,
+    resource: 'inquiry',
+    description:
+      'Read contact inquiries left on the public portfolio (names, emails, phone numbers)',
+  },
+  {
+    key: PERMISSIONS.INQUIRY_MANAGE,
+    resource: 'inquiry',
+    description:
+      'Change inquiry status, add internal notes and delete inquiries',
   },
 ];

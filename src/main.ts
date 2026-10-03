@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
@@ -67,9 +68,26 @@ const swaggerConfig = new DocumentBuilder()
   return Number(this);
 };
 
+/** '1' → hops, 'true'/'false' → boolean, anything else → address list. */
+function parseTrustProxy(
+  value?: string,
+): boolean | number | string | undefined {
+  if (!value) return undefined;
+  if (/^\d+$/.test(value)) return Number(value);
+  if (value === 'true' || value === 'false') return value === 'true';
+  return value;
+}
+
 async function bootstrap() {
   validateEnv();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Behind a reverse proxy every request arrives from the proxy's address, so
+  // per-IP limits (login, the public contact form) would throttle all visitors
+  // as one. TRUST_PROXY=1 trusts one hop of X-Forwarded-For. Off by default:
+  // trusting the header without a proxy would let clients pick their own IP.
+  const trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
+  if (trustProxy !== undefined) app.set('trust proxy', trustProxy);
 
   // Security headers (dependency-free; covers helmet's core set for a JSON API).
   // CORP is `cross-origin` so the frontend can embed backend-served images.

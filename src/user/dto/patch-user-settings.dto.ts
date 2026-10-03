@@ -23,4 +23,8 @@ export class PatchUserSettingsDto {
   /** Pre-trip reminders: wishlist gear to buy, packing the day before. */
   @IsBoolean({ optional: true })
   tripEmailNotifications?: boolean;
+
+  /** A visitor sent an inquiry through the public contact form. */
+  @IsBoolean({ optional: true })
+  inquiryEmailNotifications?: boolean;
 }

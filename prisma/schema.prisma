@@ -805,6 +805,8 @@ model UserSettings {
   photoMediaEmailNotifications   Boolean @default(true)
   /// Pre-trip reminders: wishlist gear to buy, packing the day before.
   tripEmailNotifications         Boolean @default(true)
+  /// A visitor sent an inquiry through the public contact form.
+  inquiryEmailNotifications      Boolean @default(true)
 }
 
 model SocialMedia {
@@ -930,6 +932,7 @@ model Image {
   heroImage           HeroImage?              @relation("HeroImage")
   gearItems           GearItem[]              @relation("GearImage")
   entryPublications   PhotoEntryPublication[]
+  inquiries           Inquiry[]
   gearSystemCovers    GearSystem[]            @relation("GearSystemImage")
 
   @@index([scope])
@@ -974,6 +977,7 @@ model Gallery {
   items GalleryImage[]
 
   entryPublications PhotoEntryPublication[]
+  inquiries         Inquiry[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -2791,4 +2795,117 @@ model AuditLog {
   @@index([entityType, entityId, createdAt])
   @@index([actorId, createdAt])
   @@index([createdAt])
+}
+
+// ============================================================================
+// Contact inquiries from the public portfolio
+// ============================================================================
+
+/// What the visitor is asking about — picked from a list on the form.
+enum InquiryTopic {
+  SESSION // a photo session
+  PRINT // buying a print
+  LICENSE // using a photo (licensing)
+  COLLABORATION
+  OTHER
+}
+
+/// Answered from the owner's own mailbox; the panel only tracks the state.
+enum InquiryStatus {
+  NEW
+  READ
+  ANSWERED
+  ARCHIVED
+  SPAM
+}
+
+/// A message left through the contact form under the public gallery.
+model Inquiry {
+  id String @id @default(uuid())
+
+  name    String
+  email   String
+  phone   String?
+  topic   InquiryTopic
+  message String
+
+  /// Optional context: the gallery or the photo the visitor was looking at.
+  /// SetNull — unpublishing a gallery must not delete the conversation.
+  gallery   Gallery? @relation(fields: [galleryId], references: [id], onDelete: SetNull)
+  galleryId String?
+  image     Image?   @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  imageId   String?
+
+  status       InquiryStatus @default(NEW)
+  readAt       DateTime?
+  answeredAt   DateTime?
+  /// Owner's own notes; never shown to the visitor.
+  internalNote String?
+
+  /// GDPR information duty: when the visitor confirmed reading the privacy
+  /// notice, and which version of it they were shown.
+  noticeAcknowledgedAt DateTime
+  privacyNoticeLocale  String
+  privacyNoticeVersion Int
+
+  /// Language of the form the visitor used — answer in it.
+  locale String
+  /// Salted hash, never the raw IP — enough to spot a flood from one source.
+  ipHash String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([galleryId])
+}
+
+/// Contact form configuration, edited in the panel (singleton row).
+model ContactSettings {
+  id String @id
+
+  /// The form is shown and accepted only when enabled — and it cannot be
+  /// enabled before the administrator and the default-locale privacy notice
+  /// are filled in.
+  enabled Boolean @default(false)
+
+  /// Data controller, as named in the privacy notice.
+  administratorName    String?
+  administratorEmail   String?
+  administratorAddress String?
+
+  /// Topics offered on the form, in this order.
+  topics InquiryTopic[]
+
+  /// Inquiries are deleted this many days after their last change, whatever
+  /// their status; spam much sooner.
+  retentionDays     Int @default(365)
+  spamRetentionDays Int @default(30)
+
+  /// Per-language texts; a missing language falls back to the default one.
+  translations ContactSettingsTranslation[]
+
+  updatedAt DateTime @updatedAt
+}
+
+/// Contact form texts in one language (`locale` as in BlogLocale).
+model ContactSettingsTranslation {
+  id String @id @default(uuid())
+
+  settings   ContactSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  settingsId String
+  locale     String
+
+  /// Text above the form.
+  intro String?
+
+  /// Markdown. Every real change bumps the version of THIS language; an
+  /// inquiry records the language and version its sender confirmed.
+  privacyNotice          String?
+  privacyNoticeVersion   Int       @default(0)
+  privacyNoticeUpdatedAt DateTime?
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([settingsId, locale])
 }

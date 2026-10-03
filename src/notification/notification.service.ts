@@ -19,7 +19,8 @@ export type NotificationSetting =
   | 'serverIdleEmailNotifications'
   | 'processEmailNotifications'
   | 'photoMediaEmailNotifications'
-  | 'tripEmailNotifications';
+  | 'tripEmailNotifications'
+  | 'inquiryEmailNotifications';
 
 /** Schema defaults — decides whether a user with NO settings row opts in. */
 const DEFAULT_ON: Record<NotificationSetting, boolean> = {
@@ -28,6 +29,7 @@ const DEFAULT_ON: Record<NotificationSetting, boolean> = {
   serverIdleEmailNotifications: false,
   photoMediaEmailNotifications: true,
   tripEmailNotifications: true,
+  inquiryEmailNotifications: true,
 };
 
 export interface EmailNotification {

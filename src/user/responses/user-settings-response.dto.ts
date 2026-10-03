@@ -24,4 +24,7 @@ export class UserSettingsResponseDto {
 
   @IsBoolean()
   tripEmailNotifications: boolean;
+
+  @IsBoolean()
+  inquiryEmailNotifications: boolean;
 }
