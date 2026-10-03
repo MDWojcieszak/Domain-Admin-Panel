@@ -20,5 +20,7 @@ import { InquiryService } from './inquiry.service';
     InquiryController,
   ],
   providers: [InquiryService, ContactSettingsService, ThrottleGuard],
+  // The public gallery page carries the contact form in its own language.
+  exports: [ContactSettingsService],
 })
 export class InquiryModule {}

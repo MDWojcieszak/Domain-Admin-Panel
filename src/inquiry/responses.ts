@@ -120,7 +120,13 @@ export class PublicContactResponse {
 export class ContactTextResponse {
   @IsString() locale: string;
   @IsString(n) intro: string | null;
+
+  /** As written, with placeholders like {{administratorEmail}}. */
   @IsString(n) privacyNotice: string | null;
+
+  /** Preview: what visitors read, placeholders filled from the settings. */
+  @IsString(n) privacyNoticeRendered: string | null;
+
   @IsNumber({ type: 'integer' }) privacyNoticeVersion: number;
   @IsDate({ format: 'date-time', ...n }) privacyNoticeUpdatedAt: Date | null;
 }

@@ -5,8 +5,10 @@ import {
   missingForEnable,
   nextNoticeVersion,
   offeredTopics,
+  noticeProblems,
   pickIntro,
   pickNotice,
+  renderNotice,
 } from './contact-settings-rules';
 import { ContactSettingsService } from './contact-settings.service';
 import {
@@ -85,6 +87,14 @@ describe('contact settings rules', () => {
     privacyNoticeVersion: 1,
   };
 
+  const values = {
+    administratorName: 'Jan',
+    administratorEmail: 'jan@x.pl',
+    administratorAddress: null,
+    retentionDays: 365,
+    spamRetentionDays: 30,
+  };
+
   it('needs the controller and the default-language notice to go live', () => {
     expect(
       missingForEnable({
@@ -92,6 +102,7 @@ describe('contact settings rules', () => {
         administratorEmail: null,
         translations: [en],
         defaultLocale: 'pl',
+        values,
       }),
     ).toEqual(['administratorEmail', 'privacyNotice (pl)']);
     expect(
@@ -100,6 +111,7 @@ describe('contact settings rules', () => {
         administratorEmail: 'jan@x.pl',
         translations: [pl],
         defaultLocale: 'pl',
+        values,
       }),
     ).toEqual([]);
   });
@@ -125,12 +137,52 @@ describe('contact settings rules', () => {
     ]);
   });
 
-  it('bumps the notice version only on a real change', () => {
-    const current = { privacyNotice: 'Text v1', privacyNoticeVersion: 3 };
-    expect(nextNoticeVersion(current, undefined)).toBe(3);
-    expect(nextNoticeVersion(current, '  Text v1 ')).toBe(3);
-    expect(nextNoticeVersion(current, 'Text v2')).toBe(4);
-    expect(nextNoticeVersion(current, null)).toBe(4);
+  it('bumps the version when what the visitor reads changes', () => {
+    // whitespace and line breaks from re-saving do not count
+    expect(nextNoticeVersion(3, 'Text v1', '  Text\n v1 ')).toBe(3);
+    expect(nextNoticeVersion(3, 'Text v1', 'Text v2')).toBe(4);
+    expect(nextNoticeVersion(3, 'Text v1', null)).toBe(4);
+  });
+
+  it('fills the placeholders from the settings', () => {
+    expect(
+      renderNotice(
+        'Write to {{ administratorEmail }}; kept {{retentionDays}} days. {{email provider}}',
+        values,
+      ),
+    ).toBe('Write to jan@x.pl; kept 365 days. {{email provider}}');
+    // a new retention period changes what is read, so the version must move
+    const template = 'Kept {{retentionDays}} days.';
+    expect(
+      nextNoticeVersion(
+        3,
+        renderNotice(template, values),
+        renderNotice(template, { ...values, retentionDays: 180 }),
+      ),
+    ).toBe(4);
+  });
+
+  it('blocks a notice with template gaps or empty settings', () => {
+    expect(
+      noticeProblems(
+        'Provider: {{email provider}}. Address: {{administratorAddress}}.',
+        values,
+      ),
+    ).toEqual([
+      'unfilled {{email provider}}',
+      '{{administratorAddress}} is empty in the settings',
+    ]);
+    expect(
+      missingForEnable({
+        ...values,
+        translations: [
+          pl,
+          { ...en, privacyNotice: 'Hosted by {{hosting provider}}' },
+        ],
+        defaultLocale: 'pl',
+        values,
+      }),
+    ).toEqual(['privacyNotice (en): unfilled {{hosting provider}}']);
   });
 
   it('offers every topic when none were picked', () => {
@@ -374,6 +426,62 @@ describe('ContactSettingsService', () => {
       locale: 'en',
       privacyNoticeVersion: 1,
     });
+  });
+
+  it('bumps every language that shows a changed setting', async () => {
+    const { service, prisma } = make(
+      liveSettings({
+        translations: [
+          {
+            id: 't-pl',
+            locale: 'pl',
+            intro: null,
+            privacyNotice: 'Usuwam po {{retentionDays}} dniach.',
+            privacyNoticeVersion: 3,
+            privacyNoticeUpdatedAt: null,
+          },
+          {
+            id: 't-en',
+            locale: 'en',
+            intro: null,
+            privacyNotice: 'Plain notice without the period.',
+            privacyNoticeVersion: 1,
+            privacyNoticeUpdatedAt: null,
+          },
+        ],
+      }),
+    );
+
+    await service.update({ retentionDays: 180 });
+
+    const writes = prisma.contactSettingsTranslation.upsert.mock.calls.map(
+      (c: any) => c[0],
+    );
+    // only the Polish notice reads differently now
+    expect(writes).toHaveLength(1);
+    expect(writes[0].where.settingsId_locale.locale).toBe('pl');
+    expect(writes[0].update).toMatchObject({ privacyNoticeVersion: 4 });
+  });
+
+  it('publishes the notice with the placeholders filled in', async () => {
+    const { service } = make(
+      liveSettings({
+        translations: [
+          {
+            id: 't-pl',
+            locale: 'pl',
+            intro: null,
+            privacyNotice:
+              'Kontakt: {{administratorEmail}}, {{retentionDays}} dni.',
+            privacyNoticeVersion: 3,
+            privacyNoticeUpdatedAt: null,
+          },
+        ],
+      }),
+    );
+    expect((await service.getPublic('pl')).privacyNotice).toBe(
+      'Kontakt: jan@example.com, 365 dni.',
+    );
   });
 
   it('rejects a language the site does not have', async () => {

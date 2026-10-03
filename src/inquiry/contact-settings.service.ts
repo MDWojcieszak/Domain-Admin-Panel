@@ -8,10 +8,12 @@ import {
   localesWithoutNotice,
   missingForEnable,
   NoticeText,
+  NoticeValues,
   nextNoticeVersion,
   offeredTopics,
   pickIntro,
   pickNotice,
+  renderNotice,
   RETENTION_LIMITS,
 } from './contact-settings-rules';
 import { UpdateContactSettingsDto } from './dto';
@@ -96,7 +98,8 @@ export class ContactSettingsService {
         await this.locales.getDefaultCode(),
       ),
       topics: offeredTopics(s.topics),
-      privacyNotice: notice.privacyNotice,
+      // Placeholders filled from the settings as they are right now.
+      privacyNotice: renderNotice(notice.privacyNotice, noticeValues(s)),
       privacyNoticeLocale: notice.locale,
       privacyNoticeVersion: notice.privacyNoticeVersion,
       privacyNoticeFallback: notice.fallback,
@@ -171,18 +174,49 @@ export class ContactSettingsService {
       administratorEmail: text(dto.administratorEmail)?.toLowerCase(),
       administratorAddress: text(dto.administratorAddress),
     };
+    const retention = {
+      retentionDays:
+        dto.retentionDays === undefined
+          ? undefined
+          : clampDays(dto.retentionDays, RETENTION_LIMITS.retentionDays),
+      spamRetentionDays:
+        dto.spamRetentionDays === undefined
+          ? undefined
+          : clampDays(
+              dto.spamRetentionDays,
+              RETENTION_LIMITS.spamRetentionDays,
+            ),
+    };
+    const pick = <T>(next: T | undefined, now: T): T =>
+      next === undefined ? now : next;
+    const after = {
+      administratorName: pick(
+        base.administratorName,
+        current.administratorName,
+      ),
+      administratorEmail: pick(
+        base.administratorEmail,
+        current.administratorEmail,
+      ),
+      administratorAddress: pick(
+        base.administratorAddress,
+        current.administratorAddress,
+      ),
+      retentionDays: pick(retention.retentionDays, current.retentionDays),
+      spamRetentionDays: pick(
+        retention.spamRetentionDays,
+        current.spamRetentionDays,
+      ),
+    };
+    const valuesBefore = noticeValues(current);
+    const valuesAfter = noticeValues(after);
+
     const enabled = dto.enabled ?? current.enabled;
     const missing = missingForEnable({
-      administratorName:
-        base.administratorName === undefined
-          ? current.administratorName
-          : base.administratorName,
-      administratorEmail:
-        base.administratorEmail === undefined
-          ? current.administratorEmail
-          : base.administratorEmail,
+      ...after,
       translations: [...merged.values()],
       defaultLocale,
+      values: valuesAfter,
     });
     if (enabled && missing.length) {
       throw new BadRequestException(
@@ -190,6 +224,7 @@ export class ContactSettingsService {
       );
     }
 
+    const written = new Set(writes.map((w) => w.locale));
     await this.prisma.$transaction(async (tx) => {
       await tx.contactSettings.update({
         where: { id: current.id },
@@ -197,27 +232,16 @@ export class ContactSettingsService {
           enabled: dto.enabled,
           ...base,
           topics: dto.topics ? [...new Set(dto.topics)] : undefined,
-          retentionDays:
-            dto.retentionDays === undefined
-              ? undefined
-              : clampDays(dto.retentionDays, RETENTION_LIMITS.retentionDays),
-          spamRetentionDays:
-            dto.spamRetentionDays === undefined
-              ? undefined
-              : clampDays(
-                  dto.spamRetentionDays,
-                  RETENTION_LIMITS.spamRetentionDays,
-                ),
+          ...retention,
         },
       });
 
-      for (const w of writes) {
-        const existing = current.translations.find(
-          (t) => t.locale === w.locale,
-        );
-        const after = merged.get(w.locale)!;
+      // Every language, not only the edited ones: a new e-mail or retention
+      // period changes what a visitor reads in all of them.
+      for (const [locale, next] of merged) {
+        const existing = current.translations.find((t) => t.locale === locale);
         // Both texts cleared: the language has nothing of its own any more.
-        if (!after.intro && !after.privacyNotice) {
+        if (!next.intro && !next.privacyNotice) {
           if (existing) {
             await tx.contactSettingsTranslation.delete({
               where: { id: existing.id },
@@ -226,25 +250,26 @@ export class ContactSettingsService {
           continue;
         }
         const version = nextNoticeVersion(
-          existing ?? { privacyNotice: null, privacyNoticeVersion: 0 },
-          w.notice,
+          existing?.privacyNoticeVersion ?? 0,
+          renderNotice(existing?.privacyNotice ?? null, valuesBefore),
+          renderNotice(next.privacyNotice, valuesAfter),
         );
         const bumped = version !== (existing?.privacyNoticeVersion ?? 0);
+        if (!written.has(locale) && !bumped) continue;
+
         await tx.contactSettingsTranslation.upsert({
-          where: {
-            settingsId_locale: { settingsId: current.id, locale: w.locale },
-          },
+          where: { settingsId_locale: { settingsId: current.id, locale } },
           create: {
             settingsId: current.id,
-            locale: w.locale,
-            intro: after.intro,
-            privacyNotice: after.privacyNotice,
+            locale,
+            intro: next.intro,
+            privacyNotice: next.privacyNotice,
             privacyNoticeVersion: version,
             privacyNoticeUpdatedAt: bumped ? new Date() : null,
           },
           update: {
-            intro: w.intro,
-            privacyNotice: w.notice,
+            intro: next.intro,
+            privacyNotice: next.privacyNotice,
             ...(bumped
               ? {
                   privacyNoticeVersion: version,
@@ -269,7 +294,11 @@ export class ContactSettingsService {
     return {
       enabled: s.enabled,
       defaultLocale,
-      missingForEnable: missingForEnable({ ...s, defaultLocale }),
+      missingForEnable: missingForEnable({
+        ...s,
+        defaultLocale,
+        values: noticeValues(s),
+      }),
       localesWithoutNotice: localesWithoutNotice(s.translations, enabled),
       administratorName: s.administratorName,
       administratorEmail: s.administratorEmail,
@@ -280,6 +309,7 @@ export class ContactSettingsService {
           locale: t.locale,
           intro: t.intro,
           privacyNotice: t.privacyNotice,
+          privacyNoticeRendered: renderNotice(t.privacyNotice, noticeValues(s)),
           privacyNoticeVersion: t.privacyNoticeVersion,
           privacyNoticeUpdatedAt: t.privacyNoticeUpdatedAt,
         })),
@@ -290,3 +320,18 @@ export class ContactSettingsService {
     };
   }
 }
+
+/** Values the notice placeholders are filled with. */
+const noticeValues = (s: {
+  administratorName: string | null;
+  administratorEmail: string | null;
+  administratorAddress: string | null;
+  retentionDays: number;
+  spamRetentionDays: number;
+}): NoticeValues => ({
+  administratorName: s.administratorName,
+  administratorEmail: s.administratorEmail,
+  administratorAddress: s.administratorAddress,
+  retentionDays: s.retentionDays,
+  spamRetentionDays: s.spamRetentionDays,
+});
