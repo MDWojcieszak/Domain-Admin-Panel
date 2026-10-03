@@ -14,12 +14,13 @@ import { GearOverviewResponse } from '../gear/responses';
 import { GalleriesService } from './galleries.service';
 import { PortfolioGalleryQueryDto } from './dto';
 import {
-  PortfolioGalleryDetailResponse,
   PortfolioGalleryListResponse,
   PortfolioHeroResponse,
   PortfolioHomeResponse,
   PortfolioSettingsResponse,
 } from './responses';
+import { PortfolioGalleryPageResponse } from './responses/portfolio-gallery-detail.response';
+import { ContactSettingsService } from '../inquiry/contact-settings.service';
 
 /** Public, no-auth portfolio API. Only PUBLISHED galleries / non-hidden images. */
 @ApiTags('Portfolio')
@@ -28,6 +29,7 @@ export class PortfolioController {
   constructor(
     private readonly galleries: GalleriesService,
     private readonly gearService: GearService,
+    private readonly contact: ContactSettingsService,
   ) {}
 
   @Public()
@@ -88,20 +90,21 @@ export class PortfolioController {
   @ApiQuery({ name: 'take', required: false, type: Number })
   @ApiQuery({ name: 'skip', required: false, type: Number })
   @ApiOkResponse({
-    description: 'A published gallery with its ordered, visible images',
-    type: PortfolioGalleryDetailResponse,
+    description:
+      'A published gallery with its ordered, visible images and the contact ' +
+      'form (privacy notice included) in the language given by ?locale=',
+    type: PortfolioGalleryPageResponse,
   })
-  bySlug(
+  async bySlug(
     @Param('slug') slug: string,
     @Query() query: PortfolioGalleryQueryDto,
     @Query('take', new ParseIntPipe({ optional: true })) take?: number,
     @Query('skip', new ParseIntPipe({ optional: true })) skip?: number,
-  ): Promise<PortfolioGalleryDetailResponse> {
-    return this.galleries.getPublishedBySlug(
-      slug,
-      query.orientation,
-      take,
-      skip,
-    );
+  ): Promise<PortfolioGalleryPageResponse> {
+    const [gallery, contact] = await Promise.all([
+      this.galleries.getPublishedBySlug(slug, query.orientation, take, skip),
+      this.contact.getPublic(query.locale),
+    ]);
+    return { ...gallery, contact };
   }
 }
