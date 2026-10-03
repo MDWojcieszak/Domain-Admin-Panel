@@ -1759,6 +1759,71 @@ paths:
                 $ref: '#/components/schemas/GearItemAdminResponse'
       tags: *ref_19
       security: *ref_20
+  /gear/images:
+    get:
+      operationId: GearController_listImages
+      summary: Gear photos to pick from
+      description: >-
+        Reuse one photo for identical items. `usedBy` shows which gear already
+        shows it; `search` matches that gear by brand/model; `unusedOnly` lists
+        uploads not attached yet. Gallery photos appear only if gear uses them.
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+        - name: search
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: unusedOnly
+          required: false
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GearImageListResponse'
+      tags: *ref_19
+      security: *ref_20
+    post:
+      operationId: GearController_uploadImage
+      summary: Upload a gear photo
+      description: >-
+        Stored with scope GEAR, so it never appears in the gallery or among
+        unassigned gallery photos. Pass the returned id as imageId on a gear
+        item or system.
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileDto'
+      responses:
+        '200':
+          description: Uploaded a GEAR-scoped image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponseDto'
+      tags: *ref_19
+      security: *ref_20
   /gear/items:
     get:
       operationId: GearController_listItems
@@ -3579,6 +3644,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
       tags: *ref_40
+      security:
+        - bearer: []
   /photo-entry/{id}/create-folders:
     post:
       operationId: PhotoEntryController_createFolders
@@ -3596,6 +3663,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
       tags: *ref_40
+      security:
+        - bearer: []
   /photo-entry/{id}/mark-media-uploaded:
     post:
       operationId: PhotoEntryController_markMediaUploaded
@@ -9652,6 +9721,64 @@ components:
         - slug
         - imageCount
         - items
+    GearImageUserKind:
+      type: string
+      enum:
+        - ITEM
+        - SYSTEM
+    GearImageUserResponse:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/GearImageUserKind'
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - kind
+        - id
+        - name
+    GearImageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        coverUrl:
+          type: string
+        lowResUrl:
+          type: string
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        usedBy:
+          type: array
+          items:
+            $ref: '#/components/schemas/GearImageUserResponse'
+      required:
+        - id
+        - coverUrl
+        - lowResUrl
+        - createdAt
+        - usedBy
+    GearImageListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/GearImageResponse'
+      required:
+        - total
+        - images
     GearItemsSort:
       type: string
       enum:
