@@ -34,9 +34,11 @@ function makeReminders(entries: any[], logs: any[] = []) {
     notificationLog: { findMany: jest.fn().mockResolvedValue(logs) },
   };
   const notifications: any = { emailUser: jest.fn().mockResolvedValue(true) };
+  const forecast: any = { build: jest.fn() };
   return {
-    service: new TripReminderService(prisma, notifications),
+    service: new TripReminderService(prisma, notifications, forecast),
     notifications,
+    forecast,
   };
 }
 
@@ -85,6 +87,44 @@ describe('TripReminderService', () => {
         },
       ],
     );
+
+    expect(await service.remind(NOW)).toBe(0);
+    expect(notifications.emailUser).not.toHaveBeenCalled();
+  });
+
+  it('adds the forecast three days out, when the entry has a place', async () => {
+    const { service, notifications, forecast } = makeReminders([
+      {
+        ...planned('Tatra', 3, []),
+        location: { latitude: 49.27, longitude: 19.95 },
+      },
+    ]);
+    forecast.build.mockResolvedValue({
+      available: true,
+      days: [
+        {
+          summary: {
+            cloudDay: 20,
+            cloudNight: 70,
+            precipitationProbabilityMax: 10,
+            windGustMax: 31.6,
+          },
+        },
+      ],
+    });
+
+    expect(await service.remind(NOW)).toBe(1);
+    expect(notifications.emailUser.mock.calls[0][1].detail).toBe(
+      'Tatra (in 3 days): forecast — cloud 20% by day, 70% at night, ' +
+        'rain chance up to 10%, gusts 32 km/h',
+    );
+  });
+
+  it('retries the forecast next run when the service is down', async () => {
+    const { service, notifications, forecast } = makeReminders([
+      { ...planned('Tatra', 3, []), location: { latitude: 1, longitude: 1 } },
+    ]);
+    forecast.build.mockRejectedValue(new Error('down'));
 
     expect(await service.remind(NOW)).toBe(0);
     expect(notifications.emailUser).not.toHaveBeenCalled();

@@ -10,12 +10,15 @@ export enum TripReminderKind {
   SHOPPING = 'SHOPPING',
   /** Owned gear on the list not packed yet. */
   PACKING = 'PACKING',
+  /** Weather at the place — needs a location. */
+  FORECAST = 'FORECAST',
 }
 
 /** Days before the start at which each reminder fires — once per milestone. */
 export const TRIP_MILESTONES: Record<TripReminderKind, readonly number[]> = {
   [TripReminderKind.SHOPPING]: [30, 7],
   [TripReminderKind.PACKING]: [1],
+  [TripReminderKind.FORECAST]: [3],
 };
 
 const startOfDay = (date: Date): number => {
@@ -59,6 +62,8 @@ export interface TripReminderLine {
   /** PACKING only. */
   packed?: number;
   of?: number;
+  /** FORECAST only: one line of the first day's summary. */
+  forecast?: string;
 }
 
 const when = (days: number): string =>
@@ -69,6 +74,9 @@ export const tripReminderCopy = (lines: TripReminderLine[]) => {
   const detail = lines
     .map((l) => {
       const head = `${l.entryName} (${when(l.days)})`;
+      if (l.kind === TripReminderKind.FORECAST) {
+        return `${head}: forecast — ${l.forecast}`;
+      }
       if (l.kind === TripReminderKind.SHOPPING) {
         const total = l.total ? ` — about ${l.total}` : '';
         return `${head}: still to buy ${l.items.join(', ')}${total}`;

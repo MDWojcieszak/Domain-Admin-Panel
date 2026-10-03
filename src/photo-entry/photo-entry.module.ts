@@ -13,6 +13,7 @@ import { PhotoEntryPlanningController } from './planning/planning.controller';
 import { AttentionService } from './planning/attention.service';
 import { TripReminderService } from './planning/trip-reminder.service';
 import { SkyService } from './sky/sky.service';
+import { ForecastService } from './forecast/forecast.service';
 import { PhotoEntryGearController } from './gear/photo-entry-gear.controller';
 import { PhotoEntryGearService } from './gear/photo-entry-gear.service';
 import { PendingMediaReminderService } from './gear/pending-media-reminder.service';
@@ -41,6 +42,7 @@ import { PhotoEntryCountsService } from './counts/photo-entry-counts.service';
     AttentionService,
     TripReminderService,
     SkyService,
+    ForecastService,
     ExportService,
     PreviewCacheService,
     FileService,

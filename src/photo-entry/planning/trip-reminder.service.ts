@@ -3,6 +3,8 @@ import { Cron } from '@nestjs/schedule';
 import { GearOwnership, PhotoEntryStatus } from '@prisma/client';
 
 import { NotificationService } from '../../notification/notification.service';
+import { forecastLine } from '../forecast/forecast';
+import { ForecastService } from '../forecast/forecast.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   daysUntil,
@@ -36,6 +38,7 @@ export class TripReminderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationService,
+    private readonly forecast: ForecastService,
   ) {}
 
   @Cron('5 9 * * *')
@@ -59,7 +62,7 @@ export class TripReminderService {
         status: PhotoEntryStatus.PLANNED,
         startDate: { gte: yesterday, lte: horizon },
       },
-      include: { gear: { include: { gearItem: true } } },
+      include: { gear: { include: { gearItem: true } }, location: true },
     });
 
     const byUser = new Map<
@@ -120,6 +123,33 @@ export class TripReminderService {
         bucket.items.push({ entryId: entry.id, kind, milestone });
       }
 
+      // The forecast needs a request, so it is not one of the sync candidates.
+      const forecastMilestone = entry.location
+        ? dueMilestone(TripReminderKind.FORECAST, days)
+        : null;
+      if (
+        forecastMilestone !== null &&
+        !alreadySent.has(
+          reminderKey(entry.id, TripReminderKind.FORECAST, forecastMilestone),
+        )
+      ) {
+        const summary = await this.forecastSummary(entry, now);
+        // No forecast (service down): not marked as sent, so the next run retries.
+        if (summary) {
+          bucket.lines.push({
+            entryName: entry.name,
+            days,
+            kind: TripReminderKind.FORECAST,
+            items: [],
+            forecast: summary,
+          });
+          bucket.items.push({
+            entryId: entry.id,
+            kind: TripReminderKind.FORECAST,
+            milestone: forecastMilestone,
+          });
+        }
+      }
       if (bucket.lines.length) byUser.set(entry.userId, bucket);
     }
 
@@ -141,6 +171,20 @@ export class TripReminderService {
       if (delivered) sent++;
     }
     return sent;
+  }
+
+  /** One line for the first forecast day, or null when there is none. */
+  private async forecastSummary(
+    entry: Parameters<ForecastService['build']>[0],
+    now: Date,
+  ): Promise<string | null> {
+    try {
+      const forecast = await this.forecast.build(entry, now);
+      const first = forecast.days[0];
+      return forecast.available && first ? forecastLine(first.summary) : null;
+    } catch {
+      return null;
+    }
   }
 
   /** Milestones delivered in the last 60 days, as reminderKey strings. */

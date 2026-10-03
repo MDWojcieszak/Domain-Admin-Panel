@@ -11,6 +11,8 @@ import { GetCurrentUser, RequirePermissions } from '../../common/decorators';
 import { AttentionService } from './attention.service';
 import { PhotoEntrySkyResponse } from '../sky/responses';
 import { SkyService } from '../sky/sky.service';
+import { PhotoEntryForecastResponse } from '../forecast/responses';
+import { ForecastService } from '../forecast/forecast.service';
 import { AttentionResponse } from './responses';
 
 /** Planning views across entries (docs/photo-entry-planning-and-publish.md). */
@@ -21,6 +23,7 @@ export class PhotoEntryPlanningController {
   constructor(
     private readonly attention: AttentionService,
     private readonly sky: SkyService,
+    private readonly forecast: ForecastService,
   ) {}
 
   @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_READ)
@@ -54,5 +57,24 @@ export class PhotoEntryPlanningController {
     @Param('id') id: string,
   ): Promise<PhotoEntrySkyResponse> {
     return this.sky.forEntry(userId, id);
+  }
+
+  @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_READ)
+  @Get(':id/forecast')
+  @ApiOperation({
+    summary: 'Weather forecast for the entry (Open-Meteo)',
+    description:
+      'Hourly cloud (total/low/mid/high), rain, wind, visibility and a daily ' +
+      'summary for the day, the evening golden hour and the astronomical night. ' +
+      'Only within ~16 days of the start: otherwise available=false with ' +
+      'reason TOO_EARLY (and availableFrom) or PAST. Sends the entry ' +
+      'coordinates to Open-Meteo; cached for an hour.',
+  })
+  @ApiOkResponse({ type: PhotoEntryForecastResponse })
+  getForecast(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ): Promise<PhotoEntryForecastResponse> {
+    return this.forecast.forEntry(userId, id);
   }
 }
