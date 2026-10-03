@@ -9,6 +9,7 @@ import {
 } from '../photo-entry-derived';
 
 type PhotoEntryWithAstroObjects = PhotoEntry & {
+  location: Location | null;
   astroObjects?: Array<{
     id: string;
     photoEntryId: string;
@@ -32,7 +33,9 @@ type PhotoEntryWithAstroObjects = PhotoEntry & {
 
 export class PhotoEntryMapper {
   static toResponse(
-    photoEntry: PhotoEntry & { location?: Location | null },
+    // `location` is required on purpose: forgetting `include: { location: true }`
+    // must not compile, or a card would silently lose its place after a PATCH.
+    photoEntry: PhotoEntry & { location: Location | null },
     commentSummary?: PhotoEntryCommentSummaryResponse,
   ): PhotoEntryResponse {
     return {
@@ -67,10 +70,7 @@ export class PhotoEntryMapper {
         photoEntry.editedCount,
       ),
       ...(commentSummary ? { commentSummary } : {}),
-      // Present only where the query loaded it (list, details, create, patch).
-      ...('location' in photoEntry
-        ? { location: toLocationResponse(photoEntry.location) }
-        : {}),
+      location: toLocationResponse(photoEntry.location),
     };
   }
 

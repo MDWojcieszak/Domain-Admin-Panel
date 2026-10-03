@@ -108,11 +108,7 @@ export class PhotoEntryResponse {
   @IsNested({ type: PhotoEntryCommentSummaryResponse, optional: true })
   commentSummary?: PhotoEntryCommentSummaryResponse;
 
-  /** Present on list, details, create and patch responses. */
-  @IsNested({
-    type: PhotoEntryLocationResponse,
-    optional: true,
-    nullable: true,
-  })
-  location?: PhotoEntryLocationResponse | null;
+  /** Where the shoot is; null when not set. Present on every response. */
+  @IsNested({ type: PhotoEntryLocationResponse, nullable: true })
+  location: PhotoEntryLocationResponse | null;
 }

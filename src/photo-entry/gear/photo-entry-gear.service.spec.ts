@@ -114,6 +114,8 @@ describe('PhotoEntryGearService', () => {
     expect(prisma.photoEntry.update).toHaveBeenLastCalledWith({
       where: { id: 'pe1' },
       data: { uploadStatus: MediaStatus.UPLOADED },
+      // every entry response carries its location
+      include: { location: true },
     });
     expect(result.uploadStatus).toBe(MediaStatus.UPLOADED);
   });

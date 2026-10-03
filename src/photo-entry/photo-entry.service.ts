@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  Location,
   PhotoEntry,
   PhotoEntryCountsSource,
   PhotoEntryType,
@@ -41,6 +42,7 @@ import {
 } from './comments/photo-entry-comment.service';
 
 type PhotoEntryWithAstroObjects = PhotoEntry & {
+  location: Location | null;
   astroObjects: Array<{
     id: string;
     photoEntryId: string;
@@ -340,6 +342,7 @@ export class PhotoEntryService {
 
     const updated = await this.prisma.photoEntry.update({
       where: { id: existing.id },
+      include: { location: true },
       data: {
         status: dto.status,
       },
@@ -364,6 +367,7 @@ export class PhotoEntryService {
 
     const updated = await this.prisma.photoEntry.update({
       where: { id: existing.id },
+      include: { location: true },
       data: {
         postStage: dto.postStage,
         // P2 — stamped once and never cleared, so the "was edited" fact
@@ -408,6 +412,7 @@ export class PhotoEntryService {
 
     const updated = await this.prisma.photoEntry.update({
       where: { id: existing.id },
+      include: { location: true },
       // Marked REPORTED so the nightly folder scan leaves it alone until the
       // folders change after this write (§7, phase 6).
       data: {
@@ -574,6 +579,7 @@ export class PhotoEntryService {
         id,
         userId,
       },
+      include: { location: true },
     });
 
     if (!updated) {
@@ -606,6 +612,7 @@ export class PhotoEntryService {
         userId,
       },
       include: {
+        location: true,
         astroObjects: {
           include: {
             astroObject: true,

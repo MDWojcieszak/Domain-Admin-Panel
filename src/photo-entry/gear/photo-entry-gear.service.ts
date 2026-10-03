@@ -447,10 +447,10 @@ export class PhotoEntryGearService {
   }
 
   /** P4 — the only writer of `uploadStatus` besides `markMediaUploaded`. */
-  private async syncUploadStatus(tx: Tx, entryId: string): Promise<PhotoEntry> {
+  private async syncUploadStatus(tx: Tx, entryId: string) {
     const entry = await tx.photoEntry.findUniqueOrThrow({
       where: { id: entryId },
-      include: { gear: { include: { gearItem: true } } },
+      include: { gear: { include: { gearItem: true } }, location: true },
     });
     const next = uploadStatusOf(
       entry.gearConfirmedAt,
@@ -460,6 +460,7 @@ export class PhotoEntryGearService {
     return tx.photoEntry.update({
       where: { id: entryId },
       data: { uploadStatus: next },
+      include: { location: true },
     });
   }
 

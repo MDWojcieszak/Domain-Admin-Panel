@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
+  Location,
   PhotoEntry,
   PhotoEntryCountsSource,
   PhotoEntryStatus,
@@ -82,7 +83,9 @@ export class PhotoEntryCountsService {
    * the caller) and respectful of newer reported counts. Returns the updated
    * entry, or null when nothing was written.
    */
-  async refreshAutomatically(entryId: string): Promise<PhotoEntry | null> {
+  async refreshAutomatically(
+    entryId: string,
+  ): Promise<(PhotoEntry & { location: Location | null }) | null> {
     try {
       const entry = await this.prisma.photoEntry.findUnique({
         where: { id: entryId },
@@ -183,9 +186,10 @@ export class PhotoEntryCountsService {
     };
   }
 
-  private apply(entryId: string, counts: ProgressCounts): Promise<PhotoEntry> {
+  private apply(entryId: string, counts: ProgressCounts) {
     return this.prisma.photoEntry.update({
       where: { id: entryId },
+      include: { location: true },
       data: {
         ...counts,
         countsSource: PhotoEntryCountsSource.SCANNED,
