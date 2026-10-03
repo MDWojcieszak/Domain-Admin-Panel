@@ -8,5 +8,6 @@ import { GearModule } from '../gear/gear.module';
   imports: [GearModule],
   controllers: [GalleriesController, PortfolioController],
   providers: [GalleriesService],
+  exports: [GalleriesService],
 })
 export class GalleriesModule {}

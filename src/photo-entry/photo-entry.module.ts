@@ -5,6 +5,10 @@ import { PhotoStorageService } from '../photo-storage-service/photo-storage.serv
 import { NotificationModule } from '../notification/notification.module';
 import { GearModule } from '../gear/gear.module';
 import { GalleriesModule } from '../galleries/galleries.module';
+import { FileService } from '../file/file.service';
+import { PhotoEntryExportController } from './exports/export.controller';
+import { ExportService } from './exports/export.service';
+import { PreviewCacheService } from './exports/preview-cache.service';
 import { PhotoEntryPlanningController } from './planning/planning.controller';
 import { AttentionService } from './planning/attention.service';
 import { TripReminderService } from './planning/trip-reminder.service';
@@ -16,7 +20,7 @@ import { PhotoEntryCommentService } from './comments/photo-entry-comment.service
 import { PhotoEntryCountsService } from './counts/photo-entry-counts.service';
 
 @Module({
-  imports: [NotificationModule, GearModule],
+  imports: [NotificationModule, GearModule, GalleriesModule],
   // Sub-resource controllers FIRST: they own static paths such as GET
   // /photo-entry/pending-media and /photo-entry/comments/:commentId, which the
   // :id routes would otherwise swallow — Nest registers in controller order.
@@ -24,6 +28,7 @@ import { PhotoEntryCountsService } from './counts/photo-entry-counts.service';
     PhotoEntryGearController,
     PhotoEntryCommentController,
     PhotoEntryPlanningController,
+    PhotoEntryExportController,
     PhotoEntryController,
   ],
   providers: [
@@ -34,6 +39,9 @@ import { PhotoEntryCountsService } from './counts/photo-entry-counts.service';
     PendingMediaReminderService,
     AttentionService,
     TripReminderService,
+    ExportService,
+    PreviewCacheService,
+    FileService,
     PhotoStorageService,
   ],
 })

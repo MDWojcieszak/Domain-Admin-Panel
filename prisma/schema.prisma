@@ -908,21 +908,22 @@ model Image {
   exposureTime String?
   takenAt      DateTime?
 
-  blogVersionCovers   BlogPostVersion[]    @relation("VersionCover")
-  blogVersionOgImages BlogPostVersion[]    @relation("VersionOgImage")
+  blogVersionCovers   BlogPostVersion[]       @relation("VersionCover")
+  blogVersionOgImages BlogPostVersion[]       @relation("VersionOgImage")
   blogSectionImages   BlogSectionImage[]
-  poiCovers           Poi[]                @relation("PoiCover")
+  poiCovers           Poi[]                   @relation("PoiCover")
   poiImages           PoiImage[]
   poiCollectionCovers PoiCollection[]
   blogSeriesCovers    BlogSeries[]
   blogAlbumItems      BlogMediaAlbumItem[]
-  blogAlbumCovers     BlogMediaAlbum[]     @relation("BlogAlbumCover")
-  blogCountryCovers   BlogCountry[]        @relation("BlogCountryCover")
-  galleryCovers       Gallery[]            @relation("GalleryCover")
+  blogAlbumCovers     BlogMediaAlbum[]        @relation("BlogAlbumCover")
+  blogCountryCovers   BlogCountry[]           @relation("BlogCountryCover")
+  galleryCovers       Gallery[]               @relation("GalleryCover")
   galleryItems        GalleryImage[]
-  heroImage           HeroImage?           @relation("HeroImage")
-  gearItems           GearItem[]           @relation("GearImage")
-  gearSystemCovers    GearSystem[]         @relation("GearSystemImage")
+  heroImage           HeroImage?              @relation("HeroImage")
+  gearItems           GearItem[]              @relation("GearImage")
+  entryPublications   PhotoEntryPublication[]
+  gearSystemCovers    GearSystem[]            @relation("GearSystemImage")
 
   @@index([scope])
   @@index([processingStatus])
@@ -964,6 +965,8 @@ model Gallery {
   createdById String
 
   items GalleryImage[]
+
+  entryPublications PhotoEntryPublication[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1469,6 +1472,7 @@ model PhotoEntry {
   immichAlbums PhotoEntryImmichAlbum[]
   gear         PhotoEntryGear[]
   comments     PhotoEntryComment[]
+  publications PhotoEntryPublication[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1604,6 +1608,52 @@ model PhotoEntryComment {
 }
 
 /// A repeatable gear bundle, e.g. "GFX travel" or "eclipse" (§4).
+/// Which export file of an entry became which gallery image
+/// (docs/photo-entry-planning-and-publish.md §2.6). NEW and CHANGED are not
+/// stored — they come from comparing this row with the file on disk.
+model PhotoEntryPublication {
+  id String @id @default(uuid())
+
+  photoEntry   PhotoEntry @relation(fields: [photoEntryId], references: [id], onDelete: Cascade)
+  photoEntryId String
+
+  /// Inside the entry's export folder, forward slashes.
+  relativePath String
+  /// File state when it was (last) published — a re-export changes these.
+  sourceSize   BigInt?
+  sourceMtime  DateTime?
+
+  /// SetNull: deleting the image from the library returns the file to NEW.
+  image   Image?  @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  imageId String?
+
+  /// Target gallery of the last publication.
+  gallery   Gallery? @relation(fields: [galleryId], references: [id], onDelete: SetNull)
+  galleryId String?
+
+  status      PublicationStatus
+  error       String?
+  publishedAt DateTime?
+
+  /// Who asked — the worker uploads on their behalf.
+  requestedById String
+  /// Order of selection; the gallery receives photos in this order.
+  queuePosition Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([photoEntryId, relativePath])
+  @@index([status])
+  @@index([imageId])
+}
+
+enum PublicationStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
 model GearKit {
   id          String  @id @default(uuid())
   name        String  @unique
