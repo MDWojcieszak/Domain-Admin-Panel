@@ -7,6 +7,7 @@ import {
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron } from '@nestjs/schedule';
 import {
   ImageScope,
   PhotoEntry,
@@ -213,6 +214,7 @@ export class ExportService implements OnApplicationBootstrap {
       );
     }
     return this.previews.get(
+      entry.id,
       file.absolutePath,
       previewCacheName(
         entry.id,
@@ -223,6 +225,77 @@ export class ExportService implements OnApplicationBootstrap {
       ),
       query.size,
     );
+  }
+
+  /**
+   * Nightly: previews are kept for good, so only what can never be shown
+   * again goes — older versions of re-exported files, files gone from the
+   * export, entries that no longer exist. An export folder that cannot be
+   * read (share not mounted) keeps everything: absence of proof is not proof.
+   */
+  @Cron('45 4 * * *')
+  async prunePreviews(): Promise<void> {
+    try {
+      let removed = await this.previews.dropLeftovers();
+      for (const entryId of await this.previews.cachedEntries()) {
+        const entry = await this.prisma.photoEntry.findUnique({
+          where: { id: entryId },
+        });
+        const keep = entry ? await this.currentPreviewNames(entry) : null;
+        if (!entry || keep === 'unsupported') {
+          await this.previews.dropEntry(entryId);
+          removed++;
+        } else if (keep) {
+          removed += await this.previews.prune(entryId, keep);
+        }
+      }
+      if (removed > 0) this.logger.log(`Pruned ${removed} stale preview(s)`);
+    } catch (err) {
+      this.logger.warn(`Preview pruning failed: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * Cache names of every preview the entry's export can still produce; null
+   * when the folder cannot be read, 'unsupported' when it has no export.
+   */
+  private async currentPreviewNames(
+    entry: PhotoEntry,
+  ): Promise<Set<string> | null | 'unsupported'> {
+    let folder: string;
+    try {
+      folder = exportFolderOf(entry);
+    } catch {
+      return 'unsupported';
+    }
+    const listing = await this.storage.listFiles(
+      `${entry.rootPath}/${folder}`,
+      (_dir, name) => isIgnoredDir(name),
+    );
+    if (!listing) return null;
+
+    const keep = new Set<string>();
+    for (const relativePath of listing.files) {
+      if (!classifyExportFile(basename(relativePath))?.publishable) continue;
+      const info = await stat(
+        this.storage.buildAbsolutePath(
+          `${entry.rootPath}/${folder}/${relativePath}`,
+        ),
+      ).catch(() => null);
+      if (!info) return null; // the share went away mid-listing
+      for (const size of Object.values(PreviewSize)) {
+        keep.add(
+          previewCacheName(
+            entry.id,
+            relativePath,
+            info.size,
+            info.mtimeMs,
+            size,
+          ),
+        );
+      }
+    }
+    return keep;
   }
 
   // ------------------------------------------------------------ publish

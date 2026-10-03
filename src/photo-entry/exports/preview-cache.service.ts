@@ -1,8 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron } from '@nestjs/schedule';
 import { randomUUID } from 'crypto';
-import { mkdir, readdir, rename, rm, stat, utimes } from 'fs/promises';
+import { mkdir, readdir, rename, rm, stat } from 'fs/promises';
 import { join } from 'path';
 import * as sharp from 'sharp';
 
@@ -11,21 +10,23 @@ import { PREVIEW_PIXELS, PreviewSize } from './export-files';
 const DEFAULT_CACHE_PATH = '/app/public/cache/export-previews';
 /** Generations running at once — a scrolling grid fires dozens of requests. */
 const CONCURRENCY = 3;
-const MAX_AGE_DAYS = 30;
-const MAX_BYTES = 2 * 1024 ** 3;
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** Entry ids are uuids; anything else in the root is a leftover (old layout). */
+const ENTRY_DIR = /^[0-9a-f-]{36}$/i;
 
 /**
- * Previews of export files, generated on first request and cached on disk
+ * Previews of export files, generated on first request and kept for good
  * (docs/photo-entry-planning-and-publish.md §2.4).
  *
+ * No expiry and no size cap: previews are small, and coming back to an entry
+ * a month later must not mean waiting for them again. Only what can never be
+ * shown again is removed — see `prune`. One directory per entry, so that is
+ * decidable without an index.
+ *
  * The cache lives OUTSIDE the photo library: the backend never writes into an
- * entry's folders (Q1). A cache file's mtime is bumped on use, so cleanup can
- * drop what nobody has looked at for a month.
+ * entry's folders (Q1).
  */
 @Injectable()
 export class PreviewCacheService {
-  private readonly logger = new Logger(PreviewCacheService.name);
   private readonly root: string;
   private readonly inFlight = new Map<string, Promise<string>>();
   private active = 0;
@@ -38,12 +39,13 @@ export class PreviewCacheService {
 
   /** Absolute path of the cached webp, generating it when missing. */
   async get(
+    entryId: string,
     sourcePath: string,
     cacheName: string,
     size: PreviewSize,
   ): Promise<string> {
-    const target = join(this.root, cacheName.slice(0, 2), cacheName);
-    if (await this.touchIfExists(target)) return target;
+    const target = join(this.root, entryId, cacheName);
+    if (await exists(target)) return target;
 
     // Two requests for the same preview share one generation.
     const pending = this.inFlight.get(target);
@@ -58,27 +60,41 @@ export class PreviewCacheService {
     }
   }
 
-  @Cron('30 4 * * *')
-  async cleanup(now: number = Date.now()): Promise<void> {
-    try {
-      const files = await this.cacheFiles();
-      let removed = 0;
-      // Oldest first, so the size cap drops the least recently used.
-      files.sort((a, b) => a.mtimeMs - b.mtimeMs);
-      let total = files.reduce((s, f) => s + f.size, 0);
-      for (const f of files) {
-        const stale = now - f.mtimeMs > MAX_AGE_DAYS * DAY_MS;
-        if (!stale && total <= MAX_BYTES) break;
-        await rm(f.path, { force: true });
-        total -= f.size;
-        removed++;
-      }
-      if (removed > 0) this.logger.log(`Removed ${removed} cached preview(s)`);
-    } catch (err) {
-      this.logger.warn(
-        `Preview cache cleanup failed: ${(err as Error).message}`,
-      );
+  /** Entry ids that have a cache directory. */
+  async cachedEntries(): Promise<string[]> {
+    const names = await readdir(this.root).catch(() => [] as string[]);
+    return names.filter((n) => ENTRY_DIR.test(n));
+  }
+
+  /**
+   * Removes the entry's previews that can never be shown again: older
+   * versions of re-exported files and files no longer in the export.
+   * `keep` holds the cache names of every file currently in the export.
+   */
+  async prune(entryId: string, keep: ReadonlySet<string>): Promise<number> {
+    const dir = join(this.root, entryId);
+    let removed = 0;
+    for (const name of await readdir(dir).catch(() => [] as string[])) {
+      if (keep.has(name)) continue;
+      await rm(join(dir, name), { force: true });
+      removed++;
     }
+    return removed;
+  }
+
+  /** Drops a whole entry directory (the entry is gone). */
+  async dropEntry(entryId: string): Promise<void> {
+    await rm(join(this.root, entryId), { recursive: true, force: true });
+  }
+
+  /** Removes anything in the root that is not an entry directory. */
+  async dropLeftovers(): Promise<number> {
+    const names = await readdir(this.root).catch(() => [] as string[]);
+    const leftovers = names.filter((n) => !ENTRY_DIR.test(n));
+    for (const name of leftovers) {
+      await rm(join(this.root, name), { recursive: true, force: true });
+    }
+    return leftovers.length;
   }
 
   private async generate(
@@ -87,7 +103,7 @@ export class PreviewCacheService {
     size: PreviewSize,
   ): Promise<string> {
     // A second request may have finished it while this one waited its turn.
-    if (await this.touchIfExists(target)) return target;
+    if (await exists(target)) return target;
 
     await mkdir(join(target, '..'), { recursive: true });
     const tmp = `${target}.${randomUUID()}.tmp`;
@@ -108,20 +124,6 @@ export class PreviewCacheService {
     }
   }
 
-  private async touchIfExists(path: string): Promise<boolean> {
-    try {
-      const info = await stat(path);
-      // Bump at most daily: cheap LRU without a write on every request.
-      if (Date.now() - info.mtimeMs > DAY_MS) {
-        const now = new Date();
-        await utimes(path, now, now).catch(() => undefined);
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   private async limited<T>(fn: () => Promise<T>): Promise<T> {
     if (this.active >= CONCURRENCY) {
       await new Promise<void>((resolve) => this.waiting.push(resolve));
@@ -134,25 +136,7 @@ export class PreviewCacheService {
       this.waiting.shift()?.();
     }
   }
-
-  private async cacheFiles() {
-    const out: Array<{ path: string; size: number; mtimeMs: number }> = [];
-    let shards: string[];
-    try {
-      shards = await readdir(this.root);
-    } catch {
-      return out; // nothing cached yet
-    }
-    for (const shard of shards) {
-      const dir = join(this.root, shard);
-      for (const name of await readdir(dir).catch(() => [] as string[])) {
-        const path = join(dir, name);
-        const info = await stat(path).catch(() => null);
-        if (info?.isFile()) {
-          out.push({ path, size: info.size, mtimeMs: info.mtimeMs });
-        }
-      }
-    }
-    return out;
-  }
 }
+
+const exists = async (path: string): Promise<boolean> =>
+  (await stat(path).catch(() => null))?.isFile() ?? false;
