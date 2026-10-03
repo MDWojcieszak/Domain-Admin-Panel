@@ -118,3 +118,38 @@ describe('PhotoEntryGearService', () => {
     expect(result.uploadStatus).toBe(MediaStatus.UPLOADED);
   });
 });
+
+describe('PhotoEntryGearService.pendingMedia', () => {
+  it('ranks by how far past its own threshold each source is', async () => {
+    const { service, prisma } = makeService();
+    const daysAgo = (n: number) => new Date(Date.now() - n * 864e5);
+    const shot = (id: string, days: number, category: GearCategory) => ({
+      ...entry({ id, name: id, gearConfirmedAt: daysAgo(days) }),
+      startDate: daysAgo(days),
+      endDate: daysAgo(days),
+      gear: [
+        {
+          id: `r-${id}`,
+          used: true,
+          secured: false,
+          createdAt: daysAgo(days),
+          remindedAt: null,
+          gearItem: gear({ category }),
+        },
+      ],
+    });
+    prisma.photoEntry.findMany = jest
+      .fn()
+      .mockResolvedValue([
+        shot('film-75d', 75, GearCategory.FILM_CAMERA),
+        shot('card-51d', 51, GearCategory.CAMERA),
+      ]);
+
+    const res = await service.pendingMedia('u1');
+
+    expect(res.unsecured.map((e) => e.photoEntryId)).toEqual([
+      'card-51d',
+      'film-75d',
+    ]);
+  });
+});

@@ -343,9 +343,9 @@ export class PhotoEntryGearService {
       unsecured.push({ ...ref, overdue: items.some((i) => i.overdue), items });
     }
 
-    const oldest = (e: PendingMediaEntryResponse) =>
-      Math.max(...e.items.map((i) => i.daysPending));
-    unsecured.sort((a, b) => oldest(b) - oldest(a));
+    // Most urgent first, measured against each source's own threshold: a card
+    // 51 days out (7x its limit) outranks film at 75 days (still under 90).
+    unsecured.sort((a, b) => urgencyOf(b) - urgencyOf(a));
     // Most recent first: those are the ones whose cards may still be intact.
     undeclared.sort((a, b) => shootTime(b) - shootTime(a));
 
@@ -502,6 +502,9 @@ export class PhotoEntryGearService {
     };
   }
 }
+
+const urgencyOf = (e: PendingMediaEntryResponse): number =>
+  Math.max(...e.items.map((i) => i.daysPending / i.reminderDays));
 
 const shootTime = (e: { startDate: Date | null; endDate: Date | null }) =>
   (e.endDate ?? e.startDate)?.getTime() ?? 0; // undated last
