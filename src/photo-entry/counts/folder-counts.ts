@@ -20,7 +20,7 @@ export const PHOTO_EXTENSIONS: ReadonlySet<string> = new Set([
   'rw2', 'pef', 'srw', '3fr', 'fff', 'iiq', 'x3f', 'gpr', 'erf', 'mef', 'mos',
   'kdc', 'rwl',
   // rendered
-  'jpg', 'jpeg', 'heic', 'heif', 'hif', 'tif', 'tiff', 'png', 'webp', 'avif',
+  'jpg', 'jpeg', 'jpe', 'jfif', 'heic', 'heif', 'hif', 'tif', 'tiff', 'png', 'webp', 'avif',
   'jxl', 'psd', 'psb',
 ]); // prettier-ignore
 
@@ -77,6 +77,53 @@ export const countFrames = (
       .filter((p) => isPhotoFile(p.split(/[\\/]/).pop()!))
       .map((p) => frameKey(p, stripPrefixes)),
   ).size;
+};
+
+/** Last segment of a path, whichever separator it uses. */
+const fileName = (path: string): string => path.split(/[\\/]/).pop()!;
+
+const stemOf = (path: string): string => {
+  const name = fileName(path);
+  const dot = name.lastIndexOf('.');
+  return (dot > 0 ? name.slice(0, dot) : name).toLowerCase();
+};
+
+/** "dscf0412" names "dscf0412", "dscf0412_web", "dscf0412-2048px" — not "dscf04120". */
+const isVariantOf = (exportStem: string, frameStem: string): boolean =>
+  exportStem === frameStem ||
+  (exportStem.startsWith(frameStem) &&
+    /[^a-z0-9]/.test(exportStem[frameStem.length]));
+
+/**
+ * Edited frames, counted from the stage BEFORE the export rather than from the
+ * export itself: one frame is often exported several times (web/ and print/
+ * folders, _web / -2048px suffixes), and counting files would make "edited"
+ * exceed "selected" — which reads as a skipped selection and wipes a correct
+ * selectedCount.
+ *
+ * A frame of `basePaths` (SELECTS, or SOURCE when nothing was selected) counts
+ * as edited when any export file name is a variant of it. When no export
+ * matches at all — files renamed on export — it falls back to distinct export
+ * names, ignoring folders, so a size per subfolder still counts once.
+ */
+export const countEditedFrames = (
+  exportPaths: string[] | null,
+  basePaths: string[] | null,
+): number | null => {
+  if (exportPaths === null) return null;
+  const exportStems = [
+    ...new Set(exportPaths.filter((p) => isPhotoFile(fileName(p))).map(stemOf)),
+  ];
+  if (exportStems.length === 0) return 0;
+
+  const frameStems = new Set(
+    (basePaths ?? []).filter((p) => isPhotoFile(fileName(p))).map(stemOf),
+  );
+  let edited = 0;
+  for (const frame of frameStems) {
+    if (exportStems.some((e) => isVariantOf(e, frame))) edited++;
+  }
+  return edited > 0 ? edited : exportStems.length;
 };
 
 export interface ProgressCounts {

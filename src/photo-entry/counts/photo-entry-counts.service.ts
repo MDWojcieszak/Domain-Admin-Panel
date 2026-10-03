@@ -26,6 +26,7 @@ import {
 import { PhotoEntryMapper } from '../mappers';
 import { PhotoEntryResponse } from '../responses';
 import {
+  countEditedFrames,
   countFrames,
   isIgnoredDir,
   ProgressCounts,
@@ -174,10 +175,15 @@ export class PhotoEntryCountsService {
       list(pathOf(PhotoEntryFolderRole.EXPORT)),
     ]);
 
+    const selectedCount = countFrames(selectsList?.files ?? null);
     const counts = reconcileCounts({
       photoCount: countFrames(sourceList?.files ?? null, renderings),
-      selectedCount: countFrames(selectsList?.files ?? null),
-      editedCount: countFrames(exportList?.files ?? null),
+      selectedCount,
+      // Matched against the selection, or the source when nothing was selected.
+      editedCount: countEditedFrames(
+        exportList?.files ?? null,
+        selectedCount ? selectsList!.files : (sourceList?.files ?? null),
+      ),
     });
 
     return {
