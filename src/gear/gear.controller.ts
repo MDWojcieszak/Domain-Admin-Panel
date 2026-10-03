@@ -9,15 +9,32 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { ImageScope } from '@prisma/client';
+import { Express } from 'express';
 
 import { PERMISSIONS } from '../common/acl/permissions';
-import { RequirePermissions } from '../common/decorators';
+import { GetCurrentUser, RequirePermissions } from '../common/decorators';
+import { ImageValidationPipe } from '../common/pipes/image-validation.pipe';
+import { FileDto } from '../file/dto';
+import { FileService } from '../file/file.service';
+import { UploadResponseDto } from '../file/responses';
 import {
   CreateGearDto,
   CreateGearKitDto,
   CreateGearSystemDto,
+  GetGearImagesQueryDto,
   GetGearItemsQueryDto,
   ReorderGearDto,
   UpdateGearDto,
@@ -27,6 +44,7 @@ import {
 import { GearService } from './gear.service';
 import {
   GearCategoryResponse,
+  GearImageListResponse,
   GearItemAdminResponse,
   GearItemListResponse,
   GearKitResponse,
@@ -39,7 +57,10 @@ import {
 @RequirePermissions(PERMISSIONS.GALLERY_MANAGE)
 @Controller('gear')
 export class GearController {
-  constructor(private readonly gear: GearService) {}
+  constructor(
+    private readonly gear: GearService,
+    private readonly files: FileService,
+  ) {}
 
   @Get()
   @ApiOkResponse({
@@ -48,6 +69,43 @@ export class GearController {
   })
   list(): Promise<GearOverviewResponse> {
     return this.gear.listAll();
+  }
+
+  @Get('images')
+  @ApiOperation({
+    summary: 'Gear photos to pick from',
+    description:
+      'Reuse one photo for identical items. `usedBy` shows which gear already ' +
+      'shows it; `search` matches that gear by brand/model; `unusedOnly` lists ' +
+      'uploads not attached yet. Gallery photos appear only if gear uses them.',
+  })
+  @ApiOkResponse({ type: GearImageListResponse })
+  listImages(
+    @Query() query: GetGearImagesQueryDto,
+  ): Promise<GearImageListResponse> {
+    return this.gear.listImages(query);
+  }
+
+  @Post('images')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: FileDto })
+  @ApiOperation({
+    summary: 'Upload a gear photo',
+    description:
+      'Stored with scope GEAR, so it never appears in the gallery or among ' +
+      'unassigned gallery photos. Pass the returned id as imageId on a gear ' +
+      'item or system.',
+  })
+  @ApiOkResponse({
+    description: 'Uploaded a GEAR-scoped image',
+    type: UploadResponseDto,
+  })
+  uploadImage(
+    @GetCurrentUser('sub') userId: string,
+    @UploadedFile(new ImageValidationPipe()) file: Express.Multer.File,
+  ): Promise<UploadResponseDto> {
+    return this.files.uploadImage(file, ImageScope.GEAR, userId);
   }
 
   @Get('items')

@@ -25,7 +25,7 @@ function makeService() {
       delete: jest.fn(),
       count: jest.fn(),
     },
-    image: { count: jest.fn() },
+    image: { count: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
     photoEntryGear: { findMany: jest.fn(), deleteMany: jest.fn() },
     $transaction: jest.fn((arg: any) =>
       typeof arg === 'function' ? arg(prisma) : Promise.all(arg),
@@ -153,6 +153,26 @@ describe('GearService', () => {
       expect(prisma.gearSystem.count).toHaveBeenCalled();
       expect(prisma.gearItem.create.mock.calls[0][0].data.order).toBe(5);
       expect(res).toMatchObject({ id: 'n', systemId: 's1' });
+    });
+
+    // Gear photos live in their own scope so they stay out of the gallery;
+    // an existing gallery photo may still be picked, blog media may not.
+    it('accepts GEAR or GALLERY images only', async () => {
+      const { service, prisma } = makeService();
+      prisma.image.count.mockResolvedValue(0);
+
+      await expect(
+        service.create({
+          category: 'LENS',
+          brand: 'Fuji',
+          model: '23',
+          imageId: 'blog-img',
+        } as any),
+      ).rejects.toThrow(/gear or gallery image/);
+      expect(prisma.image.count.mock.calls[0][0].where).toEqual({
+        id: 'blog-img',
+        scope: { in: ['GEAR', 'GALLERY'] },
+      });
     });
 
     it('rejects when the referenced system does not exist', async () => {
@@ -308,6 +328,53 @@ describe('GearService', () => {
           now,
         ).acquiredAt,
       ).toEqual(new Date('2026-09-01T00:00:00Z'));
+    });
+  });
+
+  describe('listImages', () => {
+    it('lists gear uploads and gallery photos already used by gear', async () => {
+      const { service, prisma } = makeService();
+      prisma.image.count.mockResolvedValue(1);
+      prisma.image.findMany.mockResolvedValue([
+        {
+          id: 'img',
+          width: 1200,
+          height: 800,
+          createdAt: new Date(),
+          gearItems: [{ id: 'b1', brand: 'Fujifilm', model: 'NP-W235 #1' }],
+          gearSystemCovers: [],
+        },
+      ]);
+
+      const res = await service.listImages({});
+
+      const where = prisma.image.findMany.mock.calls[0][0].where;
+      expect(where.AND[0]).toEqual({
+        OR: [
+          { scope: 'GEAR' },
+          { gearItems: { some: {} } },
+          { gearSystemCovers: { some: {} } },
+        ],
+      });
+      expect(res.images[0]).toMatchObject({
+        coverUrl: '/image/cover?id=img',
+        usedBy: [{ kind: 'ITEM', id: 'b1', name: 'Fujifilm NP-W235 #1' }],
+      });
+    });
+
+    it('narrows to unused uploads and to gear matching the search', async () => {
+      const { service, prisma } = makeService();
+      prisma.image.count.mockResolvedValue(0);
+
+      await service.listImages({ unusedOnly: true, search: ' NP-W235 ' });
+
+      const [, unused, search] =
+        prisma.image.findMany.mock.calls[0][0].where.AND;
+      expect(unused).toEqual({
+        gearItems: { none: {} },
+        gearSystemCovers: { none: {} },
+      });
+      expect(JSON.stringify(search)).toContain('"contains":"NP-W235"');
     });
   });
 

@@ -4,6 +4,8 @@ import { mediaSourceOf } from './gear-media-source';
 import { GearNeed } from './gear-schedule';
 import {
   GearEntryRefResponse,
+  GearImageResponse,
+  GearImageUserKind,
   GearItemAdminResponse,
   GearItemResponse,
   GearKitResponse,
@@ -53,6 +55,36 @@ export class GearMapper {
       neededBy: need.neededBy,
       neededFor: need.neededFor ? entryRef(need.neededFor) : null,
       missedFor: need.missedFor.map(entryRef),
+    };
+  }
+
+  static mapImage(image: {
+    id: string;
+    width: number | null;
+    height: number | null;
+    createdAt: Date;
+    gearItems: Array<{ id: string; brand: string; model: string }>;
+    gearSystemCovers: Array<{ id: string; name: string }>;
+  }): GearImageResponse {
+    return {
+      id: image.id,
+      coverUrl: coverUrlFor(image.id),
+      lowResUrl: lowResUrlFor(image.id),
+      width: image.width,
+      height: image.height,
+      createdAt: image.createdAt,
+      usedBy: [
+        ...image.gearItems.map((g) => ({
+          kind: GearImageUserKind.ITEM,
+          id: g.id,
+          name: `${g.brand} ${g.model}`,
+        })),
+        ...image.gearSystemCovers.map((s) => ({
+          kind: GearImageUserKind.SYSTEM,
+          id: s.id,
+          name: s.name,
+        })),
+      ],
     };
   }
 

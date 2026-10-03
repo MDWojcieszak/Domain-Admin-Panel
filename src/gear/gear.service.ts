@@ -19,6 +19,7 @@ import {
   CreateGearKitDto,
   CreateGearSystemDto,
   GearItemsSort,
+  GetGearImagesQueryDto,
   GetGearItemsQueryDto,
   UpdateGearDto,
   UpdateGearKitDto,
@@ -38,6 +39,7 @@ import {
 } from './gear-schedule';
 import {
   GearCategoryResponse,
+  GearImageListResponse,
   GearItemAdminResponse,
   GearItemListResponse,
   GearItemResponse,
@@ -202,6 +204,73 @@ export class GearService {
     );
   }
 
+  /**
+   * Photos to pick from when adding gear — one photo can serve several
+   * identical items (two batteries, two cards). Lists GEAR-scoped uploads plus
+   * any gallery photo already attached to gear, so a reused shot stays
+   * findable; the gallery itself is never listed.
+   */
+  async listImages(
+    query: GetGearImagesQueryDto,
+  ): Promise<GearImageListResponse> {
+    const search = query.search?.trim();
+    const usedByGear: Prisma.ImageWhereInput[] = [
+      { gearItems: { some: {} } },
+      { gearSystemCovers: { some: {} } },
+    ];
+    const where: Prisma.ImageWhereInput = {
+      AND: [
+        { OR: [{ scope: ImageScope.GEAR }, ...usedByGear] },
+        ...(query.unusedOnly
+          ? [{ gearItems: { none: {} }, gearSystemCovers: { none: {} } }]
+          : []),
+        ...(search
+          ? [
+              {
+                OR: [
+                  {
+                    gearItems: {
+                      some: {
+                        OR: [
+                          { brand: { contains: search, mode: 'insensitive' } },
+                          { model: { contains: search, mode: 'insensitive' } },
+                        ],
+                      },
+                    },
+                  },
+                  {
+                    gearSystemCovers: {
+                      some: { name: { contains: search, mode: 'insensitive' } },
+                    },
+                  },
+                ],
+              } satisfies Prisma.ImageWhereInput,
+            ]
+          : []),
+      ],
+    };
+
+    const [total, images] = await this.prisma.$transaction([
+      this.prisma.image.count({ where }),
+      this.prisma.image.findMany({
+        where,
+        take: query.take ?? 20,
+        skip: query.skip,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          width: true,
+          height: true,
+          createdAt: true,
+          gearItems: { select: { id: true, brand: true, model: true } },
+          gearSystemCovers: { select: { id: true, name: true } },
+        },
+      }),
+    ]);
+
+    return { total, images: images.map((i) => GearMapper.mapImage(i)) };
+  }
+
   /** Every category with its media source, for the gear form's select. */
   listCategories(): GearCategoryResponse[] {
     return Object.values(GearCategory).map((category) => {
@@ -216,7 +285,7 @@ export class GearService {
   }
 
   async create(dto: CreateGearDto): Promise<GearItemAdminResponse> {
-    if (dto.imageId) await this.assertGalleryImage(dto.imageId);
+    if (dto.imageId) await this.assertGearImage(dto.imageId);
     if (dto.systemId) await this.assertSystem(dto.systemId);
 
     // No date stamping on create: an old body entered today was not bought
@@ -245,7 +314,7 @@ export class GearService {
 
   async update(id: string, dto: UpdateGearDto): Promise<GearItemAdminResponse> {
     const existing = await this.getItemOrThrow(id);
-    if (dto.imageId) await this.assertGalleryImage(dto.imageId);
+    if (dto.imageId) await this.assertGearImage(dto.imageId);
     if (dto.systemId) await this.assertSystem(dto.systemId);
 
     await this.prisma.gearItem.update({
@@ -310,7 +379,7 @@ export class GearService {
   // ----------------------------------------------------------------
 
   async createSystem(dto: CreateGearSystemDto): Promise<GearSystemResponse> {
-    if (dto.imageId) await this.assertGalleryImage(dto.imageId);
+    if (dto.imageId) await this.assertGearImage(dto.imageId);
 
     const system = await this.prisma.gearSystem.create({
       data: {
@@ -331,7 +400,7 @@ export class GearService {
     dto: UpdateGearSystemDto,
   ): Promise<GearSystemResponse> {
     await this.getSystemOrThrow(id);
-    if (dto.imageId) await this.assertGalleryImage(dto.imageId);
+    if (dto.imageId) await this.assertGearImage(dto.imageId);
 
     const system = await this.prisma.gearSystem.update({
       where: { id },
@@ -503,13 +572,22 @@ export class GearService {
     }
   }
 
-  private async assertGalleryImage(imageId: string): Promise<void> {
+  /**
+   * GEAR is what `POST /gear/images` produces and keeps product photos out of
+   * the gallery. GALLERY stays accepted: choosing a photo already in the
+   * gallery (a nice shot of the camera) adds nothing to the gallery. BLOG is
+   * refused — blog media is a separate pool.
+   */
+  private async assertGearImage(imageId: string): Promise<void> {
     const count = await this.prisma.image.count({
-      where: { id: imageId, scope: ImageScope.GALLERY },
+      where: {
+        id: imageId,
+        scope: { in: [ImageScope.GEAR, ImageScope.GALLERY] },
+      },
     });
     if (count !== 1) {
       throw new BadRequestException(
-        'Image does not exist or is not a gallery image',
+        'Image does not exist or is not a gear or gallery image',
       );
     }
   }

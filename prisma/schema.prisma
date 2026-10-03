@@ -849,6 +849,8 @@ model ImageData {
 enum ImageScope {
   GALLERY
   BLOG
+  /// Product photos of gear items and systems — never part of the gallery.
+  GEAR
 }
 
 enum ImageProcessingStatus {

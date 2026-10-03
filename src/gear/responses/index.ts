@@ -4,3 +4,4 @@ export * from './gear-overview.response';
 export * from './gear-item-admin.response';
 export * from './gear-category.response';
 export * from './gear-kit.response';
+export * from './gear-image.response';
