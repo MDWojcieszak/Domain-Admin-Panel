@@ -799,6 +799,8 @@ model UserSettings {
   processPushNotifications       Boolean @default(false)
   /// Reminder about unsecured photo media (cards, film, tethered frames).
   photoMediaEmailNotifications   Boolean @default(true)
+  /// Pre-trip reminders: wishlist gear to buy, packing the day before.
+  tripEmailNotifications         Boolean @default(true)
 }
 
 model SocialMedia {

@@ -21,4 +21,7 @@ export class UserSettingsResponseDto {
 
   @IsBoolean()
   photoMediaEmailNotifications: boolean;
+
+  @IsBoolean()
+  tripEmailNotifications: boolean;
 }

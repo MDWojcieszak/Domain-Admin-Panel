@@ -19,4 +19,8 @@ export class PatchUserSettingsDto {
   /** Reminder about unsecured photo media (cards, film, tethered frames). */
   @IsBoolean({ optional: true })
   photoMediaEmailNotifications?: boolean;
+
+  /** Pre-trip reminders: wishlist gear to buy, packing the day before. */
+  @IsBoolean({ optional: true })
+  tripEmailNotifications?: boolean;
 }
