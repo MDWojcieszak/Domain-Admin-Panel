@@ -562,6 +562,26 @@ paths:
                 type: string
                 format: binary
       tags: *ref_5
+  /image/thumb:
+    get:
+      operationId: ImageController_getThumbImage
+      parameters:
+        - name: id
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: >-
+            Get the ~640 px image for tiles and pickers (the cover until the
+            image is reprocessed)
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+      tags: *ref_5
   /image/low-res:
     get:
       operationId: ImageController_getLowResImage
@@ -3537,6 +3557,11 @@ paths:
           in: query
           schema:
             type: integer
+        - name: v
+          required: false
+          in: query
+          schema:
+            type: string
         - name: sig
           required: true
           in: query
@@ -9800,6 +9825,9 @@ components:
         lowResUrl:
           type: string
           nullable: true
+        thumbUrl:
+          type: string
+          nullable: true
         order:
           type: integer
         visible:
@@ -9830,6 +9858,9 @@ components:
           type: string
           nullable: true
         lowResUrl:
+          type: string
+          nullable: true
+        thumbUrl:
           type: string
           nullable: true
         order:
@@ -9914,6 +9945,8 @@ components:
           type: string
         lowResUrl:
           type: string
+        thumbUrl:
+          type: string
         width:
           type: integer
           nullable: true
@@ -9931,6 +9964,7 @@ components:
         - id
         - coverUrl
         - lowResUrl
+        - thumbUrl
         - createdAt
         - usedBy
     GearImageListResponse:
@@ -9989,6 +10023,9 @@ components:
           type: string
           nullable: true
         lowResUrl:
+          type: string
+          nullable: true
+        thumbUrl:
           type: string
           nullable: true
         order:
