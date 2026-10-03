@@ -34,6 +34,7 @@ import {
 } from './responses';
 import { PhotoEntryMapper } from './mappers';
 import { statusChangeConflict } from './gear/photo-entry-gear-rules';
+import { applyLocation } from './location/entry-location';
 import {
   emptySummary,
   loadCommentSummaries,
@@ -111,6 +112,7 @@ export class PhotoEntryService {
     const [photoEntries, total] = await this.prisma.$transaction([
       this.prisma.photoEntry.findMany({
         where,
+        include: { location: true },
         orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
         take: query?.take,
         skip: query?.skip,
@@ -144,6 +146,7 @@ export class PhotoEntryService {
         userId,
       },
       include: {
+        location: true,
         astroObjects: {
           include: {
             astroObject: true,
@@ -198,6 +201,8 @@ export class PhotoEntryService {
         },
       });
 
+      await applyLocation(tx, photoEntry, dto.location);
+
       if (dto.type === PhotoEntryType.ASTRO && astroObjects.length > 0) {
         await tx.photoEntryAstroObject.createMany({
           data: astroObjects.map((astroObject) => ({
@@ -208,7 +213,10 @@ export class PhotoEntryService {
         });
       }
 
-      return photoEntry;
+      return tx.photoEntry.findUniqueOrThrow({
+        where: { id: photoEntry.id },
+        include: { location: true },
+      });
     });
 
     return PhotoEntryMapper.toResponse(created);
@@ -298,7 +306,12 @@ export class PhotoEntryService {
         }
       }
 
-      return photoEntry;
+      await applyLocation(tx, photoEntry, dto.location);
+
+      return tx.photoEntry.findUniqueOrThrow({
+        where: { id: photoEntry.id },
+        include: { location: true },
+      });
     });
 
     return PhotoEntryMapper.toResponse(updated);

@@ -15,6 +15,7 @@ import {
 } from 'nestjs-swagger-dto';
 
 import { PhotoEntryCommentSummaryResponse } from '../comments/responses';
+import { PhotoEntryLocationResponse } from '../location/entry-location';
 
 export class PhotoEntryResponse {
   @IsString()
@@ -106,4 +107,12 @@ export class PhotoEntryResponse {
    */
   @IsNested({ type: PhotoEntryCommentSummaryResponse, optional: true })
   commentSummary?: PhotoEntryCommentSummaryResponse;
+
+  /** Present on list, details, create and patch responses. */
+  @IsNested({
+    type: PhotoEntryLocationResponse,
+    optional: true,
+    nullable: true,
+  })
+  location?: PhotoEntryLocationResponse | null;
 }

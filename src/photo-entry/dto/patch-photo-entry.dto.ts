@@ -1,5 +1,7 @@
 import { PhotoEntryType } from '@prisma/client';
-import { IsEnum, IsString } from 'nestjs-swagger-dto';
+import { IsEnum, IsNested, IsString } from 'nestjs-swagger-dto';
+
+import { PhotoEntryLocationDto } from '../location/entry-location';
 
 export class PatchPhotoEntryDto {
   @IsString({ optional: true })
@@ -23,4 +25,11 @@ export class PatchPhotoEntryDto {
       'Cannot be changed after folders are created.',
   })
   astroObjectIds?: string[];
+
+  /**
+   * Where the shoot is; omit to leave it, null to clear. Needed for the sky
+   * table and the forecast.
+   */
+  @IsNested({ type: PhotoEntryLocationDto, optional: true, nullable: true })
+  location?: PhotoEntryLocationDto | null;
 }

@@ -1,6 +1,7 @@
-import { PhotoEntry } from '@prisma/client';
+import { Location, PhotoEntry } from '@prisma/client';
 import { PhotoEntryDetailsResponse, PhotoEntryResponse } from '../responses';
 import { PhotoEntryCommentSummaryResponse } from '../comments/responses';
+import { toLocationResponse } from '../location/entry-location';
 import {
   isHappeningNow,
   remainingToEdit,
@@ -31,7 +32,7 @@ type PhotoEntryWithAstroObjects = PhotoEntry & {
 
 export class PhotoEntryMapper {
   static toResponse(
-    photoEntry: PhotoEntry,
+    photoEntry: PhotoEntry & { location?: Location | null },
     commentSummary?: PhotoEntryCommentSummaryResponse,
   ): PhotoEntryResponse {
     return {
@@ -66,6 +67,10 @@ export class PhotoEntryMapper {
         photoEntry.editedCount,
       ),
       ...(commentSummary ? { commentSummary } : {}),
+      // Present only where the query loaded it (list, details, create, patch).
+      ...('location' in photoEntry
+        ? { location: toLocationResponse(photoEntry.location) }
+        : {}),
     };
   }
 

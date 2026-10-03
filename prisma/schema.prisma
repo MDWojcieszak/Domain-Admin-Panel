@@ -492,6 +492,9 @@ model Location {
   latitude    Float?
   longitude   Float?
   radius      Int?
+  /// IANA zone, resolved from the coordinates when saved (editable): sky
+  /// times are shown in the place's local time, not the server's.
+  timezone    String?
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -499,7 +502,8 @@ model Location {
   createdBy   User?   @relation(fields: [createdById], references: [id])
   createdById String?
 
-  Place Place[]
+  Place        Place[]
+  photoEntries PhotoEntry[]
 }
 
 model TaskChecklistItem {
@@ -1436,6 +1440,11 @@ model PhotoEntry {
 
   startDate DateTime?
   endDate   DateTime?
+
+  /// Where the shoot is (docs/photo-entry-planning-and-publish.md §3). The
+  /// entry owns its Location; a blog POI is only a source of coordinates.
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  locationId String?
 
   rootPath         String?
   foldersCreated   Boolean   @default(false)
