@@ -160,6 +160,7 @@ export class PhotoEntryController {
    * Progress counts (§7) — entry level, never per photo. Written by hand from
    * the panel or by the culling app; both are equal callers.
    */
+  @ApiBearerAuth()
   @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Patch(':id/progress')
   @ApiOkResponse({ type: PhotoEntryResponse })
@@ -171,6 +172,7 @@ export class PhotoEntryController {
     return this.photoEntryService.patchProgress(userId, id, dto);
   }
 
+  @ApiBearerAuth()
   @RequirePermissions(PERMISSIONS.PHOTO_ENTRY_MANAGE)
   @Post(':id/create-folders')
   @ApiOkResponse({
