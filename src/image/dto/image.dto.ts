@@ -4,6 +4,7 @@ export enum ImageSizeType {
   ORIGINAL = 'ORIGINAL',
   COVER = 'COVER',
   LOW_RES = 'LOW_RES',
+  THUMB = 'THUMB',
 }
 
 export class ImageDto {

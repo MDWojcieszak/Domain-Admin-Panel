@@ -30,6 +30,7 @@ export class ImageService {
         coverUrl: true,
         id: true,
         lowResUrl: true,
+        thumbUrl: true,
         originalUrl: true,
       },
     });
@@ -92,6 +93,14 @@ export class ImageService {
         case ImageSizeType.LOW_RES:
           filePath = image.lowResUrl;
           break;
+        case ImageSizeType.THUMB:
+          // Images processed before thumbs existed fall back to the cover
+          // until the next reprocess — a heavier file, never a broken tile.
+          filePath =
+            image.thumbUrl && existsSync(image.thumbUrl)
+              ? image.thumbUrl
+              : image.coverUrl;
+          break;
         default:
           throw new BadRequestException('Invalid image type');
       }
@@ -125,6 +134,7 @@ export class ImageService {
       this.fileService.unlinkFile(image.originalUrl);
       this.fileService.unlinkFile(image.coverUrl);
       this.fileService.unlinkFile(image.lowResUrl);
+      this.fileService.unlinkFile(image.thumbUrl);
     } catch (e) {
       Logger.log(e);
       throw new InternalServerErrorException('Error deleting files');

@@ -15,6 +15,7 @@ import {
 /** Servable (stream) URLs — never expose the raw filesystem path / original. */
 const coverUrlFor = (imageId: string) => `/image/cover?id=${imageId}`;
 const lowResUrlFor = (imageId: string) => `/image/low-res?id=${imageId}`;
+const thumbUrlFor = (imageId: string) => `/image/thumb?id=${imageId}`;
 
 const entryRef = (entry: {
   id: string;
@@ -39,6 +40,7 @@ export class GearMapper {
       description: item.description,
       coverUrl: item.imageId ? coverUrlFor(item.imageId) : null,
       lowResUrl: item.imageId ? lowResUrlFor(item.imageId) : null,
+      thumbUrl: item.imageId ? thumbUrlFor(item.imageId) : null,
       order: item.order,
       visible: item.visible,
     };
@@ -70,6 +72,7 @@ export class GearMapper {
       id: image.id,
       coverUrl: coverUrlFor(image.id),
       lowResUrl: lowResUrlFor(image.id),
+      thumbUrl: thumbUrlFor(image.id),
       width: image.width,
       height: image.height,
       createdAt: image.createdAt,
@@ -112,6 +115,7 @@ export class GearMapper {
       description: system.description,
       coverUrl: system.imageId ? coverUrlFor(system.imageId) : null,
       lowResUrl: system.imageId ? lowResUrlFor(system.imageId) : null,
+      thumbUrl: system.imageId ? thumbUrlFor(system.imageId) : null,
       order: system.order,
       visible: system.visible,
       items,

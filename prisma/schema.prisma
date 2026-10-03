@@ -877,6 +877,9 @@ model Image {
   originalUrl  String
   coverUrl     String
   lowResUrl    String
+  /// ~640 px — for tiles and pickers; null until (re)processed, served as
+  /// the cover meanwhile.
+  thumbUrl     String?
   data         ImageData?
   dimensions   Dimensions? @relation(fields: [dimensionsId], references: [id], onDelete: Cascade)
   dimensionsId String?     @unique

@@ -34,6 +34,10 @@ export class GearImageResponse {
   @IsString()
   lowResUrl: string;
 
+  /** ~640 px — use this for the picker grid. */
+  @IsString()
+  thumbUrl: string;
+
   @IsNumber({ type: 'integer', optional: true, nullable: true })
   width: number | null;
 

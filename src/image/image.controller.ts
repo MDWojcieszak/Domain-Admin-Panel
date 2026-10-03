@@ -163,6 +163,19 @@ export class ImageController {
   }
 
   @Public()
+  @Get('thumb')
+  @ApiProduces('image/webp')
+  @ApiOkResponse({
+    description:
+      'Get the ~640 px image for tiles and pickers (the cover until the image is reprocessed)',
+    content: { 'image/*': { schema: { type: 'string', format: 'binary' } } },
+  })
+  async getThumbImage(@Query() dto: ImageDto, @Res() res: Response) {
+    const file = await this.imageService.readImage(dto.id, ImageSizeType.THUMB);
+    streamFileToResponse(file, res);
+  }
+
+  @Public()
   @Get('low-res')
   @ApiProduces('image/jpeg', 'image/png', 'image/webp')
   @ApiOkResponse({

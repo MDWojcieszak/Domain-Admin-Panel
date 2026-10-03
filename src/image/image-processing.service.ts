@@ -141,10 +141,17 @@ export class ImageProcessingService {
   private async resolveTargetIds(target: ReprocessTarget): Promise<string[]> {
     if (Array.isArray(target)) return target;
 
+    // 'missing' also covers images processed before thumbs existed, so one
+    // default reprocess brings every image up to the current pipeline.
     const where =
       target === 'all'
         ? {}
-        : { processingStatus: { not: ImageProcessingStatus.DONE } };
+        : {
+            OR: [
+              { processingStatus: { not: ImageProcessingStatus.DONE } },
+              { thumbUrl: null },
+            ],
+          };
 
     const rows = await this.prisma.image.findMany({
       where,

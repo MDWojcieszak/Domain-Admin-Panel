@@ -27,7 +27,7 @@ RUN yarn build
 # Expose the port the app will run on
 EXPOSE 3000
 
-RUN mkdir -p /app/public/image/cover /app/public/image/original /app/public/image/low_res
+RUN mkdir -p /app/public/image/cover /app/public/image/original /app/public/image/low_res /app/public/image/thumb
 
 # Command to run the app
 CMD ["sh", "-c", "yarn prisma migrate deploy && yarn start:prod"]

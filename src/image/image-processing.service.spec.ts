@@ -105,3 +105,19 @@ describe('ImageProcessingService', () => {
     });
   });
 });
+
+describe('ImageProcessingService — target selection', () => {
+  it("'missing' also picks images processed before thumbs existed", async () => {
+    const { service, prisma } = makeService();
+    prisma.image.findMany.mockResolvedValue([]);
+
+    await service.startBackfill('missing');
+
+    expect(prisma.image.findMany.mock.calls[0][0].where).toEqual({
+      OR: [
+        { processingStatus: { not: ImageProcessingStatus.DONE } },
+        { thumbUrl: null },
+      ],
+    });
+  });
+});

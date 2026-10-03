@@ -41,9 +41,10 @@ const EMPTY_EXIF: ExifFields = {
 const COVER_PATH = 'cover';
 const ORIGINAL_PATH = 'original';
 const LOW_RES_PATH = 'low_res';
+const THUMB_PATH = 'thumb';
 const IMAGE_TYPE = 'image';
 
-const ALL_IMAGE_DIRS = [ORIGINAL_PATH, COVER_PATH, LOW_RES_PATH];
+const ALL_IMAGE_DIRS = [ORIGINAL_PATH, COVER_PATH, LOW_RES_PATH, THUMB_PATH];
 
 @Injectable()
 export class FileService {
@@ -209,7 +210,11 @@ export class FileService {
       LOW_RES_PATH,
     );
 
+    const thumbPath = this.createPath(IMAGE_TYPE, imageId, 'webp', THUMB_PATH);
+
     await this.saveWebp(original, coverPath, 1920, 80);
+    // 80 px is a blur placeholder; tiles and pickers need a real small image.
+    await this.saveWebp(original, thumbPath, 640, 80);
     await this.saveWebp(original, lowResPath, 80, 100);
 
     const exif = await this.extractExif(original);
@@ -219,6 +224,7 @@ export class FileService {
       data: {
         coverUrl: coverPath,
         lowResUrl: lowResPath,
+        thumbUrl: thumbPath,
         width,
         height,
         orientation: this.resolveOrientation(width, height),
@@ -316,7 +322,8 @@ export class FileService {
     }
   }
 
-  unlinkFile(path: string) {
+  unlinkFile(path: string | null) {
+    if (!path) return; // e.g. a thumb never generated for an old image
     // err is null on success; the callback runs on the FS thread so a throw here
     // would be uncaught (the surrounding try/catch cannot catch it).
     unlink(path, (err) => {

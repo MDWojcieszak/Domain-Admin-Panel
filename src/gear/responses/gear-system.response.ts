@@ -24,6 +24,10 @@ export class GearSystemResponse {
   @IsString({ optional: true, nullable: true })
   lowResUrl: string | null;
 
+  /** ~640 px — use this for tiles; lowResUrl is an 80 px blur placeholder. */
+  @IsString({ optional: true, nullable: true })
+  thumbUrl: string | null;
+
   @IsNumber({ type: 'integer' })
   order: number;
 

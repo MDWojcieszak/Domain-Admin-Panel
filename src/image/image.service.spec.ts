@@ -53,6 +53,39 @@ describe('ImageService', () => {
       expect(create).toHaveBeenCalledWith('/x/orig');
     });
 
+    it('serves the thumb, or the cover for images without one yet', async () => {
+      const { service, prisma } = makeService();
+      jest
+        .spyOn(fs, 'existsSync')
+        .mockImplementation((p) => p !== '/x/missing');
+      const create = jest
+        .spyOn(fs, 'createReadStream')
+        .mockReturnValue({} as fs.ReadStream);
+
+      prisma.image.findUnique.mockResolvedValueOnce({
+        coverUrl: '/x/cover',
+        thumbUrl: '/x/thumb',
+      });
+      await service.readImage('i1', ImageSizeType.THUMB);
+      expect(create).toHaveBeenLastCalledWith('/x/thumb');
+
+      // processed before thumbs existed
+      prisma.image.findUnique.mockResolvedValueOnce({
+        coverUrl: '/x/cover',
+        thumbUrl: null,
+      });
+      await service.readImage('i1', ImageSizeType.THUMB);
+      expect(create).toHaveBeenLastCalledWith('/x/cover');
+
+      // row says it has one, the file is gone
+      prisma.image.findUnique.mockResolvedValueOnce({
+        coverUrl: '/x/cover',
+        thumbUrl: '/x/missing',
+      });
+      await service.readImage('i1', ImageSizeType.THUMB);
+      expect(create).toHaveBeenLastCalledWith('/x/cover');
+    });
+
     it('reports a DB outage as 500, not as 403', async () => {
       const { service, prisma } = makeService();
       prisma.image.findUnique.mockRejectedValueOnce(new Error('db down'));

@@ -89,6 +89,7 @@ export class MediaService {
         originalUrl: true,
         coverUrl: true,
         lowResUrl: true,
+        thumbUrl: true,
         _count: {
           select: {
             blogSectionImages: true,
@@ -120,6 +121,7 @@ export class MediaService {
     this.fileService.unlinkFile(img.originalUrl);
     this.fileService.unlinkFile(img.coverUrl);
     this.fileService.unlinkFile(img.lowResUrl);
+    this.fileService.unlinkFile(img.thumbUrl);
 
     return { id };
   }
