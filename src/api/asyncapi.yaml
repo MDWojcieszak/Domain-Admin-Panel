@@ -64,7 +64,10 @@ channels:
       x-direction: server->backend
       x-interaction: message
       message:
-        $ref: '#/components/messages/deploy_git_credentialsMessage'
+        $ref: '#/components/messages/GitCredentialsRequestDto'
+      x-reply:
+        payload:
+          $ref: '#/components/schemas/GitCredentialsDto'
   deploy.process.log:
     description: 'Direction: Server → Backend'
     publish:
@@ -174,6 +177,14 @@ channels:
       x-interaction: message
       message:
         $ref: '#/components/messages/RegisterServerSettingsDto'
+  stack.action.result:
+    description: 'Direction: Server → Backend'
+    publish:
+      operationId: recv_stack_action_result
+      x-direction: server->backend
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/StackActionResultDto'
   server.reboot:
     description: 'Direction: Backend → Server. Request a reboot of the server.'
     subscribe:
@@ -321,12 +332,12 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/ContainerSnapshotDto'
-    deploy_git_credentialsMessage:
-      name: deploy_git_credentialsMessage
-      title: deploy_git_credentialsMessage
+    GitCredentialsRequestDto:
+      name: GitCredentialsRequestDto
+      title: GitCredentialsRequestDto
       contentType: application/json
       payload:
-        type: object
+        $ref: '#/components/schemas/GitCredentialsRequestDto'
     RegisterProcessLogDto:
       name: RegisterProcessLogDto
       title: RegisterProcessLogDto
@@ -387,6 +398,12 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/RegisterServerSettingsDto'
+    StackActionResultDto:
+      name: StackActionResultDto
+      title: StackActionResultDto
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/StackActionResultDto'
     PowerServerEvent:
       name: PowerServerEvent
       title: PowerServerEvent
@@ -563,6 +580,13 @@ components:
             $ref: '#/components/schemas/AgentContainerDto'
       required:
         - containers
+    GitCredentialsRequestDto:
+      type: object
+      properties:
+        repoId:
+          type: string
+      required:
+        - repoId
     ProcessLogLevel:
       type: string
       enum:
@@ -631,6 +655,9 @@ components:
           type: string
           nullable: true
         homelabCommit:
+          type: string
+          nullable: true
+        commit:
           type: string
           nullable: true
         failureReason:
@@ -864,6 +891,39 @@ components:
       required:
         - serverName
         - settings
+    StackActionType:
+      type: string
+      enum:
+        - start
+        - restart
+        - stop
+    StackActionResultDto:
+      type: object
+      properties:
+        project:
+          type: string
+        action:
+          $ref: '#/components/schemas/StackActionType'
+        success:
+          type: boolean
+        error:
+          type: string
+          nullable: true
+      required:
+        - project
+        - action
+        - success
+    GitCredentialsDto:
+      type: object
+      properties:
+        username:
+          type: string
+          nullable: true
+        token:
+          type: string
+          nullable: true
+        provider:
+          type: string
     ServerTransferMode:
       type: string
       enum:
@@ -1079,6 +1139,8 @@ components:
           type: string
         reclone:
           type: boolean
+        composeInRepository:
+          type: boolean
       required:
         - repoId
         - repo
@@ -1086,6 +1148,7 @@ components:
         - branch
         - clonePath
         - reclone
+        - composeInRepository
     DeployCommandEvent:
       type: object
       properties:
@@ -1120,12 +1183,6 @@ components:
         - files
         - run
         - commitMessage
-    StackActionType:
-      type: string
-      enum:
-        - start
-        - restart
-        - stop
     StackActionEvent:
       type: object
       properties:
@@ -1146,6 +1203,8 @@ components:
             type: string
         timeoutSeconds:
           type: number
+        containersOnly:
+          type: boolean
       required:
         - action
         - project

@@ -1309,6 +1309,251 @@ paths:
       tags: *ref_13
       security:
         - bearer: []
+  /portfolio/contact:
+    get:
+      operationId: PublicContactController_get
+      summary: Contact form configuration
+      description: >-
+        ?locale=en picks the language (default one when missing). enabled=false
+        → hide the form. Otherwise: intro, offered topics, the privacy notice
+        (markdown) with its version, and the data controller.
+      parameters:
+        - name: locale
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicContactResponse'
+      tags:
+        - Portfolio
+  /portfolio/inquiries:
+    post:
+      operationId: PublicInquiryController_create
+      summary: Send an inquiry from the contact form
+      description: >-
+        No account needed. Optional galleryId / imageId say what it is about
+        (must be public). acknowledgedPrivacyNotice must be true; 403 while the
+        form is disabled in the panel. Keep the honeypot `website` field hidden
+        and empty. The answer is the same for every accepted submission.
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInquiryDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InquiryReceivedResponse'
+      tags:
+        - Portfolio
+  /inquiries:
+    get:
+      operationId: InquiryController_list
+      summary: List inquiries
+      description: >-
+        Newest first. Without `status` it is the inbox: everything except
+        ARCHIVED and SPAM.
+      parameters:
+        - name: take
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 20
+            type: number
+        - name: skip
+          required: false
+          in: query
+          schema:
+            minimum: 0
+            default: 0
+            type: number
+        - name: status
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/InquiryStatus'
+        - name: topic
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/InquiryTopic'
+        - name: search
+          required: false
+          in: query
+          schema:
+            maxLength: 200
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InquiryListResponse'
+      tags: &ref_14
+        - Inquiries
+      security: &ref_15
+        - bearer: []
+  /inquiries/summary:
+    get:
+      operationId: InquiryController_summary
+      parameters: []
+      responses:
+        '200':
+          description: Counts for the navigation badge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InquirySummaryResponse'
+      tags: *ref_14
+      security: *ref_15
+  /inquiries/settings:
+    get:
+      operationId: InquiryController_getSettings
+      parameters: []
+      responses:
+        '200':
+          description: Contact form configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactSettingsResponse'
+      tags: *ref_14
+      security: *ref_15
+    patch:
+      operationId: InquiryController_updateSettings
+      summary: Update the contact form configuration
+      description: >-
+        Enabling is refused (400) until administratorName, administratorEmail
+        and privacyNotice are filled in. A real change of privacyNotice bumps
+        its version; each inquiry records the version its sender confirmed.
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContactSettingsDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactSettingsResponse'
+      tags: *ref_14
+      security: *ref_15
+  /inquiries/{id}:
+    get:
+      operationId: InquiryController_get
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InquiryResponse'
+      tags: *ref_14
+      security: *ref_15
+    patch:
+      operationId: InquiryController_patch
+      summary: Change status or the internal note
+      description: >-
+        Leaving NEW stamps readAt; ANSWERED stamps answeredAt; NEW again = mark
+        as unread.
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchInquiryDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InquiryResponse'
+      tags: *ref_14
+      security: *ref_15
+    delete:
+      operationId: InquiryController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted inquiry
+      tags: *ref_14
+      security: *ref_15
+  /blog/locales/public:
+    get:
+      operationId: LocaleController_listPublic
+      parameters: []
+      responses:
+        '200':
+          description: Enabled blog locales + default (public language switcher)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogLocaleListResponse'
+      tags: &ref_16
+        - Blog · Locales
+      security: &ref_17
+        - bearer: []
+  /blog/locales:
+    get:
+      operationId: LocaleController_list
+      parameters: []
+      responses:
+        '200':
+          description: Enabled blog locales + the default (fallback) locale
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogLocaleListResponse'
+      tags: *ref_16
+      security: *ref_17
+  /blog/colors:
+    get:
+      operationId: ColorsController_list
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogColorsResponse'
+      tags:
+        - Blog · Colors
   /health:
     get:
       operationId: SystemController_liveness
@@ -1316,7 +1561,7 @@ paths:
       responses:
         '200':
           description: Process is alive
-      tags: &ref_14
+      tags: &ref_18
         - System
   /health/ready:
     get:
@@ -1325,7 +1570,7 @@ paths:
       responses:
         '200':
           description: Dependencies reachable
-      tags: *ref_14
+      tags: *ref_18
   /system/status:
     get:
       operationId: SystemController_status
@@ -1337,7 +1582,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemStatusResponse'
-      tags: *ref_14
+      tags: *ref_18
       security:
         - bearer: []
   /gallery/all:
@@ -1357,7 +1602,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryResponseDto'
-      tags: &ref_15
+      tags: &ref_19
         - Gallery (deprecated)
   /gallery/cover:
     get:
@@ -1374,7 +1619,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_15
+      tags: *ref_19
   /gallery/low-res:
     get:
       operationId: GalleryController_getLowResImage
@@ -1390,7 +1635,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_15
+      tags: *ref_19
   /galleries:
     post:
       operationId: GalleriesController_create
@@ -1408,9 +1653,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryResponse'
-      tags: &ref_16
+      tags: &ref_20
         - Galleries
-      security: &ref_17
+      security: &ref_21
         - bearer: []
     get:
       operationId: GalleriesController_list
@@ -1422,8 +1667,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryListResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /galleries/library:
     get:
       operationId: GalleriesController_library
@@ -1450,8 +1695,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryLibraryResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /galleries/order:
     put:
       operationId: GalleriesController_reorder
@@ -1469,8 +1714,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryListResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /galleries/hero:
     get:
       operationId: GalleriesController_getHero
@@ -1482,8 +1727,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioHeroResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
     put:
       operationId: GalleriesController_setHero
       parameters: []
@@ -1500,8 +1745,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioHeroResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /galleries/settings:
     get:
       operationId: GalleriesController_getSettings
@@ -1513,8 +1758,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioSettingsResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
     put:
       operationId: GalleriesController_updateSettings
       parameters: []
@@ -1531,8 +1776,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioSettingsResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /galleries/import-existing:
     post:
       operationId: GalleriesController_importExisting
@@ -1544,8 +1789,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryDetailResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /galleries/{id}:
     get:
       operationId: GalleriesController_getById
@@ -1562,8 +1807,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryDetailResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
     patch:
       operationId: GalleriesController_update
       parameters:
@@ -1585,8 +1830,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
     delete:
       operationId: GalleriesController_delete
       parameters:
@@ -1598,8 +1843,8 @@ paths:
       responses:
         '200':
           description: Delete gallery (images are kept)
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /galleries/{id}/status:
     patch:
       operationId: GalleriesController_patchStatus
@@ -1622,8 +1867,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /galleries/{id}/items:
     put:
       operationId: GalleriesController_setItems
@@ -1646,8 +1891,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GalleryDetailResponse'
-      tags: *ref_16
-      security: *ref_17
+      tags: *ref_20
+      security: *ref_21
   /portfolio/galleries:
     get:
       operationId: PortfolioController_listGalleries
@@ -1659,7 +1904,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioGalleryListResponse'
-      tags: &ref_18
+      tags: &ref_22
         - Portfolio
   /portfolio/hero:
     get:
@@ -1677,7 +1922,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioHeroResponse'
-      tags: *ref_18
+      tags: *ref_22
   /portfolio/home:
     get:
       operationId: PortfolioController_home
@@ -1689,7 +1934,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioHomeResponse'
-      tags: *ref_18
+      tags: *ref_22
   /portfolio/settings:
     get:
       operationId: PortfolioController_settings
@@ -1701,7 +1946,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioSettingsResponse'
-      tags: *ref_18
+      tags: *ref_22
   /portfolio/gear:
     get:
       operationId: PortfolioController_gear
@@ -1713,7 +1958,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearOverviewResponse'
-      tags: *ref_18
+      tags: *ref_22
   /portfolio/galleries/{slug}:
     get:
       operationId: PortfolioController_bySlug
@@ -1728,6 +1973,12 @@ paths:
           in: query
           schema:
             $ref: '#/components/schemas/ImageOrientation'
+        - name: locale
+          required: false
+          in: query
+          schema:
+            maxLength: 16
+            type: string
         - name: take
           required: false
           in: query
@@ -1740,12 +1991,14 @@ paths:
             type: number
       responses:
         '200':
-          description: A published gallery with its ordered, visible images
+          description: >-
+            A published gallery with its ordered, visible images and the contact
+            form (privacy notice included) in the language given by ?locale=
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PortfolioGalleryDetailResponse'
-      tags: *ref_18
+                $ref: '#/components/schemas/PortfolioGalleryPageResponse'
+      tags: *ref_22
   /gear:
     get:
       operationId: GearController_list
@@ -1757,9 +2010,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearOverviewResponse'
-      tags: &ref_19
+      tags: &ref_23
         - Gear
-      security: &ref_20
+      security: &ref_24
         - bearer: []
     post:
       operationId: GearController_create
@@ -1777,8 +2030,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearItemAdminResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/images:
     get:
       operationId: GearController_listImages
@@ -1819,8 +2072,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearImageListResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
     post:
       operationId: GearController_uploadImage
       summary: Upload a gear photo
@@ -1842,8 +2095,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadResponseDto'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/items:
     get:
       operationId: GearController_listItems
@@ -1879,8 +2132,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearItemListResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/categories:
     get:
       operationId: GearController_listCategories
@@ -1894,8 +2147,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/GearCategoryResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/kits:
     get:
       operationId: GearController_listKits
@@ -1909,8 +2162,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/GearKitResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
     post:
       operationId: GearController_createKit
       parameters: []
@@ -1927,8 +2180,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearKitResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/kits/{id}:
     get:
       operationId: GearController_getKit
@@ -1945,8 +2198,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearKitResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
     patch:
       operationId: GearController_updateKit
       parameters:
@@ -1968,8 +2221,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearKitResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
     delete:
       operationId: GearController_removeKit
       parameters:
@@ -1981,8 +2234,8 @@ paths:
       responses:
         '200':
           description: Delete a gear kit (entries keep their copied rows)
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/systems:
     post:
       operationId: GearController_createSystem
@@ -2000,8 +2253,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearSystemResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/systems/order:
     put:
       operationId: GearController_reorderSystems
@@ -2019,8 +2272,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearOverviewResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/systems/{id}:
     patch:
       operationId: GearController_updateSystem
@@ -2043,8 +2296,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearSystemResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
     delete:
       operationId: GearController_removeSystem
       parameters:
@@ -2056,8 +2309,8 @@ paths:
       responses:
         '200':
           description: Delete a system (its items are kept)
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/order:
     put:
       operationId: GearController_reorder
@@ -2075,8 +2328,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearOverviewResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /gear/{id}:
     get:
       operationId: GearController_getItem
@@ -2093,8 +2346,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearItemAdminResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
     patch:
       operationId: GearController_update
       parameters:
@@ -2116,8 +2369,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GearItemAdminResponse'
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
     delete:
       operationId: GearController_remove
       parameters:
@@ -2131,8 +2384,8 @@ paths:
           description: >-
             Delete a gear item. Refused (409) once any entry records it as used
             or secured — retire it instead (P12)
-      tags: *ref_19
-      security: *ref_20
+      tags: *ref_23
+      security: *ref_24
   /token/generate:
     post:
       operationId: TokenController_generateToken
@@ -2150,9 +2403,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenerateTokenResponseDto'
-      tags: &ref_21
+      tags: &ref_25
         - Token
-      security: &ref_22
+      security: &ref_26
         - bearer: []
   /token/save-service-token:
     post:
@@ -2171,8 +2424,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SaveServiceTokenResponseDto'
-      tags: *ref_21
-      security: *ref_22
+      tags: *ref_25
+      security: *ref_26
   /token/list:
     get:
       operationId: TokenController_listTokens
@@ -2198,8 +2451,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenListResponseDto'
-      tags: *ref_21
-      security: *ref_22
+      tags: *ref_25
+      security: *ref_26
   /token/{id}:
     get:
       operationId: TokenController_getTokenMetadata
@@ -2216,8 +2469,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenMetadataResponseDto'
-      tags: *ref_21
-      security: *ref_22
+      tags: *ref_25
+      security: *ref_26
     delete:
       operationId: TokenController_deleteToken
       parameters:
@@ -2233,8 +2486,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenMetadataResponseDto'
-      tags: *ref_21
-      security: *ref_22
+      tags: *ref_25
+      security: *ref_26
   /person/ai/list:
     get:
       operationId: PersonAiController_listPersonsForAI
@@ -2246,7 +2499,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PersonAiListResponseDto'
-      tags: &ref_23
+      tags: &ref_27
         - AI - Person
   /person/ai/{id}:
     get:
@@ -2264,7 +2517,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PersonAiDetailResponseDto'
-      tags: *ref_23
+      tags: *ref_27
     put:
       operationId: PersonAiController_updatePerson
       parameters:
@@ -2286,7 +2539,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PersonAiDetailResponseDto'
-      tags: *ref_23
+      tags: *ref_27
   /person/ai:
     post:
       operationId: PersonAiController_createPerson
@@ -2304,7 +2557,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PersonAiDetailResponseDto'
-      tags: *ref_23
+      tags: *ref_27
   /person/ai/{id}/history:
     get:
       operationId: PersonAiController_getAiHistory
@@ -2321,7 +2574,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiHistoryListResponseDto'
-      tags: *ref_23
+      tags: *ref_27
   /person/ai/{id}/context:
     get:
       operationId: PersonAiController_getAiContext
@@ -2338,7 +2591,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiContextDto'
-      tags: *ref_23
+      tags: *ref_27
     put:
       operationId: PersonAiController_updateAiContext
       parameters:
@@ -2360,7 +2613,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiContextDto'
-      tags: *ref_23
+      tags: *ref_27
   /place/list:
     get:
       operationId: PlaceController_listPlaces
@@ -2386,9 +2639,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceListResponseDto'
-      tags: &ref_24
+      tags: &ref_28
         - Place
-      security: &ref_25
+      security: &ref_29
         - bearer: []
   /place/{id}:
     get:
@@ -2406,8 +2659,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceDetailResponseDto'
-      tags: *ref_24
-      security: *ref_25
+      tags: *ref_28
+      security: *ref_29
     put:
       operationId: PlaceController_updatePlace
       parameters:
@@ -2429,8 +2682,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceDetailResponseDto'
-      tags: *ref_24
-      security: *ref_25
+      tags: *ref_28
+      security: *ref_29
     delete:
       operationId: PlaceController_deletePlace
       parameters:
@@ -2446,8 +2699,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceDetailResponseDto'
-      tags: *ref_24
-      security: *ref_25
+      tags: *ref_28
+      security: *ref_29
   /place:
     post:
       operationId: PlaceController_createPlace
@@ -2465,8 +2718,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceDetailResponseDto'
-      tags: *ref_24
-      security: *ref_25
+      tags: *ref_28
+      security: *ref_29
   /place/{id}/ai/history:
     get:
       operationId: PlaceController_getPlaceAiHistory
@@ -2483,8 +2736,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiHistoryListResponseDto'
-      tags: *ref_24
-      security: *ref_25
+      tags: *ref_28
+      security: *ref_29
   /place/{id}/members:
     get:
       operationId: PlaceController_listMembers
@@ -2501,8 +2754,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceMemberListResponseDto'
-      tags: *ref_24
-      security: *ref_25
+      tags: *ref_28
+      security: *ref_29
     post:
       operationId: PlaceController_addMember
       parameters:
@@ -2524,8 +2777,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceMemberListResponseDto'
-      tags: *ref_24
-      security: *ref_25
+      tags: *ref_28
+      security: *ref_29
   /place/{id}/members/{memberId}:
     delete:
       operationId: PlaceController_removeMember
@@ -2547,8 +2800,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceMemberListResponseDto'
-      tags: *ref_24
-      security: *ref_25
+      tags: *ref_28
+      security: *ref_29
   /place/ai/list:
     get:
       operationId: PlaceAiController_listPlaces
@@ -2560,7 +2813,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceAiListResponseDto'
-      tags: &ref_26
+      tags: &ref_30
         - AI - Place
   /place/ai/{id}:
     get:
@@ -2578,7 +2831,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceAiDetailResponseDto'
-      tags: *ref_26
+      tags: *ref_30
     put:
       operationId: PlaceAiController_updatePlace
       parameters:
@@ -2600,7 +2853,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceAiDetailResponseDto'
-      tags: *ref_26
+      tags: *ref_30
   /place/ai:
     post:
       operationId: PlaceAiController_createPlace
@@ -2618,7 +2871,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceAiDetailResponseDto'
-      tags: *ref_26
+      tags: *ref_30
   /place/ai/{id}/history:
     get:
       operationId: PlaceAiController_getAiHistory
@@ -2635,7 +2888,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiHistoryListResponseDto'
-      tags: *ref_26
+      tags: *ref_30
   /place/ai/{id}/context:
     get:
       operationId: PlaceAiController_getAiContext
@@ -2652,7 +2905,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiContextResponseDto'
-      tags: *ref_26
+      tags: *ref_30
     put:
       operationId: PlaceAiController_updateAiContext
       parameters:
@@ -2674,7 +2927,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiContextResponseDto'
-      tags: *ref_26
+      tags: *ref_30
   /tag/list:
     get:
       operationId: TagController_listTags
@@ -2686,9 +2939,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TagListResponseDto'
-      tags: &ref_27
+      tags: &ref_31
         - Tag
-      security: &ref_28
+      security: &ref_32
         - bearer: []
   /tag:
     post:
@@ -2707,8 +2960,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TagDetailResponseDto'
-      tags: *ref_27
-      security: *ref_28
+      tags: *ref_31
+      security: *ref_32
   /tag/{id}:
     put:
       operationId: TagController_updateTag
@@ -2731,8 +2984,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TagDetailResponseDto'
-      tags: *ref_27
-      security: *ref_28
+      tags: *ref_31
+      security: *ref_32
     delete:
       operationId: TagController_deleteTag
       parameters:
@@ -2748,8 +3001,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TagDetailResponseDto'
-      tags: *ref_27
-      security: *ref_28
+      tags: *ref_31
+      security: *ref_32
   /task-comment/list:
     get:
       operationId: TaskCommentController_list
@@ -2766,9 +3019,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaskCommentListResponseDto'
-      tags: &ref_29
+      tags: &ref_33
         - Task Comment
-      security: &ref_30
+      security: &ref_34
         - bearer: []
   /task-comment/{id}:
     get:
@@ -2786,8 +3039,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaskCommentResponseDto'
-      tags: *ref_29
-      security: *ref_30
+      tags: *ref_33
+      security: *ref_34
     put:
       operationId: TaskCommentController_update
       parameters:
@@ -2809,8 +3062,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaskCommentResponseDto'
-      tags: *ref_29
-      security: *ref_30
+      tags: *ref_33
+      security: *ref_34
     delete:
       operationId: TaskCommentController_delete
       parameters:
@@ -2826,8 +3079,8 @@ paths:
             application/json:
               schema:
                 type: object
-      tags: *ref_29
-      security: *ref_30
+      tags: *ref_33
+      security: *ref_34
   /task-comment:
     post:
       operationId: TaskCommentController_create
@@ -2850,8 +3103,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaskCommentResponseDto'
-      tags: *ref_29
-      security: *ref_30
+      tags: *ref_33
+      security: *ref_34
   /dev/ocr/recognize:
     post:
       operationId: OcrController_recognize
@@ -2869,9 +3122,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OcrResponseDto'
-      tags: &ref_31
+      tags: &ref_35
         - OCR (dev)
-      security: &ref_32
+      security: &ref_36
         - bearer: []
   /dev/ocr/structured:
     post:
@@ -2885,8 +3138,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OcrStructuredResponseDto'
-      tags: *ref_31
-      security: *ref_32
+      tags: *ref_35
+      security: *ref_36
   /ai/ollama/models:
     get:
       operationId: OllamaController_listModels
@@ -2899,9 +3152,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OllamaListModelsResponseDto'
-      tags: &ref_33
+      tags: &ref_37
         - AI / Ollama
-      security: &ref_34
+      security: &ref_38
         - bearer: []
   /ai/ollama/models/pull:
     post:
@@ -2921,8 +3174,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OllamaPullModelResponseDto'
-      tags: *ref_33
-      security: *ref_34
+      tags: *ref_37
+      security: *ref_38
   /server-transfer/category/{id}:
     get:
       operationId: ServerTransferController_listByCategory
@@ -3014,7 +3267,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AstroObjectListResponse'
-      tags: &ref_35
+      tags: &ref_39
         - Astro Object
       security:
         - bearer: []
@@ -3034,7 +3287,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AstroObjectResponse'
-      tags: *ref_35
+      tags: *ref_39
       security:
         - bearer: []
   /astro-object/{id}:
@@ -3053,7 +3306,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AstroObjectDetailsResponse'
-      tags: *ref_35
+      tags: *ref_39
       security:
         - bearer: []
     patch:
@@ -3077,7 +3330,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AstroObjectResponse'
-      tags: *ref_35
+      tags: *ref_39
       security:
         - bearer: []
   /photo-entry/pending-media:
@@ -3096,9 +3349,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PendingMediaResponse'
-      tags: &ref_36
+      tags: &ref_40
         - Photo Entry
-      security: &ref_37
+      security: &ref_41
         - bearer: []
   /photo-entry/{id}/gear:
     get:
@@ -3120,8 +3373,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryGearListResponse'
-      tags: *ref_36
-      security: *ref_37
+      tags: *ref_40
+      security: *ref_41
     put:
       operationId: PhotoEntryGearController_replace
       summary: Replace the gear list
@@ -3147,8 +3400,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryGearListResponse'
-      tags: *ref_36
-      security: *ref_37
+      tags: *ref_40
+      security: *ref_41
   /photo-entry/{id}/shopping-list:
     get:
       operationId: PhotoEntryGearController_shoppingList
@@ -3165,8 +3418,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryShoppingListResponse'
-      tags: *ref_36
-      security: *ref_37
+      tags: *ref_40
+      security: *ref_41
   /photo-entry/{id}/gear/confirm:
     post:
       operationId: PhotoEntryGearController_confirm
@@ -3185,8 +3438,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryGearListResponse'
-      tags: *ref_36
-      security: *ref_37
+      tags: *ref_40
+      security: *ref_41
   /photo-entry/{id}/gear/from-kit/{kitId}:
     post:
       operationId: PhotoEntryGearController_addFromKit
@@ -3212,8 +3465,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryGearListResponse'
-      tags: *ref_36
-      security: *ref_37
+      tags: *ref_40
+      security: *ref_41
   /photo-entry/{id}/gear/{gearItemId}:
     post:
       operationId: PhotoEntryGearController_add
@@ -3241,8 +3494,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryGearListResponse'
-      tags: *ref_36
-      security: *ref_37
+      tags: *ref_40
+      security: *ref_41
     patch:
       operationId: PhotoEntryGearController_patch
       summary: Tick one row
@@ -3273,8 +3526,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryGearListResponse'
-      tags: *ref_36
-      security: *ref_37
+      tags: *ref_40
+      security: *ref_41
     delete:
       operationId: PhotoEntryGearController_remove
       parameters:
@@ -3295,8 +3548,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryGearListResponse'
-      tags: *ref_36
-      security: *ref_37
+      tags: *ref_40
+      security: *ref_41
   /photo-entry/{id}/comments:
     get:
       operationId: PhotoEntryCommentController_list
@@ -3327,9 +3580,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryCommentListResponse'
-      tags: &ref_38
+      tags: &ref_42
         - Photo Entry
-      security: &ref_39
+      security: &ref_43
         - bearer: []
     post:
       operationId: PhotoEntryCommentController_create
@@ -3356,8 +3609,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryCommentResponse'
-      tags: *ref_38
-      security: *ref_39
+      tags: *ref_42
+      security: *ref_43
   /photo-entry/comments/{commentId}:
     patch:
       operationId: PhotoEntryCommentController_patch
@@ -3382,8 +3635,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryCommentResponse'
-      tags: *ref_38
-      security: *ref_39
+      tags: *ref_42
+      security: *ref_43
     delete:
       operationId: PhotoEntryCommentController_remove
       parameters:
@@ -3395,8 +3648,8 @@ paths:
       responses:
         '200':
           description: Deleted comment
-      tags: *ref_38
-      security: *ref_39
+      tags: *ref_42
+      security: *ref_43
   /photo-entry/comments/{commentId}/resolve:
     post:
       operationId: PhotoEntryCommentController_resolve
@@ -3414,8 +3667,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryCommentResponse'
-      tags: *ref_38
-      security: *ref_39
+      tags: *ref_42
+      security: *ref_43
   /photo-entry/comments/{commentId}/reopen:
     post:
       operationId: PhotoEntryCommentController_reopen
@@ -3433,8 +3686,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryCommentResponse'
-      tags: *ref_38
-      security: *ref_39
+      tags: *ref_42
+      security: *ref_43
   /photo-entry/attention:
     get:
       operationId: PhotoEntryPlanningController_get
@@ -3451,9 +3704,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AttentionResponse'
-      tags: &ref_40
+      tags: &ref_44
         - Photo Entry
-      security: &ref_41
+      security: &ref_45
         - bearer: []
   /photo-entry/{id}/sky:
     get:
@@ -3478,8 +3731,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntrySkyResponse'
-      tags: *ref_40
-      security: *ref_41
+      tags: *ref_44
+      security: *ref_45
   /photo-entry/{id}/forecast:
     get:
       operationId: PhotoEntryPlanningController_getForecast
@@ -3503,8 +3756,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryForecastResponse'
-      tags: *ref_40
-      security: *ref_41
+      tags: *ref_44
+      security: *ref_45
   /photo-entry/{id}/exports:
     get:
       operationId: PhotoEntryExportController_scan
@@ -3527,7 +3780,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExportScanResponse'
-      tags: &ref_42
+      tags: &ref_46
         - Photo Entry
       security:
         - bearer: []
@@ -3570,7 +3823,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_42
+      tags: *ref_46
   /photo-entry/{id}/exports/publish:
     post:
       operationId: PhotoEntryExportController_publish
@@ -3598,7 +3851,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PublishExportsResponse'
-      tags: *ref_42
+      tags: *ref_46
       security:
         - bearer: []
   /photo-entry:
@@ -3647,7 +3900,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryListResponse'
-      tags: &ref_43
+      tags: &ref_47
         - Photo Entry
       security:
         - bearer: []
@@ -3667,7 +3920,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /photo-entry/{id}:
@@ -3686,7 +3939,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryDetailsResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
     patch:
@@ -3710,7 +3963,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
     delete:
@@ -3728,7 +3981,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /photo-entry/{id}/folder-structure:
@@ -3754,7 +4007,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryFolderStructureResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /photo-entry/{id}/status:
@@ -3779,7 +4032,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /photo-entry/{id}/post-stage:
@@ -3804,7 +4057,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /photo-entry/{id}/progress:
@@ -3829,7 +4082,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /photo-entry/{id}/create-folders:
@@ -3848,7 +4101,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /photo-entry/{id}/mark-media-uploaded:
@@ -3871,7 +4124,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /photo-entry/{id}/refresh-counts:
@@ -3897,7 +4150,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhotoEntryResponse'
-      tags: *ref_43
+      tags: *ref_47
       security:
         - bearer: []
   /immich/status:
@@ -3911,7 +4164,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichStatusResponse'
-      tags: &ref_44
+      tags: &ref_48
         - Immich
       security:
         - bearer: []
@@ -3932,7 +4185,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichStatusResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
     delete:
@@ -3945,7 +4198,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichStatusResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/libraries:
@@ -3959,7 +4212,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichLibraryListResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/library/{id}/scan:
@@ -3974,7 +4227,7 @@ paths:
       responses:
         '200':
           description: Trigger a (re)scan of an Immich library
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/albums:
@@ -3988,7 +4241,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumBrowseResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/album:
@@ -4007,7 +4260,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumListResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/album/preview:
@@ -4027,7 +4280,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumPreviewResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/album/create:
@@ -4047,7 +4300,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumSyncResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/album/empty:
@@ -4067,7 +4320,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichBrowseAlbumResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/album/{albumId}/attach:
@@ -4092,7 +4345,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumSyncResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/album/{albumId}:
@@ -4113,7 +4366,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumRemovedResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/album/link/{id}/refresh:
@@ -4132,7 +4385,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumSyncResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/album/link/{id}:
@@ -4159,7 +4412,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImmichAlbumDeletedResponse'
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /immich/asset/{id}/thumbnail:
@@ -4179,7 +4432,7 @@ paths:
       responses:
         '200':
           description: Asset thumbnail image (binary stream)
-      tags: *ref_44
+      tags: *ref_48
       security:
         - bearer: []
   /acl/me:
@@ -4193,9 +4446,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MyPermissionsResponseDto'
-      tags: &ref_45
+      tags: &ref_49
         - ACL
-      security: &ref_46
+      security: &ref_50
         - bearer: []
   /acl/permissions:
     get:
@@ -4208,8 +4461,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PermissionCatalogResponseDto'
-      tags: *ref_45
-      security: *ref_46
+      tags: *ref_49
+      security: *ref_50
   /acl/groups:
     get:
       operationId: AclController_listGroups
@@ -4221,8 +4474,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PermissionGroupListResponseDto'
-      tags: *ref_45
-      security: *ref_46
+      tags: *ref_49
+      security: *ref_50
     post:
       operationId: AclController_createGroup
       parameters: []
@@ -4239,8 +4492,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PermissionGroupResponseDto'
-      tags: *ref_45
-      security: *ref_46
+      tags: *ref_49
+      security: *ref_50
   /acl/groups/{id}:
     get:
       operationId: AclController_getGroup
@@ -4257,8 +4510,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PermissionGroupResponseDto'
-      tags: *ref_45
-      security: *ref_46
+      tags: *ref_49
+      security: *ref_50
     patch:
       operationId: AclController_updateGroup
       parameters:
@@ -4280,8 +4533,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PermissionGroupResponseDto'
-      tags: *ref_45
-      security: *ref_46
+      tags: *ref_49
+      security: *ref_50
     delete:
       operationId: AclController_deleteGroup
       parameters:
@@ -4293,8 +4546,8 @@ paths:
       responses:
         '200':
           description: Group deleted
-      tags: *ref_45
-      security: *ref_46
+      tags: *ref_49
+      security: *ref_50
   /acl/users/{userId}/groups:
     get:
       operationId: AclController_getUserGroups
@@ -4311,8 +4564,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PermissionGroupListResponseDto'
-      tags: *ref_45
-      security: *ref_46
+      tags: *ref_49
+      security: *ref_50
     put:
       operationId: AclController_setUserGroups
       parameters:
@@ -4334,8 +4587,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PermissionGroupListResponseDto'
-      tags: *ref_45
-      security: *ref_46
+      tags: *ref_49
+      security: *ref_50
   /auth/device/authorize:
     post:
       operationId: DeviceAuthController_authorize
@@ -4358,7 +4611,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceAuthorizationResponse'
-      tags: &ref_47
+      tags: &ref_51
         - Device Authorization
   /auth/device/token:
     post:
@@ -4383,7 +4636,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceTokenResponse'
-      tags: *ref_47
+      tags: *ref_51
   /integrations/device/{userCode}:
     get:
       operationId: IntegrationController_getPendingDevice
@@ -4405,9 +4658,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceApprovalRequestResponse'
-      tags: &ref_48
+      tags: &ref_52
         - Integrations
-      security: &ref_49
+      security: &ref_53
         - bearer: []
   /integrations/device/{userCode}/approve:
     post:
@@ -4426,8 +4679,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceApprovalResultResponse'
-      tags: *ref_48
-      security: *ref_49
+      tags: *ref_52
+      security: *ref_53
   /integrations/device/{userCode}/deny:
     post:
       operationId: IntegrationController_denyDevice
@@ -4445,8 +4698,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceApprovalResultResponse'
-      tags: *ref_48
-      security: *ref_49
+      tags: *ref_52
+      security: *ref_53
   /integrations/tokens:
     get:
       operationId: IntegrationController_listTokens
@@ -4460,8 +4713,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationTokenListResponse'
-      tags: *ref_48
-      security: *ref_49
+      tags: *ref_52
+      security: *ref_53
     post:
       operationId: IntegrationController_createToken
       summary: Create a token manually (copy-paste path)
@@ -4482,8 +4735,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationTokenCreatedResponse'
-      tags: *ref_48
-      security: *ref_49
+      tags: *ref_52
+      security: *ref_53
   /integrations/tokens/{id}:
     delete:
       operationId: IntegrationController_revokeToken
@@ -4504,8 +4757,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationTokenResponse'
-      tags: *ref_48
-      security: *ref_49
+      tags: *ref_52
+      security: *ref_53
   /dashboard:
     get:
       operationId: DashboardController_getOverview
@@ -4517,9 +4770,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DashboardResponseDto'
-      tags: &ref_50
+      tags: &ref_54
         - Dashboard
-      security: &ref_51
+      security: &ref_55
         - bearer: []
   /dashboard/gallery:
     get:
@@ -4532,8 +4785,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DashboardGalleryResponseDto'
-      tags: *ref_50
-      security: *ref_51
+      tags: *ref_54
+      security: *ref_55
   /dashboard/trends:
     get:
       operationId: DashboardController_getTrends
@@ -4550,49 +4803,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DashboardTrendsResponseDto'
-      tags: *ref_50
-      security: *ref_51
-  /blog/locales/public:
-    get:
-      operationId: LocaleController_listPublic
-      parameters: []
-      responses:
-        '200':
-          description: Enabled blog locales + default (public language switcher)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BlogLocaleListResponse'
-      tags: &ref_52
-        - Blog · Locales
-      security: &ref_53
-        - bearer: []
-  /blog/locales:
-    get:
-      operationId: LocaleController_list
-      parameters: []
-      responses:
-        '200':
-          description: Enabled blog locales + the default (fallback) locale
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BlogLocaleListResponse'
-      tags: *ref_52
-      security: *ref_53
-  /blog/colors:
-    get:
-      operationId: ColorsController_list
-      parameters: []
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BlogColorsResponse'
-      tags:
-        - Blog · Colors
+      tags: *ref_54
+      security: *ref_55
   /blog/posts/public:
     get:
       operationId: PostController_listPublic
@@ -4646,9 +4858,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PublicPostListResponse'
-      tags: &ref_54
+      tags: &ref_56
         - Blog · Posts
-      security: &ref_55
+      security: &ref_57
         - bearer: []
   /blog/posts/public/{slug}:
     get:
@@ -4671,8 +4883,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PublicPostResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts:
     get:
       operationId: PostController_list
@@ -4709,8 +4921,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostListResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
     post:
       operationId: PostController_create
       parameters: []
@@ -4727,8 +4939,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts/reorder:
     patch:
       operationId: PostController_reorder
@@ -4746,8 +4958,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostListResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts/{id}:
     get:
       operationId: PostController_getById
@@ -4764,8 +4976,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
     patch:
       operationId: PostController_patch
       parameters:
@@ -4787,8 +4999,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts/{id}/draft:
     get:
       operationId: PostController_getDraft
@@ -4810,8 +5022,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostDraftResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts/{id}/translations/{locale}:
     put:
       operationId: PostController_upsertTranslation
@@ -4839,8 +5051,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts/{id}/authors:
     put:
       operationId: PostController_setAuthors
@@ -4863,8 +5075,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts/{id}/categories/draft:
     get:
       operationId: PostController_getDraftCategories
@@ -4881,8 +5093,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostCategoriesResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts/{id}/categories:
     put:
       operationId: PostController_setCategories
@@ -4905,8 +5117,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostCategoriesResponse'
-      tags: *ref_54
-      security: *ref_55
+      tags: *ref_56
+      security: *ref_57
   /blog/posts/{id}/publish:
     post:
       operationId: VersionController_publish
@@ -4923,9 +5135,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: &ref_56
+      tags: &ref_58
         - Blog · Versioning
-      security: &ref_57
+      security: &ref_59
         - bearer: []
   /blog/posts/{id}/unpublish:
     post:
@@ -4943,8 +5155,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_56
-      security: *ref_57
+      tags: *ref_58
+      security: *ref_59
   /blog/posts/{id}/schedule:
     post:
       operationId: VersionController_schedule
@@ -4967,8 +5179,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_56
-      security: *ref_57
+      tags: *ref_58
+      security: *ref_59
   /blog/posts/{id}/archive:
     post:
       operationId: VersionController_archive
@@ -4985,8 +5197,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_56
-      security: *ref_57
+      tags: *ref_58
+      security: *ref_59
   /blog/posts/{id}/restore:
     post:
       operationId: VersionController_restore
@@ -5003,8 +5215,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_56
-      security: *ref_57
+      tags: *ref_58
+      security: *ref_59
   /blog/posts/{id}/rollback:
     post:
       operationId: VersionController_rollback
@@ -5027,8 +5239,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostResponse'
-      tags: *ref_56
-      security: *ref_57
+      tags: *ref_58
+      security: *ref_59
   /blog/posts/{id}/versions:
     get:
       operationId: VersionController_listVersions
@@ -5045,8 +5257,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VersionListResponse'
-      tags: *ref_56
-      security: *ref_57
+      tags: *ref_58
+      security: *ref_59
   /blog/posts/{id}/versions/{versionId}:
     delete:
       operationId: VersionController_pruneVersion
@@ -5068,8 +5280,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VersionListResponse'
-      tags: *ref_56
-      security: *ref_57
+      tags: *ref_58
+      security: *ref_59
   /blog/search:
     get:
       operationId: SearchController_search
@@ -5124,9 +5336,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionListResponse'
-      tags: &ref_58
+      tags: &ref_60
         - Blog · Sections
-      security: &ref_59
+      security: &ref_61
         - bearer: []
     post:
       operationId: SectionController_create
@@ -5149,8 +5361,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/posts/{postId}/sections/reorder:
     patch:
       operationId: SectionController_reorder
@@ -5173,8 +5385,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionListResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/sections/{id}:
     patch:
       operationId: SectionController_patch
@@ -5197,8 +5409,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
     delete:
       operationId: SectionController_delete
       parameters:
@@ -5214,8 +5426,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/sections/{id}/translations/{locale}:
     put:
       operationId: SectionController_upsertTranslation
@@ -5243,8 +5455,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/sections/{id}/images:
     post:
       operationId: SectionController_addImage
@@ -5267,8 +5479,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/sections/{id}/images/reorder:
     patch:
       operationId: SectionController_reorderImages
@@ -5291,8 +5503,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/section-images/{imageId}:
     patch:
       operationId: SectionController_patchImage
@@ -5315,8 +5527,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
     delete:
       operationId: SectionController_deleteImage
       parameters:
@@ -5332,8 +5544,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/section-images/{imageId}/translations/{locale}:
     put:
       operationId: SectionController_upsertImageTranslation
@@ -5361,8 +5573,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/sections/{id}/items:
     post:
       operationId: SectionController_addItem
@@ -5385,8 +5597,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/sections/{id}/items/reorder:
     patch:
       operationId: SectionController_reorderItems
@@ -5409,8 +5621,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/section-items/{itemId}:
     patch:
       operationId: SectionController_patchItem
@@ -5433,8 +5645,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
     delete:
       operationId: SectionController_deleteItem
       parameters:
@@ -5450,8 +5662,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/section-items/{itemId}/translations/{locale}:
     put:
       operationId: SectionController_upsertItemTranslation
@@ -5479,8 +5691,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/sections/{id}/pois:
     post:
       operationId: SectionController_addPoi
@@ -5503,8 +5715,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/sections/{id}/pois/reorder:
     patch:
       operationId: SectionController_reorderPois
@@ -5527,8 +5739,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/section-pois/{poiLinkId}:
     patch:
       operationId: SectionController_patchPoi
@@ -5551,8 +5763,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
     delete:
       operationId: SectionController_deletePoi
       parameters:
@@ -5568,8 +5780,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionResponse'
-      tags: *ref_58
-      security: *ref_59
+      tags: *ref_60
+      security: *ref_61
   /blog/poi:
     get:
       operationId: PoiController_listPublic
@@ -5618,7 +5830,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiPublicListResponse'
-      tags: &ref_60
+      tags: &ref_62
         - Blog · POI
     post:
       operationId: PoiController_create
@@ -5636,7 +5848,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/poi/admin:
@@ -5691,7 +5903,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminListResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/poi/{id}:
@@ -5710,7 +5922,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
     patch:
@@ -5734,7 +5946,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
     delete:
@@ -5752,7 +5964,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/poi/{id}/images:
@@ -5777,7 +5989,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/poi/images/{imageId}:
@@ -5802,7 +6014,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
     delete:
@@ -5820,7 +6032,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/poi/{id}/images/reorder:
@@ -5845,7 +6057,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/poi/{id}/translations/{locale}:
@@ -5875,7 +6087,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/poi/{id}/hours:
@@ -5900,7 +6112,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/poi/{id}/categories:
@@ -5925,7 +6137,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoiAdminResponse'
-      tags: *ref_60
+      tags: *ref_62
       security:
         - bearer: []
   /blog/categories/public:
@@ -5950,9 +6162,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResolvedCategoryListResponse'
-      tags: &ref_61
+      tags: &ref_63
         - Blog · Categories
-      security: &ref_62
+      security: &ref_64
         - bearer: []
   /blog/categories:
     get:
@@ -5982,8 +6194,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryListResponse'
-      tags: *ref_61
-      security: *ref_62
+      tags: *ref_63
+      security: *ref_64
     post:
       operationId: CategoryController_create
       parameters: []
@@ -6000,8 +6212,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
-      tags: *ref_61
-      security: *ref_62
+      tags: *ref_63
+      security: *ref_64
   /blog/categories/{id}:
     get:
       operationId: CategoryController_getById
@@ -6018,8 +6230,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
-      tags: *ref_61
-      security: *ref_62
+      tags: *ref_63
+      security: *ref_64
     patch:
       operationId: CategoryController_patch
       parameters:
@@ -6041,8 +6253,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
-      tags: *ref_61
-      security: *ref_62
+      tags: *ref_63
+      security: *ref_64
     delete:
       operationId: CategoryController_delete
       parameters:
@@ -6058,8 +6270,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
-      tags: *ref_61
-      security: *ref_62
+      tags: *ref_63
+      security: *ref_64
   /blog/categories/{id}/translations/{locale}:
     put:
       operationId: CategoryController_upsertTranslation
@@ -6087,8 +6299,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
-      tags: *ref_61
-      security: *ref_62
+      tags: *ref_63
+      security: *ref_64
   /blog/collections/public:
     get:
       operationId: CollectionController_listPublic
@@ -6127,7 +6339,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PublicCollectionListResponse'
-      tags: &ref_63
+      tags: &ref_65
         - Blog · Collections
   /blog/collections/by-slug/{slug}:
     get:
@@ -6150,7 +6362,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PublicCollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
   /blog/collections:
     get:
       operationId: CollectionController_list
@@ -6198,7 +6410,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionListResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
     post:
@@ -6217,7 +6429,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
   /blog/collections/{id}:
@@ -6236,7 +6448,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
     patch:
@@ -6260,7 +6472,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
     delete:
@@ -6278,7 +6490,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
   /blog/collections/{id}/items:
@@ -6303,7 +6515,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
   /blog/collections/{id}/items/reorder:
@@ -6328,7 +6540,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
   /blog/collections/{id}/items/{itemId}:
@@ -6358,7 +6570,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
     delete:
@@ -6381,7 +6593,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
   /blog/collections/{id}/translations/{locale}:
@@ -6411,7 +6623,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CollectionResponse'
-      tags: *ref_63
+      tags: *ref_65
       security:
         - bearer: []
   /blog/sitemap.xml:
@@ -6434,9 +6646,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HomeConfigResponse'
-      tags: &ref_64
+      tags: &ref_66
         - Blog · Home (admin)
-      security: &ref_65
+      security: &ref_67
         - bearer: []
     patch:
       operationId: HomeController_patchConfig
@@ -6454,8 +6666,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HomeConfigResponse'
-      tags: *ref_64
-      security: *ref_65
+      tags: *ref_66
+      security: *ref_67
   /blog/home/pins:
     get:
       operationId: HomeController_getPins
@@ -6467,8 +6679,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HomePinsResponse'
-      tags: *ref_64
-      security: *ref_65
+      tags: *ref_66
+      security: *ref_67
     put:
       operationId: HomeController_setPins
       parameters: []
@@ -6485,8 +6697,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HomePinsResponse'
-      tags: *ref_64
-      security: *ref_65
+      tags: *ref_66
+      security: *ref_67
   /blog/home:
     get:
       operationId: HomePublicController_getHome
@@ -6527,9 +6739,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EditorialCommentResponse'
-      tags: &ref_66
+      tags: &ref_68
         - Blog · Editorial comments
-      security: &ref_67
+      security: &ref_69
         - bearer: []
     get:
       operationId: CommentController_list
@@ -6560,8 +6772,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommentListResponse'
-      tags: *ref_66
-      security: *ref_67
+      tags: *ref_68
+      security: *ref_69
   /blog/posts/{postId}/comments/{commentId}:
     get:
       operationId: CommentController_get
@@ -6583,8 +6795,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EditorialCommentResponse'
-      tags: *ref_66
-      security: *ref_67
+      tags: *ref_68
+      security: *ref_69
     patch:
       operationId: CommentController_patch
       parameters:
@@ -6611,8 +6823,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EditorialCommentResponse'
-      tags: *ref_66
-      security: *ref_67
+      tags: *ref_68
+      security: *ref_69
     delete:
       operationId: CommentController_delete
       parameters:
@@ -6633,8 +6845,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EditorialCommentResponse'
-      tags: *ref_66
-      security: *ref_67
+      tags: *ref_68
+      security: *ref_69
   /blog/posts/public/{postId}/view:
     post:
       operationId: InteractionController_viewPublic
@@ -6651,9 +6863,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ViewResultResponse'
-      tags: &ref_68
+      tags: &ref_70
         - Blog · Interactions
-      security: &ref_69
+      security: &ref_71
         - bearer: []
   /blog/posts/{postId}/like:
     post:
@@ -6671,8 +6883,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LikeToggleResponse'
-      tags: *ref_68
-      security: *ref_69
+      tags: *ref_70
+      security: *ref_71
     delete:
       operationId: InteractionController_unlike
       parameters:
@@ -6688,8 +6900,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LikeToggleResponse'
-      tags: *ref_68
-      security: *ref_69
+      tags: *ref_70
+      security: *ref_71
   /blog/posts/{postId}/view:
     post:
       operationId: InteractionController_view
@@ -6706,8 +6918,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ViewResultResponse'
-      tags: *ref_68
-      security: *ref_69
+      tags: *ref_70
+      security: *ref_71
   /blog/posts/{postId}/interactions:
     get:
       operationId: InteractionController_interactions
@@ -6724,8 +6936,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InteractionStateResponse'
-      tags: *ref_68
-      security: *ref_69
+      tags: *ref_70
+      security: *ref_71
   /blog/posts/{postId}/feedback:
     put:
       operationId: InteractionController_upsertFeedback
@@ -6748,8 +6960,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeedbackResponse'
-      tags: *ref_68
-      security: *ref_69
+      tags: *ref_70
+      security: *ref_71
     delete:
       operationId: InteractionController_deleteFeedback
       parameters:
@@ -6765,8 +6977,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeedbackResponse'
-      tags: *ref_68
-      security: *ref_69
+      tags: *ref_70
+      security: *ref_71
   /blog/posts/{postId}/insights:
     get:
       operationId: InteractionController_insights
@@ -6789,8 +7001,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InsightsResponse'
-      tags: *ref_68
-      security: *ref_69
+      tags: *ref_70
+      security: *ref_71
   /blog/media/upload:
     post:
       operationId: MediaController_upload
@@ -6808,9 +7020,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadResponseDto'
-      tags: &ref_70
+      tags: &ref_72
         - Blog · Media
-      security: &ref_71
+      security: &ref_73
         - bearer: []
   /blog/media:
     get:
@@ -6837,8 +7049,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogMediaListResponse'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
   /blog/media/images/{id}:
     get:
       operationId: MediaController_getImage
@@ -6855,8 +7067,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogMediaImageResponse'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
     delete:
       operationId: MediaController_deleteImage
       parameters:
@@ -6872,8 +7084,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadResponseDto'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
   /blog/media/albums:
     post:
       operationId: MediaController_createAlbum
@@ -6891,8 +7103,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogMediaAlbumResponse'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
     get:
       operationId: MediaController_listAlbums
       parameters:
@@ -6917,8 +7129,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogMediaAlbumListResponse'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
   /blog/media/albums/{id}:
     get:
       operationId: MediaController_getAlbum
@@ -6935,8 +7147,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogMediaAlbumResponse'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
     patch:
       operationId: MediaController_patchAlbum
       parameters:
@@ -6958,8 +7170,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogMediaAlbumResponse'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
     delete:
       operationId: MediaController_deleteAlbum
       parameters:
@@ -6975,8 +7187,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadResponseDto'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
   /blog/media/albums/{id}/items:
     put:
       operationId: MediaController_setAlbumItems
@@ -6999,8 +7211,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogMediaAlbumResponse'
-      tags: *ref_70
-      security: *ref_71
+      tags: *ref_72
+      security: *ref_73
   /blog/posts/{postId}/document:
     put:
       operationId: DocumentController_save
@@ -7049,9 +7261,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogCountryAdminResponse'
-      tags: &ref_72
+      tags: &ref_74
         - Blog · Countries (admin)
-      security: &ref_73
+      security: &ref_75
         - bearer: []
     get:
       operationId: CountryController_list
@@ -7063,8 +7275,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogCountryListResponse'
-      tags: *ref_72
-      security: *ref_73
+      tags: *ref_74
+      security: *ref_75
   /blog/countries/manage/{id}:
     get:
       operationId: CountryController_getById
@@ -7081,8 +7293,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogCountryAdminResponse'
-      tags: *ref_72
-      security: *ref_73
+      tags: *ref_74
+      security: *ref_75
     patch:
       operationId: CountryController_patch
       parameters:
@@ -7104,8 +7316,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogCountryAdminResponse'
-      tags: *ref_72
-      security: *ref_73
+      tags: *ref_74
+      security: *ref_75
     delete:
       operationId: CountryController_delete
       parameters:
@@ -7121,8 +7333,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogCountryAdminResponse'
-      tags: *ref_72
-      security: *ref_73
+      tags: *ref_74
+      security: *ref_75
   /blog/countries/manage/{id}/translations/{locale}:
     put:
       operationId: CountryController_upsertTranslation
@@ -7150,8 +7362,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogCountryAdminResponse'
-      tags: *ref_72
-      security: *ref_73
+      tags: *ref_74
+      security: *ref_75
   /blog/countries:
     get:
       operationId: CountryPublicController_menu
@@ -7168,7 +7380,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogCountryMenuResponse'
-      tags: &ref_74
+      tags: &ref_76
         - Blog · Countries
   /blog/countries/by-slug/{slug}:
     get:
@@ -7191,7 +7403,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogCountryPageResponse'
-      tags: *ref_74
+      tags: *ref_76
   /blog/authors/public:
     get:
       operationId: AuthorPublicController_listPublic
@@ -7242,9 +7454,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GrantListResponse'
-      tags: &ref_75
+      tags: &ref_77
         - Ecosystem · Access grants
-      security: &ref_76
+      security: &ref_78
         - bearer: []
   /ecosystem/grants:
     post:
@@ -7263,8 +7475,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GrantResponse'
-      tags: *ref_75
-      security: *ref_76
+      tags: *ref_77
+      security: *ref_78
     get:
       operationId: GrantController_list
       parameters:
@@ -7295,8 +7507,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GrantListResponse'
-      tags: *ref_75
-      security: *ref_76
+      tags: *ref_77
+      security: *ref_78
   /ecosystem/grants/{id}:
     delete:
       operationId: GrantController_revoke
@@ -7313,8 +7525,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GrantResponse'
-      tags: *ref_75
-      security: *ref_76
+      tags: *ref_77
+      security: *ref_78
   /ecosystem/redeem:
     post:
       operationId: RedeemController_redeem
@@ -7332,9 +7544,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RedeemResultResponse'
-      tags: &ref_77
+      tags: &ref_79
         - Ecosystem · Redeem codes
-      security: &ref_78
+      security: &ref_80
         - bearer: []
   /ecosystem/codes:
     post:
@@ -7353,8 +7565,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RedeemCodeResponse'
-      tags: *ref_77
-      security: *ref_78
+      tags: *ref_79
+      security: *ref_80
     get:
       operationId: RedeemController_listCodes
       parameters:
@@ -7379,8 +7591,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeListResponse'
-      tags: *ref_77
-      security: *ref_78
+      tags: *ref_79
+      security: *ref_80
   /ecosystem/codes/{id}:
     delete:
       operationId: RedeemController_revokeCode
@@ -7397,8 +7609,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RedeemCodeResponse'
-      tags: *ref_77
-      security: *ref_78
+      tags: *ref_79
+      security: *ref_80
   /ecosystem/devices/register:
     post:
       operationId: DeviceController_register
@@ -7416,9 +7628,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceWithLicenseResponse'
-      tags: &ref_79
+      tags: &ref_81
         - Ecosystem · App devices
-      security: &ref_80
+      security: &ref_82
         - bearer: []
   /ecosystem/devices:
     get:
@@ -7445,8 +7657,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceListResponse'
-      tags: *ref_79
-      security: *ref_80
+      tags: *ref_81
+      security: *ref_82
   /ecosystem/devices/{id}/license:
     get:
       operationId: DeviceController_fetchLicense
@@ -7463,8 +7675,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LicenseResponse'
-      tags: *ref_79
-      security: *ref_80
+      tags: *ref_81
+      security: *ref_82
   /ecosystem/devices/{id}:
     get:
       operationId: DeviceController_get
@@ -7481,8 +7693,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceResponse'
-      tags: *ref_79
-      security: *ref_80
+      tags: *ref_81
+      security: *ref_82
     delete:
       operationId: DeviceController_revoke
       parameters:
@@ -7498,8 +7710,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceResponse'
-      tags: *ref_79
-      security: *ref_80
+      tags: *ref_81
+      security: *ref_82
   /ecosystem/license/public-key:
     get:
       operationId: LicenseController_getPublicKey
@@ -7520,9 +7732,15 @@ paths:
       responses:
         '200':
           description: ''
-      tags: &ref_81
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationResponse'
+      tags: &ref_83
         - Deploy
-      security: &ref_82
+      security: &ref_84
         - bearer: []
     post:
       operationId: DeployController_createApplication
@@ -7534,10 +7752,14 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateApplicationDto'
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}:
     get:
       operationId: DeployController_getApplication
@@ -7550,8 +7772,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+      tags: *ref_83
+      security: *ref_84
     patch:
       operationId: DeployController_updateApplication
       parameters:
@@ -7569,8 +7795,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+      tags: *ref_83
+      security: *ref_84
     delete:
       operationId: DeployController_deleteApplication
       parameters:
@@ -7582,8 +7812,27 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+      tags: *ref_83
+      security: *ref_84
+  /deploy/compose/check:
+    post:
+      operationId: DeployController_checkCompose
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckComposeDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComposeCheckResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/render:
     post:
       operationId: DeployController_renderApplication
@@ -7594,10 +7843,14 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderPreviewResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/releases:
     post:
       operationId: DeployController_createRelease
@@ -7614,10 +7867,14 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateReleaseDto'
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseStartedResponse'
+      tags: *ref_83
+      security: *ref_84
     get:
       operationId: DeployController_listReleases
       parameters:
@@ -7629,8 +7886,14 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/releases/{id}/rollback:
     post:
       operationId: DeployController_rollback
@@ -7641,10 +7904,14 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseStartedResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/webhook/rotate:
     post:
       operationId: DeployController_rotateWebhookSecret
@@ -7655,10 +7922,14 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSecretResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/webhook:
     delete:
       operationId: DeployController_disableWebhook
@@ -7671,8 +7942,8 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/import/preview:
     post:
       operationId: DeployController_previewImport
@@ -7683,10 +7954,14 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportPreviewResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/import:
     post:
       operationId: DeployController_applyImport
@@ -7697,10 +7972,86 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+      tags: *ref_83
+      security: *ref_84
+  /deploy/applications/{id}/takeover/preview:
+    post:
+      operationId: DeployController_previewTakeover
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TakeoverComposeDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComposeTakeoverPreviewResponse'
+      tags: *ref_83
+      security: *ref_84
+  /deploy/applications/{id}/takeover:
+    post:
+      operationId: DeployController_applyTakeover
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TakeoverComposeDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+      tags: *ref_83
+      security: *ref_84
+  /deploy/applications/{id}/move-to-git:
+    post:
+      operationId: DeployController_moveToGit
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveToGitDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/git/accounts:
     get:
       operationId: DeployController_listGitAccounts
@@ -7708,8 +8059,14 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GitAccountResponse'
+      tags: *ref_83
+      security: *ref_84
     post:
       operationId: DeployController_createGitAccount
       parameters: []
@@ -7720,10 +8077,14 @@ paths:
             schema:
               $ref: '#/components/schemas/UpsertGitAccountDto'
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitAccountResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/git/accounts/{id}:
     patch:
       operationId: DeployController_updateGitAccount
@@ -7742,8 +8103,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitAccountResponse'
+      tags: *ref_83
+      security: *ref_84
     delete:
       operationId: DeployController_deleteGitAccount
       parameters:
@@ -7755,8 +8120,8 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+      tags: *ref_83
+      security: *ref_84
   /deploy/git/repos:
     get:
       operationId: DeployController_listGitRepos
@@ -7764,8 +8129,14 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GitRepoResponse'
+      tags: *ref_83
+      security: *ref_84
     post:
       operationId: DeployController_createGitRepo
       parameters: []
@@ -7776,10 +8147,14 @@ paths:
             schema:
               $ref: '#/components/schemas/UpsertGitRepoDto'
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitRepoResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/git/repos/{id}:
     get:
       operationId: DeployController_getGitRepo
@@ -7792,8 +8167,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitRepoResponse'
+      tags: *ref_83
+      security: *ref_84
     patch:
       operationId: DeployController_updateGitRepo
       parameters:
@@ -7811,8 +8190,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitRepoResponse'
+      tags: *ref_83
+      security: *ref_84
     delete:
       operationId: DeployController_deleteGitRepo
       parameters:
@@ -7824,8 +8207,8 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/env:
     get:
       operationId: DeployController_listEnv
@@ -7838,8 +8221,14 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationEnvResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/env/{key}:
     put:
       operationId: DeployController_upsertEnv
@@ -7863,8 +8252,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationEnvResponse'
+      tags: *ref_83
+      security: *ref_84
     delete:
       operationId: DeployController_deleteEnv
       parameters:
@@ -7881,8 +8274,8 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+      tags: *ref_83
+      security: *ref_84
   /deploy/variables:
     get:
       operationId: DeployController_listVariables
@@ -7890,8 +8283,14 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VariableResponse'
+      tags: *ref_83
+      security: *ref_84
     put:
       operationId: DeployController_upsertVariable
       parameters: []
@@ -7904,8 +8303,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VariableResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/variables/{id}:
     delete:
       operationId: DeployController_deleteVariable
@@ -7918,8 +8321,8 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+      tags: *ref_83
+      security: *ref_84
   /deploy/containers:
     get:
       operationId: DeployController_listContainers
@@ -7927,8 +8330,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContainerOverviewResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/containers/{project}:
     get:
       operationId: DeployController_getContainerStack
@@ -7941,8 +8348,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveredStackResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/containers/{project}/adopt:
     post:
       operationId: DeployController_adoptStack
@@ -7952,16 +8363,15 @@ paths:
           in: path
           schema:
             type: string
-        - name: serverId
-          required: true
-          in: query
-          schema:
-            type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/containers/{project}/actions/{action}:
     post:
       operationId: DeployController_runStackAction
@@ -7976,16 +8386,43 @@ paths:
           in: path
           schema:
             type: string
-        - name: serverId
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StackActionResponse'
+      tags: *ref_83
+      security: *ref_84
+  /deploy/containers/{project}/containers/{containerId}/actions/{action}:
+    post:
+      operationId: DeployController_runContainerAction
+      parameters:
+        - name: project
           required: true
-          in: query
+          in: path
+          schema:
+            type: string
+        - name: containerId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: action
+          required: true
+          in: path
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StackActionResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/containers/{project}/logs:
     get:
       operationId: DeployController_stackLogs
@@ -7996,34 +8433,32 @@ paths:
           schema:
             type: string
         - name: tail
-          required: true
+          required: false
           in: query
           schema:
-            type: string
-        - name: serverId
-          required: true
-          in: query
-          schema:
-            type: string
+            type: number
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StackLogsResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/containers/refresh:
     post:
       operationId: DeployController_refreshContainers
-      parameters:
-        - name: serverId
-          required: true
-          in: query
-          schema:
-            type: string
+      parameters: []
       responses:
-        '201':
+        '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshRequestedResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/agent:
     get:
       operationId: DeployController_agentStatus
@@ -8031,8 +8466,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentHealthResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/audit/{entityType}/{entityId}:
     get:
       operationId: DeployController_listAudit
@@ -8048,15 +8487,21 @@ paths:
           schema:
             type: string
         - name: take
-          required: true
+          required: false
           in: query
           schema:
-            type: string
+            type: number
       responses:
         '200':
           description: ''
-      tags: *ref_81
-      security: *ref_82
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEntryResponse'
+      tags: *ref_83
+      security: *ref_84
 info:
   title: WHCP Backend
   description: XD
@@ -8397,6 +8842,8 @@ components:
           type: boolean
         tripEmailNotifications:
           type: boolean
+        inquiryEmailNotifications:
+          type: boolean
       required:
         - id
         - serverStatusEmailNotifications
@@ -8406,6 +8853,7 @@ components:
         - processPushNotifications
         - photoMediaEmailNotifications
         - tripEmailNotifications
+        - inquiryEmailNotifications
     PatchUserSettingsDto:
       type: object
       properties:
@@ -8422,6 +8870,8 @@ components:
         photoMediaEmailNotifications:
           type: boolean
         tripEmailNotifications:
+          type: boolean
+        inquiryEmailNotifications:
           type: boolean
     PatchUserAdminDto:
       type: object
@@ -9170,6 +9620,397 @@ components:
       properties:
         name:
           type: string
+    InquiryTopic:
+      type: string
+      enum:
+        - SESSION
+        - PRINT
+        - LICENSE
+        - COLLABORATION
+        - OTHER
+    ContactAdministratorResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+          nullable: true
+      required:
+        - name
+        - email
+    PublicContactResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        locale:
+          type: string
+        intro:
+          type: string
+          nullable: true
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/InquiryTopic'
+        privacyNotice:
+          type: string
+          nullable: true
+        privacyNoticeLocale:
+          type: string
+          nullable: true
+        privacyNoticeVersion:
+          type: integer
+          nullable: true
+        privacyNoticeFallback:
+          type: boolean
+        administrator:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ContactAdministratorResponse'
+      required:
+        - enabled
+        - locale
+        - topics
+        - privacyNoticeFallback
+    CreateInquiryDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          maxLength: 254
+          format: email
+        phone:
+          type: string
+          maxLength: 40
+          pattern: ^[+0-9 ()-]*$
+        topic:
+          $ref: '#/components/schemas/InquiryTopic'
+        message:
+          type: string
+          minLength: 10
+          maxLength: 5000
+        galleryId:
+          type: string
+        imageId:
+          type: string
+        acknowledgedPrivacyNotice:
+          type: boolean
+        locale:
+          type: string
+          maxLength: 16
+        website:
+          type: string
+          maxLength: 500
+      required:
+        - name
+        - email
+        - topic
+        - message
+        - acknowledgedPrivacyNotice
+    InquiryReceivedResponse:
+      type: object
+      properties:
+        received:
+          type: boolean
+      required:
+        - received
+    InquiryStatus:
+      type: string
+      enum:
+        - NEW
+        - READ
+        - ANSWERED
+        - ARCHIVED
+        - SPAM
+    InquiryGalleryRefResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+      required:
+        - id
+        - title
+        - slug
+    InquiryImageRefResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        thumbUrl:
+          type: string
+        coverUrl:
+          type: string
+      required:
+        - id
+        - thumbUrl
+        - coverUrl
+    InquiryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        topic:
+          $ref: '#/components/schemas/InquiryTopic'
+        message:
+          type: string
+        status:
+          $ref: '#/components/schemas/InquiryStatus'
+        gallery:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/InquiryGalleryRefResponse'
+        image:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/InquiryImageRefResponse'
+        internalNote:
+          type: string
+          nullable: true
+        replyMailto:
+          type: string
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        answeredAt:
+          type: string
+          format: date-time
+          nullable: true
+        noticeAcknowledgedAt:
+          type: string
+          format: date-time
+        privacyNoticeLocale:
+          type: string
+        privacyNoticeVersion:
+          type: integer
+        locale:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - topic
+        - message
+        - status
+        - replyMailto
+        - noticeAcknowledgedAt
+        - privacyNoticeLocale
+        - privacyNoticeVersion
+        - locale
+        - createdAt
+    InquiryListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        inquiries:
+          type: array
+          items:
+            $ref: '#/components/schemas/InquiryResponse'
+      required:
+        - total
+        - inquiries
+    InquirySummaryResponse:
+      type: object
+      properties:
+        new:
+          type: integer
+        open:
+          type: integer
+        spam:
+          type: integer
+      required:
+        - new
+        - open
+        - spam
+    ContactTextResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        intro:
+          type: string
+          nullable: true
+        privacyNotice:
+          type: string
+          nullable: true
+        privacyNoticeRendered:
+          type: string
+          nullable: true
+        privacyNoticeVersion:
+          type: integer
+        privacyNoticeUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - locale
+        - privacyNoticeVersion
+    ContactSettingsResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        defaultLocale:
+          type: string
+        missingForEnable:
+          type: array
+          items:
+            type: string
+        localesWithoutNotice:
+          type: array
+          items:
+            type: string
+        administratorName:
+          type: string
+          nullable: true
+        administratorEmail:
+          type: string
+          nullable: true
+        administratorAddress:
+          type: string
+          nullable: true
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactTextResponse'
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/InquiryTopic'
+        retentionDays:
+          type: integer
+        spamRetentionDays:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - enabled
+        - defaultLocale
+        - missingForEnable
+        - localesWithoutNotice
+        - translations
+        - topics
+        - retentionDays
+        - spamRetentionDays
+        - updatedAt
+    ContactTextDto:
+      type: object
+      properties:
+        locale:
+          type: string
+          maxLength: 16
+        intro:
+          type: string
+          maxLength: 2000
+          nullable: true
+        privacyNotice:
+          type: string
+          maxLength: 20000
+          nullable: true
+      required:
+        - locale
+    UpdateContactSettingsDto:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        administratorName:
+          type: string
+          maxLength: 200
+          nullable: true
+        administratorEmail:
+          type: string
+          maxLength: 254
+          format: email
+          nullable: true
+        administratorAddress:
+          type: string
+          maxLength: 500
+          nullable: true
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactTextDto'
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/InquiryTopic'
+        retentionDays:
+          type: integer
+        spamRetentionDays:
+          type: integer
+    PatchInquiryDto:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/InquiryStatus'
+        internalNote:
+          type: string
+          maxLength: 5000
+          nullable: true
+    BlogLocaleResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        isDefault:
+          type: boolean
+        order:
+          type: integer
+          nullable: true
+      required:
+        - code
+        - name
+        - isDefault
+    BlogLocaleListResponse:
+      type: object
+      properties:
+        defaultLocale:
+          type: string
+        locales:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogLocaleResponse'
+      required:
+        - defaultLocale
+        - locales
+    BlogColorsResponse:
+      type: object
+      properties:
+        colors:
+          description: >-
+            Allowed inline color tokens (used for both text `fg` and background
+            `bg`).
+          type: array
+          items:
+            type: string
+      required:
+        - colors
     SubsystemCheckResponse:
       type: object
       properties:
@@ -9891,7 +10732,7 @@ components:
       required:
         - systems
         - ungrouped
-    PortfolioGalleryDetailResponse:
+    PortfolioGalleryPageResponse:
       type: object
       properties:
         id:
@@ -9912,12 +10753,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PortfolioImageResponse'
+        contact:
+          $ref: '#/components/schemas/PublicContactResponse'
       required:
         - id
         - title
         - slug
         - imageCount
         - items
+        - contact
     GearImageUserKind:
       type: string
       enum:
@@ -13877,46 +14721,6 @@ components:
       required:
         - range
         - series
-    BlogLocaleResponse:
-      type: object
-      properties:
-        code:
-          type: string
-        name:
-          type: string
-        isDefault:
-          type: boolean
-        order:
-          type: integer
-          nullable: true
-      required:
-        - code
-        - name
-        - isDefault
-    BlogLocaleListResponse:
-      type: object
-      properties:
-        defaultLocale:
-          type: string
-        locales:
-          type: array
-          items:
-            $ref: '#/components/schemas/BlogLocaleResponse'
-      required:
-        - defaultLocale
-        - locales
-    BlogColorsResponse:
-      type: object
-      properties:
-        colors:
-          description: >-
-            Allowed inline color tokens (used for both text `fg` and background
-            `bg`).
-          type: array
-          items:
-            type: string
-      required:
-        - colors
     BlogAccessTier:
       type: string
       enum:
@@ -17636,6 +18440,171 @@ components:
         - RENDERED
         - GIT
         - HOST
+        - COMPOSE
+    ContainerOrigin:
+      type: string
+      enum:
+        - MANAGED
+        - ADOPTABLE
+        - TRUENAS
+        - STANDALONE
+    BuildMode:
+      type: string
+      enum:
+        - COMPOSE
+        - REGISTRY
+        - NONE
+    ReleaseStatus:
+      type: string
+      enum:
+        - PENDING
+        - DEPLOYING
+        - ACTIVE
+        - FAILED
+        - SUPERSEDED
+        - ROLLED_BACK
+        - DEFERRED
+        - UNKNOWN
+    ReleaseTrigger:
+      type: string
+      enum:
+        - MANUAL
+        - WEBHOOK
+        - SCHEDULE
+        - AUTO_UPDATE
+        - ROLLBACK
+        - AUTO_ROLLBACK
+    ReleaseActorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+      required:
+        - id
+        - email
+    ReleaseResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        version:
+          type: string
+          nullable: true
+        digest:
+          type: string
+          nullable: true
+        commit:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ReleaseStatus'
+        trigger:
+          $ref: '#/components/schemas/ReleaseTrigger'
+        failureReason:
+          type: string
+          nullable: true
+        homelabCommit:
+          type: string
+          nullable: true
+        processId:
+          type: string
+          nullable: true
+        triggeredBy:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ReleaseActorResponse'
+        createdAt:
+          type: string
+          format: date-time
+        deployedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - status
+        - trigger
+        - createdAt
+    ApplicationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        tier:
+          $ref: '#/components/schemas/ApplicationTier'
+        sourceType:
+          $ref: '#/components/schemas/AppSourceType'
+        origin:
+          $ref: '#/components/schemas/ContainerOrigin'
+        buildMode:
+          $ref: '#/components/schemas/BuildMode'
+        image:
+          type: string
+          nullable: true
+        gitRepoId:
+          type: string
+          nullable: true
+        gitRef:
+          type: string
+          nullable: true
+        compose:
+          type: string
+          nullable: true
+        spec:
+          type: object
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        runtimeSince:
+          type: string
+          format: date-time
+          nullable: true
+        runtimeMessage:
+          type: string
+          nullable: true
+        availableDigest:
+          type: string
+          nullable: true
+        lastPolledAt:
+          type: string
+          format: date-time
+          nullable: true
+        webhookEnabled:
+          type: boolean
+        hasWebhookSecret:
+          type: boolean
+        currentRelease:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ReleaseResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - slug
+        - tier
+        - sourceType
+        - origin
+        - buildMode
+        - spec
+        - runtimeStatus
+        - webhookEnabled
+        - hasWebhookSecret
+        - createdAt
+        - updatedAt
     CreateApplicationDto:
       type: object
       properties:
@@ -17654,11 +18623,119 @@ components:
           type: string
         gitRepoId:
           type: string
-        serverCategoryId:
+        gitRef:
+          type: string
+          pattern: ^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$
+          nullable: true
+        spec:
+          type: object
+        compose:
           type: string
       required:
         - slug
-        - serverCategoryId
+    ApplicationGitRepoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        repo:
+          type: string
+        branch:
+          type: string
+      required:
+        - id
+        - name
+        - repo
+        - branch
+    ApplicationDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        tier:
+          $ref: '#/components/schemas/ApplicationTier'
+        sourceType:
+          $ref: '#/components/schemas/AppSourceType'
+        origin:
+          $ref: '#/components/schemas/ContainerOrigin'
+        buildMode:
+          $ref: '#/components/schemas/BuildMode'
+        image:
+          type: string
+          nullable: true
+        gitRepoId:
+          type: string
+          nullable: true
+        gitRef:
+          type: string
+          nullable: true
+        compose:
+          type: string
+          nullable: true
+        spec:
+          type: object
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        runtimeSince:
+          type: string
+          format: date-time
+          nullable: true
+        runtimeMessage:
+          type: string
+          nullable: true
+        availableDigest:
+          type: string
+          nullable: true
+        lastPolledAt:
+          type: string
+          format: date-time
+          nullable: true
+        webhookEnabled:
+          type: boolean
+        hasWebhookSecret:
+          type: boolean
+        currentRelease:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ReleaseResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        gitRepo:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ApplicationGitRepoResponse'
+        releases:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReleaseResponse'
+      required:
+        - id
+        - slug
+        - tier
+        - sourceType
+        - origin
+        - buildMode
+        - spec
+        - runtimeStatus
+        - webhookEnabled
+        - hasWebhookSecret
+        - createdAt
+        - updatedAt
+        - releases
     UpdateApplicationDto:
       type: object
       properties:
@@ -17673,17 +18750,89 @@ components:
         gitRepoId:
           type: string
           nullable: true
+        gitRef:
+          type: string
+          pattern: ^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$
+          nullable: true
+        buildMode:
+          $ref: '#/components/schemas/BuildMode'
         webhookEnabled:
           type: boolean
-    ReleaseTrigger:
-      type: string
-      enum:
-        - MANUAL
-        - WEBHOOK
-        - SCHEDULE
-        - AUTO_UPDATE
-        - ROLLBACK
-        - AUTO_ROLLBACK
+        spec:
+          type: object
+        compose:
+          type: string
+    CheckComposeDto:
+      type: object
+      properties:
+        compose:
+          type: string
+      required:
+        - compose
+    ComposeVariableResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        hasDefault:
+          type: boolean
+      required:
+        - key
+        - hasDefault
+    ComposeCheckResponse:
+      type: object
+      properties:
+        compose:
+          type: string
+        movedSecrets:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+        buildMode:
+          $ref: '#/components/schemas/BuildMode'
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComposeVariableResponse'
+      required:
+        - compose
+        - movedSecrets
+        - notes
+        - buildMode
+        - variables
+    RenderPreviewResponse:
+      type: object
+      properties:
+        compose:
+          type: string
+          nullable: true
+        composeHash:
+          type: string
+          nullable: true
+        env:
+          type: string
+          nullable: true
+        envKeys:
+          type: array
+          items:
+            type: string
+        missingKeys:
+          type: array
+          items:
+            type: string
+        previousCompose:
+          type: string
+          nullable: true
+        changed:
+          type: boolean
+      required:
+        - envKeys
+        - missingKeys
+        - changed
     CreateReleaseDto:
       type: object
       properties:
@@ -17695,8 +18844,167 @@ components:
           type: string
         trigger:
           $ref: '#/components/schemas/ReleaseTrigger'
+        ref:
+          type: string
+          pattern: ^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$
       required:
         - composeHash
+    ReleaseStartedResponse:
+      type: object
+      properties:
+        releaseId:
+          type: string
+        processId:
+          type: string
+      required:
+        - releaseId
+        - processId
+    WebhookSecretResponse:
+      type: object
+      properties:
+        secret:
+          type: string
+        header:
+          type: string
+        note:
+          type: string
+      required:
+        - secret
+        - header
+        - note
+    ImportedEnvResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+          nullable: true
+        isSecret:
+          type: boolean
+      required:
+        - key
+        - isSecret
+    ImportPreviewResponse:
+      type: object
+      properties:
+        serviceName:
+          type: string
+        image:
+          type: string
+          nullable: true
+        spec:
+          type: object
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportedEnvResponse'
+        warnings:
+          type: array
+          items:
+            type: string
+        currentCompose:
+          type: string
+        secretKeysToFill:
+          type: array
+          items:
+            type: string
+        recommended:
+          type: boolean
+      required:
+        - serviceName
+        - spec
+        - env
+        - warnings
+        - currentCompose
+        - secretKeysToFill
+        - recommended
+    TakeoverComposeDto:
+      type: object
+      properties:
+        compose:
+          type: string
+    ComposeTakeoverPreviewResponse:
+      type: object
+      properties:
+        compose:
+          type: string
+        currentCompose:
+          type: string
+        movedSecrets:
+          type: array
+          items:
+            type: string
+        variablesToFill:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+        workingDir:
+          type: string
+          nullable: true
+        projectName:
+          type: string
+      required:
+        - compose
+        - currentCompose
+        - movedSecrets
+        - variablesToFill
+        - notes
+        - projectName
+    MoveToGitDto:
+      type: object
+      properties:
+        gitRepoId:
+          type: string
+        gitRef:
+          type: string
+          pattern: ^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$
+        composeFile:
+          type: string
+          pattern: ^(?!\/)(?!(?:.*\/)?\.\.(?:\/|$))[\w.\/-]+$
+        runDirectory:
+          type: string
+          pattern: ^(?!\/)(?!(?:.*\/)?\.\.(?:\/|$))[\w.\/-]+$
+        composeInRepository:
+          type: boolean
+        buildMode:
+          $ref: '#/components/schemas/BuildMode'
+      required:
+        - gitRepoId
+    GitAccountResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        provider:
+          type: string
+        username:
+          type: string
+        hasToken:
+          type: boolean
+        repoCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - provider
+        - username
+        - hasToken
+        - repoCount
+        - createdAt
+        - updatedAt
     UpsertGitAccountDto:
       type: object
       properties:
@@ -17712,6 +19020,72 @@ components:
       required:
         - name
         - username
+    GitRepoAccountResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+      required:
+        - id
+        - name
+        - username
+    GitRepoApplicationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+      required:
+        - id
+        - slug
+    GitRepoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        repo:
+          type: string
+        branch:
+          type: string
+        clonePath:
+          type: string
+          nullable: true
+        account:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/GitRepoAccountResponse'
+        lastCommit:
+          type: string
+          nullable: true
+        lastFetchedAt:
+          type: string
+          format: date-time
+          nullable: true
+        applications:
+          type: array
+          items:
+            $ref: '#/components/schemas/GitRepoApplicationResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - repo
+        - branch
+        - applications
+        - createdAt
+        - updatedAt
     UpsertGitRepoDto:
       type: object
       properties:
@@ -17723,6 +19097,7 @@ components:
           pattern: ^[\w.-]+\/[\w.-]+$
         branch:
           type: string
+          pattern: ^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$
         clonePath:
           type: string
           nullable: true
@@ -17732,6 +19107,21 @@ components:
       required:
         - name
         - repo
+    ApplicationEnvResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        isSecret:
+          type: boolean
+        value:
+          type: string
+        isSet:
+          type: boolean
+      required:
+        - key
+        - isSecret
+        - isSet
     UpsertApplicationEnvDto:
       type: object
       properties:
@@ -17741,6 +19131,31 @@ components:
           type: boolean
       required:
         - value
+    VariableResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        isSecret:
+          type: boolean
+        description:
+          type: string
+          nullable: true
+        value:
+          type: string
+        isSet:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - key
+        - isSecret
+        - isSet
+        - updatedAt
     UpsertVariableDto:
       type: object
       properties:
@@ -17756,6 +19171,205 @@ components:
       required:
         - key
         - value
+    DiscoveredContainerResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+        imageDigest:
+          type: string
+          nullable: true
+        state:
+          type: string
+        health:
+          type: string
+          nullable: true
+        exitCode:
+          type: integer
+          nullable: true
+        labels:
+          type: object
+        createdAt:
+          type: string
+          nullable: true
+      required:
+        - id
+        - name
+        - image
+        - state
+        - labels
+    StackActionKind:
+      type: string
+      enum:
+        - deploy
+        - rollback
+        - start
+        - restart
+        - stop
+        - destroy
+        - logs
+        - adopt
+    DiscoveredStackResponse:
+      type: object
+      properties:
+        project:
+          type: string
+        origin:
+          $ref: '#/components/schemas/ContainerOrigin'
+        slug:
+          type: string
+          nullable: true
+        workingDir:
+          type: string
+          nullable: true
+        configFiles:
+          type: array
+          items:
+            type: string
+        runtimeStatus:
+          $ref: '#/components/schemas/CommandRuntimeStatus'
+        containers:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscoveredContainerResponse'
+        allowedActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/StackActionKind'
+      required:
+        - project
+        - origin
+        - configFiles
+        - runtimeStatus
+        - containers
+        - allowedActions
+    AgentHealthResponse:
+      type: object
+      properties:
+        online:
+          type: boolean
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        uptimeSeconds:
+          type: integer
+          nullable: true
+        containerCount:
+          type: integer
+          nullable: true
+        dockerReachable:
+          type: boolean
+          nullable: true
+      required:
+        - online
+    ContainerOverviewResponse:
+      type: object
+      properties:
+        stacks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscoveredStackResponse'
+        receivedAt:
+          type: string
+          format: date-time
+          nullable: true
+        known:
+          type: boolean
+        agent:
+          $ref: '#/components/schemas/AgentHealthResponse'
+      required:
+        - stacks
+        - known
+        - agent
+    StackActionResponse:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+        message:
+          type: string
+      required:
+        - accepted
+    StackLogsResponse:
+      type: object
+      properties:
+        lines:
+          type: array
+          items:
+            type: string
+      required:
+        - lines
+    RefreshRequestedResponse:
+      type: object
+      properties:
+        requested:
+          type: boolean
+      required:
+        - requested
+    AuditActorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+      required:
+        - id
+        - email
+    AuditSource:
+      type: string
+      enum:
+        - PANEL
+        - WEBHOOK
+        - SCHEDULE
+        - SYSTEM
+    AuditEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        actor:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/AuditActorResponse'
+        source:
+          $ref: '#/components/schemas/AuditSource'
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+        entityName:
+          type: string
+          nullable: true
+        diff:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - source
+        - action
+        - entityType
+        - entityId
+        - createdAt
     AgentContainerDto:
       type: object
       properties:
@@ -17805,6 +19419,28 @@ components:
           type: boolean
       required:
         - container
+    StackActionType:
+      type: string
+      enum:
+        - start
+        - restart
+        - stop
+    StackActionResultDto:
+      type: object
+      properties:
+        project:
+          type: string
+        action:
+          $ref: '#/components/schemas/StackActionType'
+        success:
+          type: boolean
+        error:
+          type: string
+          nullable: true
+      required:
+        - project
+        - action
+        - success
     AgentHeartbeatDto:
       type: object
       properties:
@@ -17855,6 +19491,13 @@ components:
       required:
         - processId
         - status
+    GitCredentialsRequestDto:
+      type: object
+      properties:
+        repoId:
+          type: string
+      required:
+        - repoId
     DeployResultDto:
       type: object
       properties:
@@ -17868,6 +19511,9 @@ components:
           type: string
           nullable: true
         homelabCommit:
+          type: string
+          nullable: true
+        commit:
           type: string
           nullable: true
         failureReason:
