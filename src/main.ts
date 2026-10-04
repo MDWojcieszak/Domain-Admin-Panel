@@ -1,68 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerTheme } from 'swagger-themes';
 import { SwaggerThemeNameEnum } from 'swagger-themes/build/enums/swagger-theme-name';
 import { Transport } from '@nestjs/microservices';
 import { config } from './config/config';
 import { validateEnv } from './config/validate-env';
-import { writeFileSync } from 'fs';
 import { ServerResponse } from 'http';
-import { join } from 'path';
 import { MessagingDocsService } from './api-docs/messaging-docs.service';
+import { swaggerConfig, writeOpenApiYaml } from './api-docs/openapi';
 
 const theme = new SwaggerTheme();
 const darkStyle = theme.getBuffer(SwaggerThemeNameEnum.DARK);
-
-const swaggerConfig = new DocumentBuilder()
-  .setTitle('WHCP Backend')
-
-  .setDescription('XD')
-  .setVersion('1.0')
-  .addBearerAuth({
-    type: 'http',
-    scheme: 'bearer',
-    bearerFormat: 'JWT',
-    name: 'JWT',
-    description: 'Enter JWT token',
-    in: 'header',
-  })
-  .addBearerAuth(
-    {
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      name: 'JWT refresh',
-      description: 'Enter JWT refresh token',
-      in: 'header',
-    },
-    'JWT-refresh',
-  )
-  .addBearerAuth(
-    {
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      name: 'JWT reset password',
-      description: 'Enter JWT reset password token',
-      in: 'header',
-    },
-    'JWT-reset-password',
-  )
-  .addBearerAuth(
-    {
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      name: 'JWT register user',
-      description: 'Enter JWT register user',
-      in: 'header',
-    },
-    'JWT-register-user',
-  )
-  .build();
 
 (BigInt.prototype as any).toJSON = function () {
   return Number(this);
@@ -138,15 +89,7 @@ async function bootstrap() {
   });
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const yaml = require('js-yaml');
-  const yamlContent = yaml.dump(document);
-  writeFileSync(
-    join(process.cwd(), 'src', 'api', 'api.yaml'),
-    yamlContent,
-    'utf8',
-  );
+  writeOpenApiYaml(document);
 
   app.get(MessagingDocsService).generate({
     title: 'WHCP Server Messaging API',
