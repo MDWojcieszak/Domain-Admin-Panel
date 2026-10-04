@@ -8052,6 +8052,34 @@ paths:
                 $ref: '#/components/schemas/ApplicationDetailResponse'
       tags: *ref_83
       security: *ref_84
+  /deploy/applications/{id}/git/refs:
+    get:
+      operationId: DeployController_listGitRefs
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: search
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: take
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitRefsResponse'
+      tags: *ref_83
+      security: *ref_84
   /deploy/git/accounts:
     get:
       operationId: DeployController_listGitAccounts
@@ -18767,6 +18795,8 @@ components:
       properties:
         compose:
           type: string
+        inClone:
+          type: boolean
       required:
         - compose
     ComposeVariableResponse:
@@ -18975,6 +19005,74 @@ components:
           $ref: '#/components/schemas/BuildMode'
       required:
         - gitRepoId
+    GitCommitResponse:
+      type: object
+      properties:
+        sha:
+          type: string
+        shortSha:
+          type: string
+        message:
+          type: string
+        author:
+          type: string
+          nullable: true
+        committedAt:
+          type: string
+          nullable: true
+      required:
+        - sha
+        - shortSha
+        - message
+    GitTagResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        sha:
+          type: string
+        shortSha:
+          type: string
+      required:
+        - name
+        - sha
+        - shortSha
+    GitBranchResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        sha:
+          type: string
+      required:
+        - name
+        - sha
+    GitRefsResponse:
+      type: object
+      properties:
+        branch:
+          type: string
+        head:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/GitCommitResponse'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/GitTagResponse'
+        commits:
+          type: array
+          items:
+            $ref: '#/components/schemas/GitCommitResponse'
+        branches:
+          type: array
+          items:
+            $ref: '#/components/schemas/GitBranchResponse'
+      required:
+        - branch
+        - tags
+        - commits
+        - branches
     GitAccountResponse:
       type: object
       properties:
