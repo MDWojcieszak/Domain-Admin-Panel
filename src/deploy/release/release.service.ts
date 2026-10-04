@@ -198,6 +198,80 @@ export class ReleaseService {
   }
 
   /**
+   * Stops a release that has not finished: it never reached the agent, the
+   * agent is stuck on it, or the operator simply changed their mind.
+   *
+   * The database decides, not the agent. The release is cancelled here at
+   * once, which frees the application for the next deployment (I13); the
+   * agent is then asked to kill whatever step it is running. If the agent
+   * reports a result afterwards, it is ignored like any late result.
+   */
+  async cancel(releaseId: string, actorId?: string): Promise<void> {
+    const release = await this.prisma.release.findUnique({
+      where: { id: releaseId },
+      select: {
+        id: true,
+        status: true,
+        applicationId: true,
+        processId: true,
+        application: { select: { slug: true } },
+      },
+    });
+    if (!release) throw new NotFoundException('Release not found');
+
+    const running: ReleaseStatus[] = [
+      ReleaseStatus.PENDING,
+      ReleaseStatus.DEPLOYING,
+      ReleaseStatus.DEFERRED,
+    ];
+    if (!running.includes(release.status)) {
+      throw new ConflictException(
+        `Release is already ${release.status.toLowerCase()}; there is nothing to cancel.`,
+      );
+    }
+
+    const reason = 'Cancelled from the panel.';
+    await this.prisma.release.update({
+      where: { id: releaseId },
+      data: { status: ReleaseStatus.CANCELLED, failureReason: reason },
+    });
+    if (release.processId) {
+      await this.prisma.process.update({
+        where: { id: release.processId },
+        data: { status: ServerProcessStatus.FAILED },
+      });
+    }
+
+    if (release.processId) this.redaction.forget(release.processId);
+    this.emit(
+      release.applicationId,
+      releaseId,
+      ReleaseStatus.CANCELLED,
+      reason,
+    );
+
+    try {
+      await this.agent.cancelDeploy(releaseId);
+    } catch (error) {
+      // Already cancelled where it matters; the agent finds out or times out.
+      this.logger.warn(
+        `Could not tell the agent to cancel ${releaseId}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
+
+    await this.audit.record({
+      actorId,
+      action: 'release.cancel',
+      entityType: 'Application',
+      entityId: release.applicationId,
+      entityName: release.application.slug,
+      diff: { status: { from: release.status, to: ReleaseStatus.CANCELLED } },
+    });
+  }
+
+  /**
    * Applies the agent's verdict. Idempotent: a redelivered result for a release
    * that already settled is ignored rather than reopening it (§12.2).
    */

@@ -226,6 +226,19 @@ export class DeployController {
   }
 
   /**
+   * Stops a release that has not finished — running, or stuck because it
+   * never reached the agent. Frees the application for the next deployment.
+   */
+  @RequirePermissions(PERMISSIONS.DEPLOY_EXECUTE)
+  @Post('releases/:id/cancel')
+  async cancelRelease(
+    @Param('id') id: string,
+    @GetCurrentUser('sub') userId: string,
+  ): Promise<void> {
+    await this.releases.cancel(id, userId);
+  }
+
+  /**
    * Issues a new CI webhook secret and returns it **once** — it is stored
    * encrypted, so a lost secret is rotated rather than recovered.
    */

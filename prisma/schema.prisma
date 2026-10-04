@@ -2609,6 +2609,7 @@ enum ReleaseStatus {
   ROLLED_BACK
   DEFERRED // Tier 1 — outcome awaited from the agent journal
   UNKNOWN // TTL elapsed without a terminal status
+  CANCELLED // stopped by an operator before it finished
 }
 
 enum ReleaseTrigger {

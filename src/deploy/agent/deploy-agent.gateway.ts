@@ -21,6 +21,7 @@ import { signMessage } from './message-signature';
 import { AgentHealthService } from './agent-health.service';
 import {
   ContainersSnapshotRequestEvent,
+  DeployCancelEvent,
   DeployCommandEvent,
   DeployFileDto,
   DeployGitDto,
@@ -92,7 +93,7 @@ export class DeployAgentGateway {
    * there is one path that fills the view regardless of who asked.
    */
   async requestSnapshot(reason: string): Promise<void> {
-    this.emit(
+    await this.emit(
       'containers.snapshot-request',
       new ContainersSnapshotRequestEvent(reason),
     );
@@ -207,8 +208,18 @@ export class DeployAgentGateway {
 
     this.assertSendable(event, input.slug);
 
-    this.emit('deploy.execute', event);
+    await this.emit('deploy.execute', event);
     this.logger.log(`Sent deployment ${input.releaseId} for "${input.slug}"`);
+  }
+
+  /**
+   * Fire-and-forget, and best effort: a release is cancelled in the database
+   * whether or not the agent hears about it, so an agent that is offline — or
+   * never received the deployment — cannot keep the application blocked.
+   */
+  async cancelDeploy(releaseId: string): Promise<void> {
+    await this.emit('deploy.cancel', new DeployCancelEvent(releaseId));
+    this.logger.log(`Asked the agent to cancel release ${releaseId}`);
   }
 
   /**
@@ -286,8 +297,8 @@ export class DeployAgentGateway {
    * Every command is signed: the agent runs what arrives on its queue, so a
    * message from anyone else on the broker must not look like one from here.
    */
-  private emit(pattern: string, payload: object): void {
-    this.outbound.emitToQueue(
+  private async emit(pattern: string, payload: object): Promise<void> {
+    await this.outbound.emitToQueue(
       this.queue,
       pattern,
       signMessage(this.key, pattern, payload),

@@ -268,6 +268,57 @@ describe('ReleaseService', () => {
     });
   });
 
+  describe('cancel', () => {
+    beforeEach(() => {
+      prisma.process = { update: jest.fn() };
+      agent.cancelDeploy = jest.fn().mockResolvedValue(undefined);
+    });
+
+    const inFlight = (status: ReleaseStatus) =>
+      prisma.release.findUnique.mockResolvedValue({
+        id: 'rel-1',
+        status,
+        applicationId: APP.id,
+        processId: 'proc-1',
+        application: { slug: APP.slug },
+      });
+
+    it('cancels a stuck release at once, freeing the application', async () => {
+      inFlight(ReleaseStatus.DEPLOYING);
+
+      await service.cancel('rel-1', 'user-1');
+
+      expect(prisma.release.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'rel-1' },
+          data: expect.objectContaining({ status: ReleaseStatus.CANCELLED }),
+        }),
+      );
+      expect(prisma.process.update).toHaveBeenCalledWith({
+        where: { id: 'proc-1' },
+        data: { status: 'FAILED' },
+      });
+      expect(agent.cancelDeploy).toHaveBeenCalledWith('rel-1');
+    });
+
+    it('still cancels when the agent cannot be told', async () => {
+      inFlight(ReleaseStatus.PENDING);
+      agent.cancelDeploy.mockRejectedValue(new Error('broker down'));
+
+      await expect(service.cancel('rel-1')).resolves.toBeUndefined();
+      expect(prisma.release.update).toHaveBeenCalled();
+    });
+
+    it('refuses a release that already finished', async () => {
+      inFlight(ReleaseStatus.ACTIVE);
+
+      await expect(service.cancel('rel-1')).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(agent.cancelDeploy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('applyResult', () => {
     const deploying = {
       id: 'rel-1',
