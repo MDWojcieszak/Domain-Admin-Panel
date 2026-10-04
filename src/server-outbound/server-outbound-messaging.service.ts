@@ -5,7 +5,7 @@ import {
   ClientProxyFactory,
   Transport,
 } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -69,9 +69,19 @@ export class ServerOutboundMessagingService {
     payload: any,
   ): Promise<void> {
     const queueName = await this.getServerQueueNameOrThrow(serverName);
-    const client = this.getOrCreateClient(queueName);
 
-    client.emit(pattern, payload);
+    // Fire-and-forget for its callers, several of which do not await it — a
+    // rejection here would be an unhandled one. A failure is logged instead
+    // of vanishing, which is what used to happen.
+    try {
+      await this.publish(queueName, (client) => client.emit(pattern, payload));
+    } catch (error) {
+      this.logger.error(
+        `Could not send "${pattern}" to ${serverName}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   async sendToServer<TResponse = any, TPayload = any>(
@@ -80,14 +90,18 @@ export class ServerOutboundMessagingService {
     payload: TPayload,
   ): Promise<TResponse> {
     const queueName = await this.getServerQueueNameOrThrow(serverName);
-    const client = this.getOrCreateClient(queueName);
-
-    return await firstValueFrom(client.send<TResponse>(pattern, payload));
+    return this.publish(queueName, (client) =>
+      client.send<TResponse>(pattern, payload),
+    );
   }
 
   /** For a consumer with a fixed queue, not a registered server (the deploy agent). */
-  emitToQueue(queueName: string, pattern: string, payload: unknown): void {
-    this.getOrCreateClient(queueName).emit(pattern, payload);
+  async emitToQueue(
+    queueName: string,
+    pattern: string,
+    payload: unknown,
+  ): Promise<void> {
+    await this.publish(queueName, (client) => client.emit(pattern, payload));
   }
 
   async sendToQueue<TResponse = any>(
@@ -95,9 +109,53 @@ export class ServerOutboundMessagingService {
     pattern: string,
     payload: unknown,
   ): Promise<TResponse> {
-    return await firstValueFrom(
-      this.getOrCreateClient(queueName).send<TResponse>(pattern, payload),
+    return this.publish(queueName, (client) =>
+      client.send<TResponse>(pattern, payload),
     );
+  }
+
+  /**
+   * Publishes through the cached client, replacing it once if it cannot
+   * connect.
+   *
+   * A Nest RMQ client remembers a failed first connection for good: created
+   * while the broker is still starting (the backend and RabbitMQ restart
+   * together), every later message fails on it — and an `emit` nobody
+   * subscribes to fails silently. Dropping the client lets the next attempt
+   * connect afresh. Only connection failures are retried: nothing was sent,
+   * so a retry cannot deliver a command twice.
+   */
+  private async publish<T>(
+    queueName: string,
+    op: (client: ClientProxy) => Observable<T>,
+  ): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await firstValueFrom(op(this.getOrCreateClient(queueName)), {
+          defaultValue: undefined as T,
+        });
+      } catch (error) {
+        if (!isConnectionError(error)) throw error;
+
+        this.dropClient(queueName);
+        if (attempt >= 2) throw error;
+        this.logger.warn(
+          `Reconnecting the outbound client for ${queueName}: ${
+            (error as Error).message
+          }`,
+        );
+      }
+    }
+  }
+
+  private dropClient(queueName: string): void {
+    const client = this.clients.get(queueName);
+    this.clients.delete(queueName);
+    try {
+      client?.close();
+    } catch {
+      // Already broken; nothing to close.
+    }
   }
 
   async invalidateServer(serverName: string): Promise<void> {
@@ -117,3 +175,22 @@ export class ServerOutboundMessagingService {
       });
   }
 }
+
+const CONNECTION_ERRORS = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ENOTFOUND',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'EPIPE',
+]);
+
+/** The broker could not be reached — as opposed to an error the receiver sent back. */
+const isConnectionError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
+  const code = (error as NodeJS.ErrnoException).code;
+  return (
+    (code !== undefined && CONNECTION_ERRORS.has(code)) ||
+    /connect|disconnected|channel closed|connection closed/i.test(error.message)
+  );
+};
