@@ -39,6 +39,31 @@ describe('ServerOutboundMessagingService', () => {
     expect(healthy.emit).toHaveBeenCalledWith('deploy.execute', { a: 1 });
   });
 
+  it('recognises the raw event Nest throws for a failed connect, without leaking its URL', async () => {
+    // What production logged: amqp-connection-manager's connectFailed payload.
+    const raw = () => ({
+      err: { errno: -111, code: 'ECONNREFUSED', port: 5672 },
+      url: 'amqp://admin:s3cret@192.168.1.200:5672',
+    });
+    create = jest
+      .spyOn(ClientProxyFactory, 'create')
+      .mockImplementation(
+        () => ({ send: () => throwError(raw), close: jest.fn() }) as any,
+      );
+
+    const failure = make().sendToQueue(
+      'deploy-agent.commands',
+      'stack.logs',
+      {},
+    );
+
+    await expect(failure).rejects.toThrow(
+      /broker cannot be reached \(ECONNREFUSED\)/,
+    );
+    await expect(failure).rejects.not.toThrow(/s3cret/);
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
   it('reports a broker that stays unreachable instead of losing the message silently', async () => {
     create = jest
       .spyOn(ClientProxyFactory, 'create')

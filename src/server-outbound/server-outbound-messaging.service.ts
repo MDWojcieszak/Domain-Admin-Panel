@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ClientProxy,
@@ -138,11 +142,16 @@ export class ServerOutboundMessagingService {
         if (!isConnectionError(error)) throw error;
 
         this.dropClient(queueName);
-        if (attempt >= 2) throw error;
+        // Never rethrow the raw error: amqp-connection-manager's carries the
+        // broker URL, password included, and it would be logged as it is.
+        const reason = connectionCode(error);
+        if (attempt >= 2) {
+          throw new ServiceUnavailableException(
+            `The message broker cannot be reached (${reason}).`,
+          );
+        }
         this.logger.warn(
-          `Reconnecting the outbound client for ${queueName}: ${
-            (error as Error).message
-          }`,
+          `Reconnecting the outbound client for ${queueName} (${reason})`,
         );
       }
     }
@@ -185,12 +194,26 @@ const CONNECTION_ERRORS = new Set([
   'EPIPE',
 ]);
 
-/** The broker could not be reached — as opposed to an error the receiver sent back. */
-const isConnectionError = (error: unknown): boolean => {
-  if (!(error instanceof Error)) return false;
-  const code = (error as NodeJS.ErrnoException).code;
-  return (
-    (code !== undefined && CONNECTION_ERRORS.has(code)) ||
-    /connect|disconnected|channel closed|connection closed/i.test(error.message)
-  );
+/**
+ * The broker could not be reached — as opposed to an error the receiver sent
+ * back. Nest does not always throw an Error here: a failed connect surfaces
+ * as amqp-connection-manager's raw event, `{ err, url }`, with the code on
+ * `err`.
+ */
+const connectionCode = (error: unknown): string | null => {
+  if (!error || typeof error !== 'object') return null;
+  const cause = (error as { err?: unknown }).err ?? error;
+  const code = (cause as NodeJS.ErrnoException | null)?.code;
+  if (typeof code === 'string' && CONNECTION_ERRORS.has(code)) return code;
+  const message = (cause as Error | null)?.message;
+  if (
+    typeof message === 'string' &&
+    /connect|disconnected|channel closed|connection closed/i.test(message)
+  ) {
+    return 'connection lost';
+  }
+  return null;
 };
+
+const isConnectionError = (error: unknown): boolean =>
+  connectionCode(error) !== null;
