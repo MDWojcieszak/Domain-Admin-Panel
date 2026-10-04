@@ -94,6 +94,28 @@ describe('ContainerDiscoveryService', () => {
     );
   });
 
+  // A failed start changes no container, so this is the only signal the
+  // panel gets — the reason has to arrive intact.
+  it('passes a failed action and its reason to the deployments room', () => {
+    service.reportActionResult({
+      project: 'logger',
+      action: 'start',
+      success: false,
+      error: 'Bind for 0.0.0.0:5432 failed: port is already allocated',
+    });
+
+    expect(ws.emitToRoom).toHaveBeenCalledWith(
+      'deployments',
+      'stack.action.result',
+      {
+        project: 'logger',
+        action: 'start',
+        success: false,
+        error: 'Bind for 0.0.0.0:5432 failed: port is already allocated',
+      },
+    );
+  });
+
   it('throws for a stack the agent has not reported', async () => {
     await service.applySnapshot([container('a')]);
 

@@ -44,12 +44,17 @@ export interface ReleaseRequest {
   version?: string;
   digest?: string;
   trigger?: ReleaseTrigger;
+  /** GIT applications: commit sha or tag; absent follows the branch head. */
+  ref?: string;
 }
 
 /** Releases stuck this long without a result are declared unknown (§6.4). */
 const STALE_AFTER_MS = 30 * 60 * 1000;
 
 const HOMELAB_STACKS_ROOT = 'stacks';
+
+/** Where clones live on the host when a repository names no path. */
+const DEFAULT_CLONE_ROOT = '/mnt/VAULT/APPS/repos';
 
 @Injectable()
 export class ReleaseService {
@@ -76,6 +81,12 @@ export class ReleaseService {
     });
 
     if (!application) throw new NotFoundException('Application not found');
+
+    if (dto.ref && application.sourceType !== AppSourceType.GIT) {
+      throw new BadRequestException(
+        'A commit or tag can only be chosen for an application deployed from git.',
+      );
+    }
 
     // I1 — the bootstrap tier updates itself through the agent's own path.
     if (application.tier === ApplicationTier.BOOTSTRAP) {
@@ -113,7 +124,10 @@ export class ReleaseService {
       );
     }
 
-    const spec = parseAppSpec(application.spec);
+    const spec = this.withProjectName(
+      parseAppSpec(application.spec),
+      application.slug,
+    );
     const { releaseId, processId } = await this.open(
       application,
       dto,
@@ -137,9 +151,9 @@ export class ReleaseService {
         env: preview.env ?? '',
         spec,
         commitMessage: `deploy ${application.slug} ${
-          dto.version ?? application.currentRelease?.version ?? ''
+          dto.ref ?? dto.version ?? application.currentRelease?.version ?? ''
         }`.trim(),
-        git: this.gitBlock(application),
+        git: this.gitBlock(application, dto.ref),
       });
     } catch (error) {
       // The command never left, so nothing is in flight — free the lock at once
@@ -169,6 +183,14 @@ export class ReleaseService {
           from: application.currentRelease?.version ?? null,
           to: dto.version ?? null,
         },
+        ...(dto.ref
+          ? {
+              commit: {
+                from: application.currentRelease?.commit ?? null,
+                to: dto.ref,
+              },
+            }
+          : {}),
       },
     });
 
@@ -227,7 +249,7 @@ export class ReleaseService {
   async rollback(releaseId: string, actorId?: string) {
     const target = await this.prisma.release.findUnique({
       where: { id: releaseId },
-      include: { application: true },
+      include: { application: { include: { gitRepo: true } } },
     });
 
     if (!target) throw new NotFoundException('Release not found');
@@ -238,10 +260,22 @@ export class ReleaseService {
       );
     }
 
+    // Without the sha the agent would follow the branch head, so the "rollback"
+    // would ship the newest code under an old compose file — worse than refusing.
+    if (target.application.sourceType === AppSourceType.GIT && !target.commit) {
+      throw new BadRequestException(
+        'This release did not record which commit it ran, so it cannot be ' +
+          'rolled back to. Deploy the commit or tag you want instead.',
+      );
+    }
+
     // Rolling back reuses the stored bytes rather than re-rendering: the spec
     // may have changed since, and the point is to get back exactly what ran.
     const application = target.application;
-    const spec = parseAppSpec(application.spec);
+    const spec = this.withProjectName(
+      parseAppSpec(application.spec),
+      application.slug,
+    );
 
     const { releaseId: newReleaseId, processId } = await this.open(
       application,
@@ -269,7 +303,10 @@ export class ReleaseService {
       compose: target.renderedCompose,
       env: preview.env ?? '',
       spec,
-      commitMessage: `rollback ${application.slug} to ${target.version ?? target.id}`,
+      commitMessage: `rollback ${application.slug} to ${
+        target.commit?.slice(0, 7) ?? target.version ?? target.id
+      }`,
+      git: this.gitBlock(application, target.commit),
     });
 
     await this.prisma.release.update({
@@ -331,7 +368,7 @@ export class ReleaseService {
    * deploy command carry everything the agent needs (I7).
    */
   private async open(
-    application: { id: string; slug: string; serverCategoryId: string },
+    application: { id: string; slug: string },
     dto: ReleaseRequest,
     compose: string,
     envKeys: string[],
@@ -345,7 +382,6 @@ export class ReleaseService {
             name: `deploy ${application.slug}`,
             status: ServerProcessStatus.STARTED,
             progress: 0,
-            categoryId: application.serverCategoryId,
             startedById: actorId as string,
           },
         });
@@ -407,6 +443,7 @@ export class ReleaseService {
           deployedAt: new Date(),
           digest: dto.digest ?? undefined,
           homelabCommit: dto.homelabCommit ?? undefined,
+          commit: dto.commit ?? undefined,
           failureReason: null,
         },
       });
@@ -449,16 +486,30 @@ export class ReleaseService {
    * the agent asks for those separately at clone time, so a token never sits in
    * the durable deploy queue (I8, §8.2).
    */
-  private gitBlock(application: {
-    sourceType: AppSourceType;
-    slug: string;
-    gitRepo: {
-      id: string;
-      repo: string;
-      branch: string;
-      clonePath: string | null;
-    } | null;
-  }): DeployGitDto | null {
+  /**
+   * The git half of a deploy command.
+   *
+   * The clone is per APPLICATION, not per repository: two applications built
+   * from one repository (v1 and v2) follow different refs, and sharing a
+   * working tree would have each deployment check out the other's code. The
+   * followed ref is the application's own; `ref` pins one release to an exact
+   * commit or tag on top of it.
+   */
+  private gitBlock(
+    application: {
+      sourceType: AppSourceType;
+      slug: string;
+      gitRef: string | null;
+      compose: string | null;
+      gitRepo: {
+        id: string;
+        repo: string;
+        branch: string;
+        clonePath: string | null;
+      } | null;
+    },
+    ref?: string | null,
+  ): DeployGitDto | null {
     if (application.sourceType !== AppSourceType.GIT) return null;
 
     if (!application.gitRepo) {
@@ -469,15 +520,33 @@ export class ReleaseService {
     }
 
     const repo = application.gitRepo;
+    const base = repo.clonePath ?? `${DEFAULT_CLONE_ROOT}/${repo.repo}`;
 
     return new DeployGitDto(
       repo.id,
       repo.repo,
       'github.com',
-      repo.branch,
-      repo.clonePath ?? `/mnt/VAULT/APPS/repos/${repo.repo}`,
+      application.gitRef ?? repo.branch,
+      `${base}@${application.slug}`,
       false,
+      ref ?? null,
+      // A compose file kept in the panel wins over the repository's own.
+      !application.compose,
     );
+  }
+
+  /**
+   * Compose names a project after its directory unless told otherwise, and a
+   * clone directory is not the application. Two applications from one
+   * repository would share a project name — and the second deployment would
+   * replace the first one's containers. The slug is pinned unless the spec
+   * keeps an adopted stack's own name (I10).
+   */
+  private withProjectName(
+    spec: ReturnType<typeof parseAppSpec>,
+    slug: string,
+  ): ReturnType<typeof parseAppSpec> {
+    return spec.projectName ? spec : { ...spec, projectName: slug };
   }
 
   private emit(

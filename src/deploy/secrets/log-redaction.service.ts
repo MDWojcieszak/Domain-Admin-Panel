@@ -22,6 +22,48 @@ export const REDACTED = '***';
  */
 const MIN_REDACTABLE_LENGTH = 4;
 
+/**
+ * Replaces every occurrence of the given secrets, longest first: a secret that
+ * contains another must go before the shorter one turns part of it into ***
+ * and breaks the longer match.
+ */
+export const redactSecrets = (
+  text: string,
+  secrets: readonly string[],
+): string => {
+  const sorted = [...new Set(secrets.filter(Boolean))].sort(
+    (a, b) => b.length - a.length,
+  );
+  let result = text;
+  for (const value of sorted) {
+    if (result.includes(value)) result = result.split(value).join(REDACTED);
+  }
+  return result;
+};
+
+/**
+ * An env file (`KEY=value` per line) safe to show in the panel (I3): values of
+ * secret keys are replaced whole, and secrets interpolated into other values
+ * are cut out — at any length, since this is shown, not streamed. Key names are
+ * never touched.
+ */
+export const maskEnvFile = (
+  env: string,
+  secretKeys: ReadonlySet<string>,
+  secretValues: readonly string[],
+): string =>
+  env
+    .split('\n')
+    .map((line) => {
+      const eq = line.indexOf('=');
+      if (eq <= 0) return line;
+      const key = line.slice(0, eq);
+      return secretKeys.has(key)
+        ? `${key}=${REDACTED}`
+        : `${key}=${redactSecrets(line.slice(eq + 1), secretValues)}`;
+    })
+    .join('\n');
+
 /** Kept a little past the deployment, since logs can trail the final status. */
 const RETENTION_MS = 15 * 60 * 1000;
 
@@ -68,12 +110,7 @@ export class LogRedactionService {
     const entry = this.byProcess.get(processId);
     if (!entry?.values.length) return line;
 
-    let result = line;
-    for (const value of entry.values) {
-      if (result.includes(value)) result = result.split(value).join(REDACTED);
-    }
-
-    return result;
+    return redactSecrets(line, entry.values);
   }
 
   /** Called once a release settles; the values are no longer needed. */

@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
+import { IsBoolean, IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
 
 import { OutboundMessage } from '../../../common/decorators';
 
@@ -47,6 +47,13 @@ export class StackActionEvent {
   @IsNumber({ optional: true })
   timeoutSeconds?: number;
 
+  /**
+   * True: act on exactly `containerIds` through the docker API, not on the
+   * whole stack through compose — one service of an application, say.
+   */
+  @IsBoolean({ optional: true })
+  containersOnly?: boolean;
+
   constructor(
     action: StackActionType,
     project: string,
@@ -54,6 +61,7 @@ export class StackActionEvent {
     filePaths: string[],
     containerIds: string[],
     timeoutSeconds?: number,
+    containersOnly?: boolean,
   ) {
     this.action = action;
     this.project = project;
@@ -61,5 +69,6 @@ export class StackActionEvent {
     this.filePaths = filePaths;
     this.containerIds = containerIds;
     this.timeoutSeconds = timeoutSeconds;
+    this.containersOnly = containersOnly;
   }
 }

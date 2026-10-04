@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import {
+  AppSourceType,
   ApplicationTier,
   BuildMode,
   Prisma,
@@ -20,9 +21,19 @@ const APP = {
   slug: 'photo-gallery-backend',
   tier: ApplicationTier.APPLICATION,
   buildMode: BuildMode.REGISTRY,
-  serverCategoryId: 'cat-1',
   spec: { port: 3000 },
   currentRelease: null as { version?: string } | null,
+};
+
+const GIT_APP = {
+  ...APP,
+  sourceType: AppSourceType.GIT,
+  gitRepo: {
+    id: 'repo-1',
+    repo: 'MDWojcieszak/photo-gallery-backend',
+    branch: 'main',
+    clonePath: null,
+  },
 };
 
 const PREVIEW = {
@@ -113,6 +124,69 @@ describe('ReleaseService', () => {
           data: { status: ReleaseStatus.DEPLOYING },
         }),
       );
+    });
+
+    it('passes the chosen commit or tag to the agent for a git application', async () => {
+      prisma.application.findFirst.mockResolvedValue({ ...GIT_APP });
+
+      await service.create('app-1', { composeHash: 'hash-abc', ref: 'v1.4.0' });
+
+      expect(agent.sendDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          git: expect.objectContaining({ branch: 'main', commit: 'v1.4.0' }),
+        }),
+      );
+    });
+
+    it('gives each application its own clone, ref and project — v1 and v2 side by side', async () => {
+      prisma.application.findFirst.mockResolvedValue({
+        ...GIT_APP,
+        slug: 'gallery-v1',
+        gitRef: 'v1',
+      });
+
+      await service.create('app-1', { composeHash: 'hash-abc' });
+
+      const sent = agent.sendDeploy.mock.calls[0][0];
+      expect(sent.git).toMatchObject({
+        branch: 'v1',
+        clonePath:
+          '/mnt/VAULT/APPS/repos/MDWojcieszak/photo-gallery-backend@gallery-v1',
+        composeInRepository: true,
+      });
+      expect(sent.spec.projectName).toBe('gallery-v1');
+    });
+
+    it('sends the panel file for the clone when the panel keeps it', async () => {
+      prisma.application.findFirst.mockResolvedValue({
+        ...GIT_APP,
+        compose: 'services:\n  web:\n    build: .\n',
+      });
+
+      await service.create('app-1', { composeHash: 'hash-abc' });
+
+      expect(agent.sendDeploy.mock.calls[0][0].git.composeInRepository).toBe(
+        false,
+      );
+    });
+
+    it('follows the branch head when no commit or tag is chosen', async () => {
+      prisma.application.findFirst.mockResolvedValue({ ...GIT_APP });
+
+      await service.create('app-1', { composeHash: 'hash-abc' });
+
+      expect(agent.sendDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          git: expect.objectContaining({ commit: null }),
+        }),
+      );
+    });
+
+    it('refuses a commit or tag for an application not deployed from git', async () => {
+      await expect(
+        service.create('app-1', { composeHash: 'hash-abc', ref: 'v1.4.0' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(agent.sendDeploy).not.toHaveBeenCalled();
     });
 
     // I4 — armed before the agent can emit a single line, otherwise the first
@@ -216,6 +290,32 @@ describe('ReleaseService', () => {
         'deployments',
         'release.status',
         expect.objectContaining({ status: ReleaseStatus.ACTIVE }),
+      );
+    });
+
+    // A rollback checks this sha out again, so it must be the resolved one.
+    it('pins the commit the agent checked out on the active release', async () => {
+      const tx = {
+        release: {
+          update: jest.fn().mockResolvedValue({}),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+        application: { update: jest.fn().mockResolvedValue({}) },
+      };
+      prisma.$transaction = transaction(tx);
+      prisma.release.findUnique.mockResolvedValue(deploying);
+
+      await service.applyResult({
+        releaseId: 'rel-1',
+        success: true,
+        healthy: true,
+        commit: 'a1b2c3d4e5f6',
+      });
+
+      expect(tx.release.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ commit: 'a1b2c3d4e5f6' }),
+        }),
       );
     });
 
@@ -342,6 +442,41 @@ describe('ReleaseService', () => {
           compose: 'services:\n  app:\n    image: x:0.2.0\n',
         }),
       );
+    });
+
+    it('checks out the commit the target release ran for a git application', async () => {
+      prisma.release.findUnique.mockResolvedValue({
+        id: 'rel-old',
+        commit: 'a1b2c3d4e5f6',
+        renderedCompose: 'services:\n  app:\n    build: .\n',
+        renderedEnvKeys: [],
+        application: { ...GIT_APP },
+      });
+
+      await service.rollback('rel-old');
+
+      expect(agent.sendDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          git: expect.objectContaining({ commit: 'a1b2c3d4e5f6' }),
+        }),
+      );
+    });
+
+    // Without a sha the agent would deploy the branch head under the old
+    // compose file — a rollback in name only.
+    it('refuses to roll back a git application whose release recorded no commit', async () => {
+      prisma.release.findUnique.mockResolvedValue({
+        id: 'rel-old',
+        commit: null,
+        renderedCompose: 'services:\n  app:\n    build: .\n',
+        renderedEnvKeys: [],
+        application: { ...GIT_APP },
+      });
+
+      await expect(service.rollback('rel-old')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(agent.sendDeploy).not.toHaveBeenCalled();
     });
 
     it('refuses to roll back to a release with no stored configuration', async () => {

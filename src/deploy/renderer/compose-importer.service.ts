@@ -52,7 +52,7 @@ const SUPPORTED_SERVICE_KEYS = new Set([
 ]);
 
 /** Values under these names are never imported, whatever they contain. */
-const SECRET_KEY_PATTERN = /PASS|SECRET|TOKEN|KEY|CREDENTIAL|PRIVATE/i;
+export const SECRET_KEY_PATTERN = /PASS|SECRET|TOKEN|KEY|CREDENTIAL|PRIVATE/i;
 
 const TRAEFIK_HOST = /Host\(`([^`]+)`\)/;
 
@@ -100,6 +100,22 @@ export class ComposeImporterService {
       env: this.readEnv(service, warnings),
       warnings,
     };
+  }
+
+  /**
+   * Values of every secret-looking variable in the file, across all services.
+   * The panel is shown the compose as it sits on disk, and these must be cut
+   * out of it first (I3) — inline passwords are exactly what conversion moves
+   * away from.
+   */
+  secretValues(compose: string): string[] {
+    const services = this.parse(compose).services ?? {};
+
+    return Object.values(services).flatMap((service) =>
+      this.envEntries(service as Record<string, unknown>)
+        .filter(([key, value]) => SECRET_KEY_PATTERN.test(key) && value)
+        .map(([, value]) => value),
+    );
   }
 
   private parse(compose: string): {
@@ -329,6 +345,23 @@ export class ComposeImporterService {
     service: Record<string, unknown>,
     warnings: string[],
   ): ImportedEnv[] {
+    const entries = this.envEntries(service);
+
+    if (service.env_file) {
+      warnings.push(
+        'An env_file is referenced. Its contents are not readable from here — ' +
+          'add those variables to the application before converting.',
+      );
+    }
+
+    return entries.map(([key, value]) => {
+      const isSecret = SECRET_KEY_PATTERN.test(key);
+
+      return { key, value: isSecret ? null : value, isSecret };
+    });
+  }
+
+  private envEntries(service: Record<string, unknown>): [string, string][] {
     const environment = service.environment;
     const entries: [string, string][] = [];
 
@@ -345,18 +378,7 @@ export class ComposeImporterService {
       }
     }
 
-    if (service.env_file) {
-      warnings.push(
-        'An env_file is referenced. Its contents are not readable from here — ' +
-          'add those variables to the application before converting.',
-      );
-    }
-
-    return entries.map(([key, value]) => {
-      const isSecret = SECRET_KEY_PATTERN.test(key);
-
-      return { key, value: isSecret ? null : value, isSecret };
-    });
+    return entries;
   }
 
   private labelMap(service: Record<string, unknown>): Record<string, string> {

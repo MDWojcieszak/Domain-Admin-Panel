@@ -104,6 +104,13 @@ export class DeployGitDto {
   @IsBoolean()
   reclone: boolean;
 
+  /**
+   * False when the panel keeps the compose file: it travels in `files` and the
+   * agent writes it into the clone, where it runs as if it were committed.
+   */
+  @IsBoolean()
+  composeInRepository: boolean;
+
   constructor(
     repoId: string,
     repo: string,
@@ -112,6 +119,7 @@ export class DeployGitDto {
     clonePath: string,
     reclone = false,
     commit?: string | null,
+    composeInRepository = true,
   ) {
     this.repoId = repoId;
     this.repo = repo;
@@ -120,6 +128,7 @@ export class DeployGitDto {
     this.clonePath = clonePath;
     this.reclone = reclone;
     this.commit = commit ?? null;
+    this.composeInRepository = composeInRepository;
   }
 }
 

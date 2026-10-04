@@ -7,14 +7,12 @@ import {
 import {
   AppSourceType,
   ApplicationTier,
-  CategorySource,
   ContainerOrigin,
   Prisma,
   ReleaseStatus,
 } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { AgentServerService } from '../agent/agent-server.service';
 import { AuditService } from '../audit/audit.service';
 import { DiscoveredStack, assertActionAllowed } from './container-classifier';
 import { ContainerDiscoveryService } from './container-discovery.service';
@@ -42,10 +40,9 @@ export class AdoptionService {
     private readonly prisma: PrismaService,
     private readonly discovery: ContainerDiscoveryService,
     private readonly audit: AuditService,
-    private readonly servers: AgentServerService,
   ) {}
 
-  async adopt(project: string, actorId?: string, serverId?: string) {
+  async adopt(project: string, actorId?: string) {
     const stack = this.discovery.stack(project);
 
     if (!assertActionAllowed(stack.origin, 'adopt')) {
@@ -69,18 +66,7 @@ export class AdoptionService {
       );
     }
 
-    const server = await this.servers.resolve(serverId);
-
     const application = await this.prisma.$transaction(async (tx) => {
-      const category = await tx.serverCategory.create({
-        data: {
-          serverId: server.id,
-          name: project,
-          value: slug,
-          source: CategorySource.MAIN,
-        },
-      });
-
       const created = await tx.application.create({
         data: {
           slug,
@@ -90,7 +76,6 @@ export class AdoptionService {
           sourceType: AppSourceType.HOST,
           origin: ContainerOrigin.ADOPTABLE,
           image: stack.containers[0]?.image ?? null,
-          serverCategoryId: category.id,
           runtimeStatus: stack.runtimeStatus,
           runtimeSince: new Date(),
           spec: this.specFromStack(stack) as Prisma.InputJsonValue,

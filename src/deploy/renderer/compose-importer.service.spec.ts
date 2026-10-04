@@ -256,4 +256,25 @@ secrets:
       expect(spec.publishPort).toBe(publishPort);
     });
   });
+
+  describe('secretValues', () => {
+    it('collects secret-looking values from every service, in both env forms', () => {
+      const values = service.secretValues(
+        compose(
+          [
+            '  app:',
+            '    environment:',
+            '      DB_PASSWORD: hunter22',
+            '      NODE_ENV: production',
+            '  redis:',
+            '    environment:',
+            '      - REDIS_PASSWORD=redis-pass',
+            '      - EMPTY_TOKEN=',
+          ].join('\n'),
+        ),
+      );
+
+      expect(values.sort()).toEqual(['hunter22', 'redis-pass']);
+    });
+  });
 });

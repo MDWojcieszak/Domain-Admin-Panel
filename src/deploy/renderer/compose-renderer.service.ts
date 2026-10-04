@@ -276,7 +276,7 @@ export class ComposeRendererService {
    * end of the line, so a newline in a value would silently truncate it and
    * turn the remainder into a bogus variable.
    */
-  private buildEnvFile(env: Record<string, string>): string {
+  buildEnvFile(env: Record<string, string>): string {
     const keys = Object.keys(env).sort();
 
     const lines = keys.map((key) => {

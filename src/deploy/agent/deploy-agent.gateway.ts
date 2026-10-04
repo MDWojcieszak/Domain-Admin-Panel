@@ -8,6 +8,7 @@ import {
 
 import { BuildMode } from '@prisma/client';
 
+import { config } from '../../config/config';
 import { ServerOutboundMessagingService } from '../../server-outbound/server-outbound-messaging.service';
 import {
   DiscoveredStack,
@@ -16,8 +17,8 @@ import {
   assertActionAllowed,
 } from '../discovery/container-classifier';
 import { parseAppSpec } from '../renderer/app-spec';
+import { signMessage } from './message-signature';
 import { AgentHealthService } from './agent-health.service';
-import { AgentServerService } from './agent-server.service';
 import {
   ContainersSnapshotRequestEvent,
   DeployCommandEvent,
@@ -78,10 +79,11 @@ export interface StackLogsResult {
 @Injectable()
 export class DeployAgentGateway {
   private readonly logger = new Logger(DeployAgentGateway.name);
+  private readonly queue = config().deployAgentQueue;
+  private readonly key = config().deployAgentKey;
 
   constructor(
     private readonly outbound: ServerOutboundMessagingService,
-    private readonly servers: AgentServerService,
     private readonly health: AgentHealthService,
   ) {}
 
@@ -89,40 +91,45 @@ export class DeployAgentGateway {
    * Fire-and-forget: the agent answers with a normal `containers.snapshot`, so
    * there is one path that fills the view regardless of who asked.
    */
-  async requestSnapshot(reason: string, serverId?: string): Promise<void> {
-    const server = await this.servers.resolve(serverId);
-
-    await this.outbound.emitToServer(
-      server.name,
+  async requestSnapshot(reason: string): Promise<void> {
+    this.emit(
       'containers.snapshot-request',
       new ContainersSnapshotRequestEvent(reason),
     );
 
-    this.logger.log(
-      `Requested container snapshot from ${server.name}: ${reason}`,
-    );
+    this.logger.log(`Requested container snapshot: ${reason}`);
   }
 
+  /**
+   * A lifecycle action on a stack — or, with `containerId`, on one of its
+   * containers only. The origin rules are the stack's either way (I11): one
+   * container of a TrueNAS app can be restarted, never stopped.
+   */
   async runStackAction(
     stack: DiscoveredStack,
     action: StackLifecycleAction,
-    serverId?: string,
+    containerId?: string,
   ): Promise<StackActionResult> {
     this.assertAllowed(stack, action);
     this.assertAgentOnline();
 
-    const server = await this.servers.resolve(serverId);
+    if (containerId && !stack.containers.some((c) => c.id === containerId)) {
+      throw new BadRequestException(
+        `Container ${containerId.slice(0, 12)} is not part of stack "${stack.project}".`,
+      );
+    }
 
     return this.withTimeout(
-      this.outbound.sendToServer<StackActionResult>(
-        server.name,
+      this.send<StackActionResult>(
         'stack.action',
         new StackActionEvent(
           action as StackActionType,
           stack.project,
           stack.workingDir,
           stack.configFiles,
-          stack.containers.map((c) => c.id),
+          containerId ? [containerId] : stack.containers.map((c) => c.id),
+          undefined,
+          containerId ? true : undefined,
         ),
       ),
       ACTION_TIMEOUT_MS,
@@ -133,16 +140,12 @@ export class DeployAgentGateway {
   async fetchLogs(
     stack: DiscoveredStack,
     tail: number,
-    serverId?: string,
   ): Promise<StackLogsResult> {
     this.assertAllowed(stack, 'logs');
     this.assertAgentOnline();
 
-    const server = await this.servers.resolve(serverId);
-
     return this.withTimeout(
-      this.outbound.sendToServer<StackLogsResult>(
-        server.name,
+      this.send<StackLogsResult>(
         'stack.logs',
         new StackLogsEvent(
           stack.project,
@@ -162,10 +165,9 @@ export class DeployAgentGateway {
    * on `deploy.process.*` and `deploy.release.result`, so a long build never
    * holds a request open.
    */
-  async sendDeploy(input: DeployRequest, serverId?: string): Promise<void> {
+  async sendDeploy(input: DeployRequest): Promise<void> {
     this.assertAgentOnline();
 
-    const server = await this.servers.resolve(serverId);
     const spec = input.spec;
 
     const files: DeployFileDto[] = [
@@ -205,10 +207,8 @@ export class DeployAgentGateway {
 
     this.assertSendable(event, input.slug);
 
-    await this.outbound.emitToServer(server.name, 'deploy.execute', event);
-    this.logger.log(
-      `Sent deployment ${input.releaseId} for "${input.slug}" to ${server.name}`,
-    );
+    this.emit('deploy.execute', event);
+    this.logger.log(`Sent deployment ${input.releaseId} for "${input.slug}"`);
   }
 
   /**
@@ -232,10 +232,7 @@ export class DeployAgentGateway {
    * Reads an adopted stack's compose files back, for conversion to RENDERED
    * (§8.5). Read-only and limited to the paths the agent itself reported.
    */
-  async readStackFiles(
-    stack: DiscoveredStack,
-    serverId?: string,
-  ): Promise<StackFilesResult> {
+  async readStackFiles(stack: DiscoveredStack): Promise<StackFilesResult> {
     if (!stack.configFiles.length) {
       throw new BadRequestException(
         `Stack "${stack.project}" reports no compose files to read.`,
@@ -244,11 +241,8 @@ export class DeployAgentGateway {
 
     this.assertAgentOnline();
 
-    const server = await this.servers.resolve(serverId);
-
     return this.withTimeout(
-      this.outbound.sendToServer<StackFilesResult>(
-        server.name,
+      this.send<StackFilesResult>(
         'stack.read-files',
         new StackReadFilesEvent(
           stack.project,
@@ -270,15 +264,11 @@ export class DeployAgentGateway {
   async checkForUpdate(
     stack: DiscoveredStack,
     image: string,
-    serverId?: string,
   ): Promise<StackUpdateCheck> {
     this.assertAgentOnline();
 
-    const server = await this.servers.resolve(serverId);
-
     return this.withTimeout(
-      this.outbound.sendToServer<StackUpdateCheck>(
-        server.name,
+      this.send<StackUpdateCheck>(
         'stack.check-update',
         new StackCheckUpdateEvent(
           stack.project,
@@ -289,6 +279,26 @@ export class DeployAgentGateway {
       ),
       LOGS_TIMEOUT_MS,
       `update check for "${stack.project}"`,
+    );
+  }
+
+  /**
+   * Every command is signed: the agent runs what arrives on its queue, so a
+   * message from anyone else on the broker must not look like one from here.
+   */
+  private emit(pattern: string, payload: object): void {
+    this.outbound.emitToQueue(
+      this.queue,
+      pattern,
+      signMessage(this.key, pattern, payload),
+    );
+  }
+
+  private send<T>(pattern: string, payload: object): Promise<T> {
+    return this.outbound.sendToQueue<T>(
+      this.queue,
+      pattern,
+      signMessage(this.key, pattern, payload),
     );
   }
 

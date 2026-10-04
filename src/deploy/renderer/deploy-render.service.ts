@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { AppSourceType } from '@prisma/client';
+import { AppSourceType, ApplicationTier, BuildMode } from '@prisma/client';
 import { createHash } from 'crypto';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -13,8 +13,10 @@ import {
   InterpolationValue,
   InterpolatorService,
 } from '../interpolation/interpolator.service';
+import { maskEnvFile } from '../secrets/log-redaction.service';
 import { SecretCryptoService } from '../secrets/secret-crypto.service';
 import { ComposeRendererService } from './compose-renderer.service';
+import { ComposeSourceService } from './compose-source.service';
 import { parseAppSpec } from './app-spec';
 
 /**
@@ -53,6 +55,7 @@ export class DeployRenderService {
     private readonly renderer: ComposeRendererService,
     private readonly interpolator: InterpolatorService,
     private readonly crypto: SecretCryptoService,
+    private readonly composeSource: ComposeSourceService,
   ) {}
 
   /**
@@ -94,13 +97,20 @@ export class DeployRenderService {
     applicationId: string,
     releaseId = RELEASE_PREVIEW_ID,
   ): Promise<RenderPreview> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { secretValues, ...preview } = await this.renderForDeploy(
+    const { secretValues, secretKeys, ...preview } = await this.renderForDeploy(
       applicationId,
       releaseId,
     );
 
-    return preview;
+    // I3 — the panel sees which keys exist, never a secret's value: whole
+    // values of secret keys and secrets interpolated into other values alike.
+    return {
+      ...preview,
+      env:
+        preview.env === null
+          ? null
+          : maskEnvFile(preview.env, secretKeys, secretValues),
+    };
   }
 
   /**
@@ -113,20 +123,26 @@ export class DeployRenderService {
   async renderForDeploy(
     applicationId: string,
     releaseId = RELEASE_PREVIEW_ID,
-  ): Promise<RenderPreview & { secretValues: string[] }> {
+  ): Promise<
+    RenderPreview & { secretValues: string[]; secretKeys: Set<string> }
+  > {
     const application = await this.prisma.application.findFirst({
       where: { id: applicationId, isDeleted: false },
-      include: { envs: true, currentRelease: true },
+      include: {
+        envs: true,
+        currentRelease: true,
+        gitRepo: { select: { repo: true, branch: true } },
+      },
     });
 
     if (!application) {
       throw new NotFoundException('Application not found');
     }
 
-    if (application.sourceType !== AppSourceType.RENDERED) {
+    if (application.sourceType === AppSourceType.HOST) {
       throw new BadRequestException(
-        `Application "${application.slug}" has sourceType ${application.sourceType}; ` +
-          'only RENDERED applications are produced by the renderer.',
+        `Application "${application.slug}" runs from a compose file on the host. ` +
+          'Take the file over (or convert it to a spec) before deploying from the panel.',
       );
     }
 
@@ -143,9 +159,24 @@ export class DeployRenderService {
     // Report everything that is missing in one pass rather than failing on the
     // first undefined key — the panel shows the whole list to fill in.
     const missingKeys = this.interpolator.findMissingKeys(
-      [...Object.values(rawEnv), JSON.stringify(application.spec ?? {})],
+      [
+        ...Object.values(rawEnv),
+        JSON.stringify(application.spec ?? {}),
+        application.compose ?? '',
+      ],
       scope,
     );
+
+    // A compose file reads ${VAR} from the env file. One that nothing defines
+    // would start the service with an empty value — an empty database password
+    // is worse than a refused deployment (I6).
+    if (application.compose) {
+      for (const ref of this.composeSource.referencedVariables(
+        application.compose ?? '',
+      )) {
+        if (!ref.hasDefault && !(ref.key in rawEnv)) missingKeys.push(ref.key);
+      }
+    }
 
     if (missingKeys.length) {
       return {
@@ -157,23 +188,33 @@ export class DeployRenderService {
         previousCompose,
         changed: previousCompose !== null,
         secretValues: [],
+        secretKeys: new Set<string>(),
       };
     }
 
     const env = this.interpolator.interpolateRecord(rawEnv, scope);
     const spec = this.interpolateSpec(application.spec, scope);
 
-    const rendered = this.renderer.render({
-      slug: application.slug,
-      tier: application.tier,
-      buildMode: application.buildMode,
+    // The application's own secrets are typed in, not interpolated, so the
+    // interpolator never sees them as secret — without this they would be
+    // missing from the log redaction and from the preview mask (I3).
+    const secretKeys = new Set(
+      application.envs.filter((e) => e.isSecret).map((e) => e.key),
+    );
+    const secretValues = [
+      ...new Set([
+        ...env.secretValues,
+        ...[...secretKeys].map((key) => env.values[key]).filter(Boolean),
+      ]),
+    ];
+
+    const rendered = this.renderSource(
+      application,
       releaseId,
-      image: application.image,
-      version: application.currentRelease?.version ?? null,
-      digest: application.currentRelease?.digest ?? null,
       spec,
-      env: env.values,
-    });
+      env.values,
+      scope,
+    );
 
     return {
       compose: rendered.compose,
@@ -185,8 +226,122 @@ export class DeployRenderService {
       changed: rendered.compose !== previousCompose,
       // Resolved, not encrypted — only the deployment path receives these, and
       // only so the agent's log stream can be scrubbed of them (§10.4).
-      secretValues: env.secretValues,
+      secretValues,
+      secretKeys,
     };
+  }
+
+  /**
+   * The compose file a deployment writes, by source:
+   *
+   * - RENDERED — produced from the spec.
+   * - COMPOSE — the application's own file, with `[[KEY]]` resolved and the
+   *   identifying labels added.
+   * - GIT — the repository's own file runs, from the clone; what is written to
+   *   the homelab repo is a record of what was deployed, so that releases still
+   *   have something to diff, hash and approve.
+   */
+  private renderSource(
+    application: {
+      slug: string;
+      tier: ApplicationTier;
+      buildMode: BuildMode;
+      sourceType: AppSourceType;
+      image: string | null;
+      compose: string | null;
+      currentRelease: { version: string | null; digest: string | null } | null;
+      gitRef: string | null;
+      gitRepo: { repo: string; branch: string } | null;
+    },
+    releaseId: string,
+    spec: unknown,
+    env: Record<string, string>,
+    scope: InterpolationScope,
+  ): { compose: string; env: string; envKeys: string[] } {
+    if (application.sourceType === AppSourceType.RENDERED) {
+      return this.renderer.render({
+        slug: application.slug,
+        tier: application.tier,
+        buildMode: application.buildMode,
+        releaseId,
+        image: application.image,
+        version: application.currentRelease?.version ?? null,
+        digest: application.currentRelease?.digest ?? null,
+        spec: spec as never,
+        env,
+      });
+    }
+
+    const envFile = {
+      env: this.renderer.buildEnvFile(env),
+      envKeys: Object.keys(env).sort(),
+    };
+
+    // A file kept in the panel — its own application's, or one for a git
+    // clone (the repository then supplies only the code).
+    const keptFile =
+      application.sourceType === AppSourceType.COMPOSE ||
+      (application.sourceType === AppSourceType.GIT && application.compose);
+
+    if (keptFile) {
+      if (!application.compose) {
+        throw new BadRequestException(
+          `Application "${application.slug}" has no compose file yet.`,
+        );
+      }
+
+      const resolved = this.interpolator.interpolate(
+        application.compose,
+        scope,
+      );
+      this.refuseSecrets(resolved.usedKeys, scope, 'the compose file');
+
+      return {
+        compose: this.composeSource.render(
+          resolved.value,
+          { slug: application.slug, tier: application.tier, releaseId },
+          { inClone: application.sourceType === AppSourceType.GIT },
+        ),
+        ...envFile,
+      };
+    }
+
+    // GIT
+    if (!application.gitRepo) {
+      throw new BadRequestException(
+        `Application "${application.slug}" is GIT-sourced but has no repository.`,
+      );
+    }
+    const files = parseAppSpec(spec).filePaths.join(', ');
+    return {
+      compose: [
+        "# Deployed from git; the compose file is the repository's own.",
+        `# repository: ${application.gitRepo.repo}@${
+          application.gitRef ?? application.gitRepo.branch
+        }`,
+        `# files: ${files}`,
+        `# env: ${envFile.envKeys.join(', ') || '(none)'}`,
+        '',
+      ].join('\n'),
+      ...envFile,
+    };
+  }
+
+  private refuseSecrets(
+    usedKeys: string[],
+    scope: InterpolationScope,
+    where: string,
+  ): void {
+    const secretKeys = usedKeys.filter((key) => scope.get(key)?.isSecret);
+    if (!secretKeys.length) return;
+
+    throw new BadRequestException(
+      `Secret variable(s) ${secretKeys.join(', ')} cannot be used in ${where}: ` +
+        'it is stored with every release and committed to the homelab ' +
+        "repository. Put the secret in the application's environment and read " +
+        'it at runtime instead — ${KEY} in a compose file, or a healthCommand of ' +
+        '["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"] in a spec.',
+    );
   }
 
   /** Validates a spec without rendering — used when saving an application. */
@@ -207,6 +362,11 @@ export class DeployRenderService {
     if (spec === null || spec === undefined) return {};
 
     const resolved = this.interpolator.interpolate(JSON.stringify(spec), scope);
+
+    // I3 — the spec becomes compose.yaml, which is stored with every release,
+    // shown in the diff and committed to the homelab repository. A secret has
+    // no business there; it belongs in the env file.
+    this.refuseSecrets(resolved.usedKeys, scope, 'the spec');
 
     try {
       return JSON.parse(resolved.value);

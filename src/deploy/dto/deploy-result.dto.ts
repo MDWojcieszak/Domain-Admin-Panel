@@ -31,6 +31,14 @@ export class DeployResultDto {
   @IsString({ optional: true, nullable: true })
   homelabCommit?: string | null;
 
+  /**
+   * GIT applications only: the sha the application's clone was checked out at.
+   * Resolved by the agent, so a tag or a branch head is pinned to what actually
+   * ran — this is what a rollback checks out again.
+   */
+  @IsString({ optional: true, nullable: true })
+  commit?: string | null;
+
   /** Human-readable reason, shown in the panel next to a failed release. */
   @IsString({ optional: true, nullable: true })
   failureReason?: string | null;

@@ -36,4 +36,17 @@ export const config = () => ({
     noAck: false,
     prefetchCount: 50,
   },
+
+  /**
+   * Where the backend sends commands to the deploy agent. The agent is not a
+   * registered server: it has one fixed queue of its own, consumed by the
+   * single agent on the Docker host.
+   */
+  deployAgentQueue: process.env.DEPLOY_AGENT_QUEUE || 'deploy-agent.commands',
+
+  /**
+   * Shared with the deploy agent; every message between the two is signed with
+   * it (src/deploy/agent/message-signature.ts). Required.
+   */
+  deployAgentKey: process.env.DEPLOY_AGENT_KEY ?? '',
 });

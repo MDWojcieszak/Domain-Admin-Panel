@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AuditSource, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditEntryResponse } from '../responses';
 
 /**
  * Records every configuration change in the deploy module (§13.1).
@@ -101,8 +102,12 @@ export class AuditService {
     return Object.keys(diff).length ? diff : null;
   }
 
-  list(entityType: string, entityId: string, take = 50) {
-    return this.prisma.auditLog.findMany({
+  async list(
+    entityType: string,
+    entityId: string,
+    take = 50,
+  ): Promise<AuditEntryResponse[]> {
+    const entries = await this.prisma.auditLog.findMany({
       where: { entityType, entityId },
       orderBy: { createdAt: 'desc' },
       take,
@@ -112,6 +117,11 @@ export class AuditService {
         },
       },
     });
+
+    return entries.map(({ actorId: _actorId, ...entry }) => ({
+      ...entry,
+      diff: entry.diff as Record<string, unknown> | null,
+    }));
   }
 
   /**

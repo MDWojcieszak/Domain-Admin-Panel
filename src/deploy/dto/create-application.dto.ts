@@ -1,5 +1,7 @@
 import { ApplicationTier, AppSourceType } from '@prisma/client';
-import { IsEnum, IsString } from 'nestjs-swagger-dto';
+import { IsEnum, IsObject, IsString } from 'nestjs-swagger-dto';
+
+import { GIT_REF } from './git-ref';
 
 export class CreateApplicationDto {
   @IsString({ pattern: { regex: /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/ } })
@@ -24,10 +26,25 @@ export class CreateApplicationDto {
   @IsString({ optional: true })
   gitRepoId?: string;
 
-  /** Server category this application is attached to. */
-  @IsString()
-  serverCategoryId: string;
+  /**
+   * Branch or tag this application follows (GIT). Omit to follow the
+   * repository's branch. Two applications from one repository — v1 and v2 —
+   * set different values here.
+   */
+  @IsString({ optional: true, nullable: true, pattern: { regex: GIT_REF } })
+  gitRef?: string | null;
 
-  /** AppSpec — validated by the renderer before it is stored. */
-  spec?: unknown;
+  /**
+   * AppSpec — validated by the renderer before it is stored. Without a
+   * decorator the global whitelist pipe would strip it from the body.
+   */
+  @IsObject({ optional: true })
+  spec?: Record<string, unknown>;
+
+  /**
+   * The application's own compose file (sourceType COMPOSE). Inline secrets
+   * are moved into encrypted env entries on save and read back as ${KEY}.
+   */
+  @IsString({ optional: true })
+  compose?: string;
 }

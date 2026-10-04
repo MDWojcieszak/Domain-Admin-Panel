@@ -31,7 +31,10 @@ export class GitRepoService {
       orderBy: { name: 'asc' },
       include: {
         account: { select: { id: true, name: true, username: true } },
-        _count: { select: { applications: true } },
+        applications: {
+          where: { isDeleted: false },
+          select: { id: true, slug: true },
+        },
       },
     });
   }
@@ -41,7 +44,10 @@ export class GitRepoService {
       where: { id },
       include: {
         account: { select: { id: true, name: true, username: true } },
-        applications: { select: { id: true, slug: true } },
+        applications: {
+          where: { isDeleted: false },
+          select: { id: true, slug: true },
+        },
       },
     });
 
@@ -82,7 +88,7 @@ export class GitRepoService {
       },
     });
 
-    return repo;
+    return this.get(repo.id);
   }
 
   async update(id: string, dto: Partial<UpsertGitRepoDto>, actorId?: string) {
@@ -131,7 +137,7 @@ export class GitRepoService {
       ),
     });
 
-    return repo;
+    return this.get(repo.id);
   }
 
   async remove(id: string, actorId?: string): Promise<void> {

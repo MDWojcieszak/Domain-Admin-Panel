@@ -85,6 +85,21 @@ export class ServerOutboundMessagingService {
     return await firstValueFrom(client.send<TResponse>(pattern, payload));
   }
 
+  /** For a consumer with a fixed queue, not a registered server (the deploy agent). */
+  emitToQueue(queueName: string, pattern: string, payload: unknown): void {
+    this.getOrCreateClient(queueName).emit(pattern, payload);
+  }
+
+  async sendToQueue<TResponse = any>(
+    queueName: string,
+    pattern: string,
+    payload: unknown,
+  ): Promise<TResponse> {
+    return await firstValueFrom(
+      this.getOrCreateClient(queueName).send<TResponse>(pattern, payload),
+    );
+  }
+
   async invalidateServer(serverName: string): Promise<void> {
     return this.prisma.server
       .findUnique({

@@ -1,4 +1,4 @@
-import { Controller, Logger } from '@nestjs/common';
+import { Controller, Logger, UseGuards } from '@nestjs/common';
 import {
   Ctx,
   EventPattern,
@@ -7,7 +7,7 @@ import {
   RmqContext,
 } from '@nestjs/microservices';
 
-import { Public } from '../common/decorators';
+import { Public, ReplyType } from '../common/decorators';
 import {
   ProcessStatusDto,
   RegisterProcessDto,
@@ -15,6 +15,7 @@ import {
 } from '../server-process/dto';
 import { ServerProcessService } from '../server-process/server-process.service';
 import { AgentHealthService } from './agent/agent-health.service';
+import { AgentSignatureGuard } from './agent/agent-signature.guard';
 import { settle } from './agent/rmq-ack';
 import { ContainerDiscoveryService } from './discovery/container-discovery.service';
 import { GitAccountService } from './git/git-account.service';
@@ -26,6 +27,9 @@ import {
   ContainerChangedDto,
   ContainerSnapshotDto,
   DeployResultDto,
+  GitCredentialsDto,
+  GitCredentialsRequestDto,
+  StackActionResultDto,
 } from './dto';
 
 /**
@@ -44,6 +48,7 @@ import {
  * path gets manual-ack semantics without changing the acknowledgement contract
  * of handlers that already work.
  */
+@UseGuards(AgentSignatureGuard)
 @Controller()
 export class DeployAgentController {
   private readonly logger = new Logger(DeployAgentController.name);
@@ -85,6 +90,16 @@ export class DeployAgentController {
     await settle(context, () =>
       this.discovery.applyChange(dto.container, dto.removed === true),
     );
+  }
+
+  /** How a `stack.action` ended — the only way a failed one reaches the panel. */
+  @Public()
+  @EventPattern('stack.action.result')
+  async actionResult(
+    @Payload() dto: StackActionResultDto,
+    @Ctx() context: RmqContext,
+  ) {
+    await settle(context, async () => this.discovery.reportActionResult(dto));
   }
 
   @Public()
@@ -149,10 +164,11 @@ export class DeployAgentController {
    */
   @Public()
   @MessagePattern('deploy.git.credentials')
+  @ReplyType(GitCredentialsDto)
   async gitCredentials(
-    @Payload() dto: { repoId: string },
+    @Payload() dto: GitCredentialsRequestDto,
     @Ctx() context: RmqContext,
-  ) {
+  ): Promise<GitCredentialsDto> {
     return settle(context, async () => {
       const repo = await this.gitRepos.get(dto.repoId);
 

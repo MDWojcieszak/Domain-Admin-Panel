@@ -8,7 +8,6 @@ import { CommandRuntimeStatus, ContainerOrigin } from '@prisma/client';
 import { ServerOutboundMessagingService } from '../../server-outbound/server-outbound-messaging.service';
 import { DiscoveredStack } from '../discovery/container-classifier';
 import { AgentHealthService } from './agent-health.service';
-import { AgentServerService } from './agent-server.service';
 import { DeployAgentGateway } from './deploy-agent.gateway';
 
 const stack = (overrides: Partial<DiscoveredStack> = {}): DiscoveredStack => ({
@@ -25,27 +24,21 @@ const stack = (overrides: Partial<DiscoveredStack> = {}): DiscoveredStack => ({
 
 describe('DeployAgentGateway', () => {
   let outbound: jest.Mocked<
-    Pick<ServerOutboundMessagingService, 'emitToServer' | 'sendToServer'>
+    Pick<ServerOutboundMessagingService, 'emitToQueue' | 'sendToQueue'>
   >;
-  let servers: Pick<AgentServerService, 'resolve'>;
   let health: { health: jest.Mock };
   let gateway: DeployAgentGateway;
 
   beforeEach(() => {
     outbound = {
-      emitToServer: jest.fn().mockResolvedValue(undefined),
-      sendToServer: jest.fn().mockResolvedValue({ accepted: true }),
-    } as never;
-
-    servers = {
-      resolve: jest.fn().mockResolvedValue({ id: 's1', name: 'truenas' }),
+      emitToQueue: jest.fn(),
+      sendToQueue: jest.fn().mockResolvedValue({ accepted: true }),
     } as never;
 
     health = { health: jest.fn().mockReturnValue({ online: true }) };
 
     gateway = new DeployAgentGateway(
       outbound as unknown as ServerOutboundMessagingService,
-      servers as AgentServerService,
       health as unknown as AgentHealthService,
     );
   });
@@ -54,8 +47,8 @@ describe('DeployAgentGateway', () => {
     it('emits a fire-and-forget request', async () => {
       await gateway.requestSnapshot('panel refresh');
 
-      expect(outbound.emitToServer).toHaveBeenCalledWith(
-        'truenas',
+      expect(outbound.emitToQueue).toHaveBeenCalledWith(
+        'deploy-agent.commands',
         'containers.snapshot-request',
         expect.objectContaining({ reason: 'panel refresh' }),
       );
@@ -63,11 +56,46 @@ describe('DeployAgentGateway', () => {
   });
 
   describe('runStackAction', () => {
+    it('acts on one container only, through the docker API', async () => {
+      const withContainers = stack({
+        containers: [
+          {
+            id: 'c1',
+            name: 'immich-server',
+            image: 'x',
+            state: 'running',
+            labels: {},
+          },
+          {
+            id: 'c2',
+            name: 'immich-ml',
+            image: 'y',
+            state: 'running',
+            labels: {},
+          },
+        ],
+      });
+
+      await gateway.runStackAction(withContainers, 'stop', 'c2');
+
+      expect(outbound.sendToQueue).toHaveBeenCalledWith(
+        'deploy-agent.commands',
+        'stack.action',
+        expect.objectContaining({ containerIds: ['c2'], containersOnly: true }),
+      );
+    });
+
+    it('refuses a container that is not part of the stack', async () => {
+      await expect(
+        gateway.runStackAction(stack(), 'restart', 'not-mine'),
+      ).rejects.toThrow(/not part of stack/);
+    });
+
     it('sends the action with the stack paths', async () => {
       await gateway.runStackAction(stack(), 'restart');
 
-      expect(outbound.sendToServer).toHaveBeenCalledWith(
-        'truenas',
+      expect(outbound.sendToQueue).toHaveBeenCalledWith(
+        'deploy-agent.commands',
         'stack.action',
         expect.objectContaining({
           action: 'restart',
@@ -87,7 +115,7 @@ describe('DeployAgentGateway', () => {
       await expect(gateway.runStackAction(truenas, 'stop')).rejects.toThrow(
         BadRequestException,
       );
-      expect(outbound.sendToServer).not.toHaveBeenCalled();
+      expect(outbound.sendToQueue).not.toHaveBeenCalled();
     });
 
     it('permits a restart of a TrueNAS-managed stack', async () => {
@@ -108,12 +136,12 @@ describe('DeployAgentGateway', () => {
       await expect(gateway.runStackAction(stack(), 'restart')).rejects.toThrow(
         ServiceUnavailableException,
       );
-      expect(outbound.sendToServer).not.toHaveBeenCalled();
+      expect(outbound.sendToQueue).not.toHaveBeenCalled();
     });
 
     it('gives up when the agent does not answer in time', async () => {
       jest.useFakeTimers();
-      outbound.sendToServer.mockReturnValue(new Promise(() => undefined));
+      outbound.sendToQueue.mockReturnValue(new Promise(() => undefined));
 
       const pending = gateway.runStackAction(stack(), 'restart');
       const assertion = expect(pending).rejects.toThrow(
@@ -129,20 +157,20 @@ describe('DeployAgentGateway', () => {
 
   describe('fetchLogs', () => {
     it('asks for the requested number of lines', async () => {
-      outbound.sendToServer.mockResolvedValue({ lines: ['a', 'b'] });
+      outbound.sendToQueue.mockResolvedValue({ lines: ['a', 'b'] });
 
       const result = await gateway.fetchLogs(stack(), 500);
 
       expect(result.lines).toEqual(['a', 'b']);
-      expect(outbound.sendToServer).toHaveBeenCalledWith(
-        'truenas',
+      expect(outbound.sendToQueue).toHaveBeenCalledWith(
+        'deploy-agent.commands',
         'stack.logs',
         expect.objectContaining({ tail: 500 }),
       );
     });
 
     it('allows logs for every origin, including TrueNAS-managed stacks', async () => {
-      outbound.sendToServer.mockResolvedValue({ lines: [] });
+      outbound.sendToQueue.mockResolvedValue({ lines: [] });
 
       await expect(
         gateway.fetchLogs(

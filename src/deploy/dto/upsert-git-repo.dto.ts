@@ -1,5 +1,7 @@
 import { IsString } from 'nestjs-swagger-dto';
 
+import { GIT_REF } from './git-ref';
+
 export class UpsertGitRepoDto {
   /** Local label, unique across repositories. */
   @IsString({ pattern: { regex: /^[a-z0-9][a-z0-9-.]{0,61}[a-z0-9]$/ } })
@@ -9,7 +11,7 @@ export class UpsertGitRepoDto {
   @IsString({ pattern: { regex: /^[\w.-]+\/[\w.-]+$/ } })
   repo: string;
 
-  @IsString({ optional: true })
+  @IsString({ optional: true, pattern: { regex: GIT_REF } })
   branch?: string;
 
   /** Defaults to `<REPOS_DIR>/<owner>/<repo>` on the host. */

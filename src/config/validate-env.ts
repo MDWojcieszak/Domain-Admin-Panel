@@ -37,6 +37,9 @@ const REQUIRED_IN_PRODUCTION = [
   // Dedicated RabbitMQ queue for the deployment agent. Separate from MAIN_QUEUE
   // because it runs with manual acknowledgement (§12.3).
   'DEPLOY_QUEUE',
+  // Signs every message to and from the deploy agent — the agent runs what it
+  // is sent, so the broker's credentials alone must not be enough to command it.
+  'DEPLOY_AGENT_KEY',
 ];
 
 export function validateEnv(): void {

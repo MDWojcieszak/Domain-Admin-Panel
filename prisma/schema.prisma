@@ -1241,7 +1241,6 @@ model ServerCategory {
   settings        ServerSettings[]
   processes       Process[]
   serverTransfers ServerTransfer[]
-  application     Application?
 
   @@unique([serverId, value])
 }
@@ -2585,6 +2584,7 @@ enum AppSourceType {
   RENDERED // compose produced by the renderer
   GIT // compose from a cloned repo
   HOST // compose already present on the host
+  COMPOSE // compose file kept in the panel — pasted, or taken over from the host
 }
 
 enum BuildMode {
@@ -2677,8 +2677,15 @@ model Application {
 
   image String? // ghcr.io/... (dla RENDERED)
 
+  /// The application's own compose file (sourceType COMPOSE). Never holds a
+  /// secret: inline values are moved to encrypted env entries on save.
+  compose String?
+
   gitRepo   GitRepo? @relation(fields: [gitRepoId], references: [id], onDelete: SetNull)
   gitRepoId String?
+  /// Branch or tag this application follows; null follows the repository's
+  /// branch. Two applications from one repository (v1 and v2) differ here.
+  gitRef    String?
 
   spec Json // AppSpec — see docs/deploy-design.md §9.1
 
@@ -2693,9 +2700,6 @@ model Application {
 
   webhookSecret  String? // encrypted
   webhookEnabled Boolean @default(false)
-
-  serverCategory   ServerCategory @relation(fields: [serverCategoryId], references: [id], onDelete: Cascade)
-  serverCategoryId String         @unique
 
   currentRelease   Release? @relation("CurrentRelease", fields: [currentReleaseId], references: [id], onDelete: SetNull)
   currentReleaseId String?  @unique

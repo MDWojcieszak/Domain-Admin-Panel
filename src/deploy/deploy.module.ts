@@ -6,7 +6,6 @@ import { NotificationModule } from '../notification/notification.module';
 import { ServerProcessModule } from '../server-process/server-process.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import { AgentHealthService } from './agent/agent-health.service';
-import { AgentServerService } from './agent/agent-server.service';
 import { DeployAgentGateway } from './agent/deploy-agent.gateway';
 import { RuntimeStatusService } from './agent/runtime-status.service';
 import { ApplicationImportService } from './application/application-import.service';
@@ -14,6 +13,7 @@ import { ApplicationService } from './application/application.service';
 import { GitAccountService } from './git/git-account.service';
 import { GitRepoService } from './git/git-repo.service';
 import { ComposeImporterService } from './renderer/compose-importer.service';
+import { ComposeSourceService } from './renderer/compose-source.service';
 import { AuditService } from './audit/audit.service';
 import { DeployAgentController } from './deploy-agent.controller';
 import { DeployController } from './deploy.controller';
@@ -61,10 +61,10 @@ import { DeployWebhookService } from './webhook/deploy-webhook.service';
   providers: [
     AdoptionService,
     AgentHealthService,
-    AgentServerService,
     ApplicationImportService,
     ApplicationService,
     ComposeImporterService,
+    ComposeSourceService,
     GitAccountService,
     GitRepoService,
     AuditService,

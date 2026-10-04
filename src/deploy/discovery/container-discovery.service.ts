@@ -72,6 +72,31 @@ export class ContainerDiscoveryService {
     });
   }
 
+  /**
+   * How a lifecycle action ended. Passed straight to the panel: success is
+   * already visible through `container.changed`, but a failure changes no
+   * container and would otherwise never reach anyone.
+   */
+  reportActionResult(result: {
+    project: string;
+    action: string;
+    success: boolean;
+    error?: string | null;
+  }): void {
+    if (!result.success) {
+      this.logger.warn(
+        `${result.action} on "${result.project}" failed: ${result.error ?? 'no reason given'}`,
+      );
+    }
+
+    this.websocket.emitToRoom(WsRoom.DEPLOYMENTS, 'stack.action.result', {
+      project: result.project,
+      action: result.action,
+      success: result.success,
+      error: result.error ?? null,
+    });
+  }
+
   snapshot(): DiscoverySnapshot {
     return {
       stacks: this.stacks(),
