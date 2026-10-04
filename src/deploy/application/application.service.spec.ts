@@ -1,3 +1,4 @@
+import { ComposeSourceService } from '../renderer/compose-source.service';
 import {
   ApplicationService,
   toApplicationResponse,
@@ -165,5 +166,73 @@ describe('ApplicationService.moveToGit — keeping the panel file', () => {
     await expect(
       service.moveToGit('a1', { gitRepoId: 'r1', composeInRepository: false }),
     ).rejects.toThrow(/no compose file kept in the panel/);
+  });
+});
+
+describe('ApplicationService — a git application keeping its compose file', () => {
+  const make = (existing?: Record<string, unknown>) => {
+    const prisma: any = {
+      application: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(existing),
+        create: jest.fn().mockResolvedValue({ id: 'a1', slug: 'gallery-v1' }),
+        update: jest.fn().mockResolvedValue({ id: 'a1', slug: 'gallery-v1' }),
+      },
+      applicationEnv: { upsert: jest.fn() },
+    };
+    const service = new ApplicationService(
+      prisma,
+      {} as any,
+      { record: jest.fn(), buildDiff: jest.fn() } as any,
+      { validateSpec: jest.fn() } as any,
+      new ComposeSourceService(),
+    );
+    jest.spyOn(service, 'get').mockResolvedValue({} as any);
+    return { service, prisma };
+  };
+
+  it('stores the file at creation, a relative build meaning the repository code', async () => {
+    const { service, prisma } = make();
+    const compose = 'services:\n  web:\n    build: ./server\n';
+
+    await service.create(
+      {
+        slug: 'gallery-v1',
+        sourceType: 'GIT',
+        gitRepoId: 'r1',
+        compose,
+        serverCategoryId: undefined,
+      } as any,
+      'u1',
+    );
+
+    const data = prisma.application.create.mock.calls[0][0].data;
+    expect(data.compose).toBe(compose);
+    expect(data.buildMode).toBe('COMPOSE');
+  });
+
+  it('still creates a git application without one — the repository file runs', async () => {
+    const { service, prisma } = make();
+
+    await service.create(
+      { slug: 'gallery-v2', sourceType: 'GIT' } as any,
+      'u1',
+    );
+
+    expect(prisma.application.create.mock.calls[0][0].data.compose).toBeNull();
+  });
+
+  it('goes back to the repository file when given an empty one', async () => {
+    const { service, prisma } = make({
+      id: 'a1',
+      slug: 'gallery-v1',
+      sourceType: 'GIT',
+      compose: 'services:\n  web:\n    build: .\n',
+      spec: {},
+    });
+
+    await service.update('a1', { compose: '' }, 'u1');
+
+    expect(prisma.application.update.mock.calls[0][0].data.compose).toBeNull();
   });
 });

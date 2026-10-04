@@ -11,6 +11,7 @@ import { RuntimeStatusService } from './agent/runtime-status.service';
 import { ApplicationImportService } from './application/application-import.service';
 import { ApplicationService } from './application/application.service';
 import { GitAccountService } from './git/git-account.service';
+import { GitRefsService } from './git/git-refs.service';
 import { GitRepoService } from './git/git-repo.service';
 import { ComposeImporterService } from './renderer/compose-importer.service';
 import { ComposeSourceService } from './renderer/compose-source.service';
@@ -67,6 +68,7 @@ import { DeployWebhookService } from './webhook/deploy-webhook.service';
     ComposeSourceService,
     GitAccountService,
     GitRepoService,
+    GitRefsService,
     AuditService,
     ComposeRendererService,
     ContainerDiscoveryService,

@@ -89,3 +89,62 @@ export class GitRepoResponse {
   @IsDate({ format: 'date-time' })
   updatedAt: Date;
 }
+
+export class GitCommitResponse {
+  @IsString()
+  sha: string;
+
+  @IsString()
+  shortSha: string;
+
+  /** Subject line only. */
+  @IsString()
+  message: string;
+
+  @IsString({ optional: true, nullable: true })
+  author: string | null;
+
+  @IsString({ optional: true, nullable: true })
+  committedAt: string | null;
+}
+
+export class GitTagResponse {
+  @IsString()
+  name: string;
+
+  @IsString()
+  sha: string;
+
+  @IsString()
+  shortSha: string;
+}
+
+export class GitBranchResponse {
+  @IsString()
+  name: string;
+
+  @IsString()
+  sha: string;
+}
+
+/** What an application's repository offers to build from. */
+export class GitRefsResponse {
+  /** The branch or tag the application tracks — what "latest" means. */
+  @IsString()
+  branch: string;
+
+  /** Newest commit on `branch`; null for an empty repository. */
+  @IsNested({ type: GitCommitResponse, optional: true, nullable: true })
+  head: GitCommitResponse | null;
+
+  /** Newest first. */
+  @IsNested({ type: GitTagResponse, isArray: true })
+  tags: GitTagResponse[];
+
+  /** Recent commits on `branch`, newest first. */
+  @IsNested({ type: GitCommitResponse, isArray: true })
+  commits: GitCommitResponse[];
+
+  @IsNested({ type: GitBranchResponse, isArray: true })
+  branches: GitBranchResponse[];
+}

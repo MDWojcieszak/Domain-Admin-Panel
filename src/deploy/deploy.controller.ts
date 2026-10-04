@@ -27,6 +27,7 @@ import { DeployAgentGateway } from './agent/deploy-agent.gateway';
 import { ApplicationImportService } from './application/application-import.service';
 import { ApplicationService } from './application/application.service';
 import { GitAccountService } from './git/git-account.service';
+import { GitRefsService } from './git/git-refs.service';
 import { GitRepoService } from './git/git-repo.service';
 import { AuditService } from './audit/audit.service';
 import { AdoptionService } from './discovery/adoption.service';
@@ -71,6 +72,7 @@ import {
   WebhookSecretResponse,
   ComposeCheckResponse,
   ComposeTakeoverPreviewResponse,
+  GitRefsResponse,
 } from './responses';
 
 @ApiTags('Deploy')
@@ -93,6 +95,7 @@ export class DeployController {
     private readonly gitAccounts: GitAccountService,
     private readonly gitRepos: GitRepoService,
     private readonly composeSource: ComposeSourceService,
+    private readonly gitRefs: GitRefsService,
   ) {}
 
   // — applications —
@@ -154,6 +157,7 @@ export class DeployController {
   checkCompose(@Body() dto: CheckComposeDto): ComposeCheckResponse {
     const normalised = this.composeSource.normalise(dto.compose, {
       envFilePath: APP_SPEC_DEFAULTS.envFilePath,
+      inClone: dto.inClone === true,
     });
 
     return {
@@ -322,6 +326,24 @@ export class DeployController {
     @GetCurrentUser('sub') userId: string,
   ): Promise<ApplicationDetailResponse> {
     return this.applications.moveToGit(id, dto, userId);
+  }
+
+  /**
+   * What the application's repository offers to build from: the head of the
+   * tracked branch, recent commits, tags and branches. Read from GitHub with
+   * the repository's account token, cached for a minute.
+   */
+  @RequirePermissions(PERMISSIONS.DEPLOY_READ)
+  @Get('applications/:id/git/refs')
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'take', required: false, type: Number })
+  @ApiOkResponse({ type: GitRefsResponse })
+  listGitRefs(
+    @Param('id') id: string,
+    @Query('search') search?: string,
+    @Query('take') take?: string,
+  ): Promise<GitRefsResponse> {
+    return this.gitRefs.list(id, search, take ? Number(take) : undefined);
   }
 
   // — git accounts and repositories —

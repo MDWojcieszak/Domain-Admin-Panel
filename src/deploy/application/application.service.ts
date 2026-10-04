@@ -148,10 +148,15 @@ export class ApplicationService {
     // Reject a bad spec before anything is written, not at deploy time.
     this.render.validateSpec(dto.spec ?? {});
 
+    // A git application may bring its compose file too: the repository then
+    // supplies only the code, and the file is written into the clone.
+    const isGit = dto.sourceType === AppSourceType.GIT;
     const compose = this.prepareCompose(
-      dto.sourceType === AppSourceType.COMPOSE,
+      dto.sourceType === AppSourceType.COMPOSE ||
+        (isGit && !!dto.compose?.trim()),
       dto.compose,
       canWriteSecrets,
+      isGit,
     );
 
     const existing = await this.prisma.application.findUnique({
@@ -210,23 +215,23 @@ export class ApplicationService {
 
     // A git application takes one only while the panel keeps its file (the
     // repository supplies the code); otherwise the repository's file runs.
-    const keepsFile =
-      existing.sourceType === AppSourceType.COMPOSE ||
-      (existing.sourceType === AppSourceType.GIT && existing.compose !== null);
-    if (dto.compose !== undefined && !keepsFile) {
+    // A git application can take a compose file at any time, and drop it with
+    // an empty one to go back to the repository's own file.
+    const isGit = existing.sourceType === AppSourceType.GIT;
+    if (
+      dto.compose !== undefined &&
+      existing.sourceType !== AppSourceType.COMPOSE &&
+      !isGit
+    ) {
       throw new BadRequestException(
-        'This application runs a compose file it does not keep in the panel.',
+        'Only an application with its own compose file, or one built from git, takes a compose file.',
       );
     }
+    const dropsFile = isGit && dto.compose !== undefined && !dto.compose.trim();
     const compose =
-      dto.compose === undefined
+      dto.compose === undefined || dropsFile
         ? null
-        : this.prepareCompose(
-            true,
-            dto.compose,
-            canWriteSecrets,
-            existing.sourceType === AppSourceType.GIT,
-          );
+        : this.prepareCompose(true, dto.compose, canWriteSecrets, isGit);
 
     const application = await this.prisma.application.update({
       where: { id },
@@ -246,6 +251,7 @@ export class ApplicationService {
         ...(compose
           ? { compose: compose.compose, buildMode: compose.buildMode }
           : {}),
+        ...(dropsFile ? { compose: null } : {}),
       },
     });
 
@@ -503,7 +509,7 @@ export class ApplicationService {
     if (!required) {
       if (text) {
         throw new BadRequestException(
-          'A compose file is only accepted with sourceType COMPOSE.',
+          'A compose file is only accepted with sourceType COMPOSE or GIT.',
         );
       }
       return null;
