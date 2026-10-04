@@ -7912,6 +7912,20 @@ paths:
                 $ref: '#/components/schemas/ReleaseStartedResponse'
       tags: *ref_83
       security: *ref_84
+  /deploy/releases/{id}/cancel:
+    post:
+      operationId: DeployController_cancelRelease
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags: *ref_83
+      security: *ref_84
   /deploy/applications/{id}/webhook/rotate:
     post:
       operationId: DeployController_rotateWebhookSecret
@@ -18493,6 +18507,7 @@ components:
         - ROLLED_BACK
         - DEFERRED
         - UNKNOWN
+        - CANCELLED
     ReleaseTrigger:
       type: string
       enum:
