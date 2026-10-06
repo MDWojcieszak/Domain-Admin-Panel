@@ -13,4 +13,12 @@ export class DeployWebhookDto {
 
   @IsString({ optional: true })
   digest?: string;
+
+  /**
+   * Who or what is behind the call, shown in the panel as "started by" —
+   * e.g. "GitHub Actions · alice · abc1234". Free text from the caller:
+   * displayed, never trusted. The secret is what authenticates.
+   */
+  @IsString({ optional: true, maxLength: 120 })
+  triggeredBy?: string;
 }

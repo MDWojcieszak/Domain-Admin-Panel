@@ -61,7 +61,22 @@ describe('DeployWebhookService', () => {
         version: '0.3.0',
         digest: 'sha256:abc',
         trigger: ReleaseTrigger.WEBHOOK,
+        triggeredByLabel: 'webhook',
       });
+    });
+
+    it('names the caller in the release when the payload says who it is', async () => {
+      await service.handle('photo-gallery-backend', SECRET, {
+        version: 'abc1234',
+        triggeredBy: '  GitHub Actions · alice · abc1234 ',
+      });
+
+      expect(releases.create).toHaveBeenCalledWith(
+        'app-1',
+        expect.objectContaining({
+          triggeredByLabel: 'webhook · GitHub Actions · alice · abc1234',
+        }),
+      );
     });
 
     // No human approved a diff here, so there is no hash to echo back.

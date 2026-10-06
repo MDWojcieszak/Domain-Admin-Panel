@@ -45,6 +45,10 @@ export class ReleaseResponse {
   @IsNested({ type: ReleaseActorResponse, optional: true, nullable: true })
   triggeredBy: ReleaseActorResponse | null;
 
+  /** What started it when no user did — "webhook · GitHub Actions · …". */
+  @IsString({ optional: true, nullable: true })
+  triggeredByLabel: string | null;
+
   @IsDate({ format: 'date-time' })
   createdAt: Date;
 

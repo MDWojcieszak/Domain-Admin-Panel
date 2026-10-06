@@ -47,6 +47,7 @@ const PROCESS_SELECT = {
   startedBy: {
     select: { id: true, email: true, firstName: true, lastName: true },
   },
+  startedByLabel: true,
   category: { select: { id: true, name: true } },
   startedAt: true,
   stoppedAt: true,

@@ -1357,8 +1357,12 @@ model Process {
   stoppedAt DateTime?
   name      String
 
-  startedBy   User   @relation(fields: [startedById], references: [id])
-  startedById String
+  // Null when nobody started it: a deployment from a webhook, a schedule,
+  // an automatic update or an automatic rollback has no user behind it.
+  startedBy      User?   @relation(fields: [startedById], references: [id])
+  startedById    String?
+  /// What started it when no user did: "webhook · GitHub Actions · alice · abc1234", "automatic update".
+  startedByLabel String?
 
   category   ServerCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction)
   categoryId String?
@@ -2738,9 +2742,11 @@ model Release {
   homelabCommit     String? // commit in the homelab repo
   previousReleaseId String? // rollback target (no FK — the predecessor may be deleted)
 
-  triggeredBy   User?          @relation(fields: [triggeredById], references: [id], onDelete: SetNull)
-  triggeredById String?
-  trigger       ReleaseTrigger @default(MANUAL)
+  triggeredBy      User?          @relation(fields: [triggeredById], references: [id], onDelete: SetNull)
+  triggeredById    String?
+  /// Who or what triggered it when no user did — see Process.startedByLabel.
+  triggeredByLabel String?
+  trigger          ReleaseTrigger @default(MANUAL)
 
   failureReason String?
 

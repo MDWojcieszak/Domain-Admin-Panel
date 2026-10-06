@@ -52,6 +52,7 @@ const RELEASE_SELECT = {
   deployedAt: true,
   processId: true,
   triggeredBy: { select: { id: true, email: true } },
+  triggeredByLabel: true,
 } satisfies Prisma.ReleaseSelect;
 
 /**

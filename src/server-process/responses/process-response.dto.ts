@@ -51,6 +51,10 @@ export class ProcessResponseDto {
   @IsNested({ type: User, optional: true })
   startedBy?: User;
 
+  /** What started it when no user did: a webhook, an automatic update… */
+  @IsString({ optional: true, nullable: true })
+  startedByLabel?: string | null;
+
   @IsNested({ type: Category, optional: true })
   category?: Category;
 }

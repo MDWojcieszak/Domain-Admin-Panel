@@ -46,7 +46,25 @@ export interface ReleaseRequest {
   trigger?: ReleaseTrigger;
   /** GIT applications: commit sha or tag; absent follows the branch head. */
   ref?: string;
+  /**
+   * Who or what started it, in words, when no user did — e.g. the CI run
+   * behind a webhook. Falls back to the trigger's own name.
+   */
+  triggeredByLabel?: string;
 }
+
+/**
+ * What the panel shows as "started by" for a deployment with no user behind
+ * it. A user-started one shows the user and stores no label.
+ */
+const TRIGGER_LABEL: Record<ReleaseTrigger, string> = {
+  MANUAL: 'panel',
+  WEBHOOK: 'webhook',
+  SCHEDULE: 'schedule',
+  AUTO_UPDATE: 'automatic update',
+  ROLLBACK: 'rollback',
+  AUTO_ROLLBACK: 'automatic rollback',
+};
 
 /** Releases stuck this long without a result are declared unknown (§6.4). */
 const STALE_AFTER_MS = 30 * 60 * 1000;
@@ -479,6 +497,13 @@ export class ReleaseService {
     actorId?: string,
     previousReleaseId?: string,
   ): Promise<{ releaseId: string; processId: string }> {
+    const trigger = dto.trigger ?? ReleaseTrigger.MANUAL;
+    // A user is recorded as a user; anything else as words, never as a
+    // made-up account — that would show up in permissions and the audit trail.
+    const label = actorId
+      ? null
+      : (dto.triggeredByLabel ?? TRIGGER_LABEL[trigger]);
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         const process = await tx.process.create({
@@ -486,7 +511,8 @@ export class ReleaseService {
             name: `deploy ${application.slug}`,
             status: ServerProcessStatus.STARTED,
             progress: 0,
-            startedById: actorId as string,
+            startedById: actorId ?? null,
+            startedByLabel: label,
           },
         });
 
@@ -501,7 +527,8 @@ export class ReleaseService {
             renderedEnvKeys: envKeys,
             previousReleaseId: previousReleaseId ?? null,
             triggeredById: actorId ?? null,
-            trigger: dto.trigger ?? ReleaseTrigger.MANUAL,
+            triggeredByLabel: label,
+            trigger,
           },
         });
 

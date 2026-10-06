@@ -132,6 +132,9 @@ export class DeployWebhookService {
       diff: {
         version: { from: null, to: dto.version ?? null },
         digest: { from: null, to: dto.digest ?? null },
+        ...(dto.triggeredBy
+          ? { triggeredBy: { from: null, to: dto.triggeredBy } }
+          : {}),
       },
     });
 
@@ -142,6 +145,9 @@ export class DeployWebhookService {
       version: dto.version,
       digest: dto.digest,
       trigger: ReleaseTrigger.WEBHOOK,
+      triggeredByLabel: dto.triggeredBy?.trim()
+        ? `webhook · ${dto.triggeredBy.trim()}`
+        : 'webhook',
     });
   }
 

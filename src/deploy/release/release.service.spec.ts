@@ -5,6 +5,7 @@ import {
   BuildMode,
   Prisma,
   ReleaseStatus,
+  ReleaseTrigger,
 } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -187,6 +188,60 @@ describe('ReleaseService', () => {
         service.create('app-1', { composeHash: 'hash-abc', ref: 'v1.4.0' }),
       ).rejects.toThrow(BadRequestException);
       expect(agent.sendDeploy).not.toHaveBeenCalled();
+    });
+
+    // A webhook, a schedule or an automatic update has no user behind it. The
+    // process used to be created with `startedById: undefined`, which the
+    // database refused — every automatic deployment ended in a 500.
+    it('starts a deployment nobody triggered by hand, with no user on the process', async () => {
+      const tx = {
+        process: { create: jest.fn().mockResolvedValue({ id: 'proc-1' }) },
+        release: { create: jest.fn().mockResolvedValue({ id: 'rel-1' }) },
+      };
+      prisma.$transaction = transaction(tx);
+
+      await service.create('app-1', {
+        version: 'abc1234',
+        trigger: ReleaseTrigger.WEBHOOK,
+      });
+
+      expect(tx.process.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          startedById: null,
+          startedByLabel: 'webhook',
+        }),
+      });
+      expect(tx.release.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ triggeredByLabel: 'webhook' }),
+      });
+      expect(agent.sendDeploy).toHaveBeenCalledTimes(1);
+    });
+
+    it('records what started it in words, and a user as a user only', async () => {
+      const tx = {
+        process: { create: jest.fn().mockResolvedValue({ id: 'proc-1' }) },
+        release: { create: jest.fn().mockResolvedValue({ id: 'rel-1' }) },
+      };
+      prisma.$transaction = transaction(tx);
+
+      await service.create('app-1', {
+        version: 'abc1234',
+        trigger: ReleaseTrigger.WEBHOOK,
+        triggeredByLabel: 'webhook · GitHub Actions · alice · abc1234',
+      });
+      expect(tx.process.create).toHaveBeenLastCalledWith({
+        data: expect.objectContaining({
+          startedByLabel: 'webhook · GitHub Actions · alice · abc1234',
+        }),
+      });
+
+      await service.create('app-1', { composeHash: 'hash-abc' }, 'user-1');
+      expect(tx.process.create).toHaveBeenLastCalledWith({
+        data: expect.objectContaining({
+          startedById: 'user-1',
+          startedByLabel: null,
+        }),
+      });
     });
 
     // I4 — armed before the agent can emit a single line, otherwise the first
