@@ -201,10 +201,15 @@ export class ReleaseService {
    * Stops a release that has not finished: it never reached the agent, the
    * agent is stuck on it, or the operator simply changed their mind.
    *
-   * The database decides, not the agent. The release is cancelled here at
-   * once, which frees the application for the next deployment (I13); the
-   * agent is then asked to kill whatever step it is running. If the agent
-   * reports a result afterwards, it is ignored like any late result.
+   * Two steps, because the agent may still be working: killing a compose step,
+   * cloning, waiting out a health gate, or not yet aware of the cancel at all.
+   * The release goes to CANCELLING, which still holds the application (I13), so
+   * no second deployment of the same stack can start beside the first. It
+   * becomes CANCELLED when the agent reports how it stopped — or, if the agent
+   * stays silent, when sweepStale gives up on it.
+   *
+   * The secrets stay armed for redaction until then: the agent keeps writing
+   * log lines until it has actually stopped.
    */
   async cancel(releaseId: string, actorId?: string): Promise<void> {
     const release = await this.prisma.release.findUnique({
@@ -224,36 +229,35 @@ export class ReleaseService {
       ReleaseStatus.DEPLOYING,
       ReleaseStatus.DEFERRED,
     ];
+    if (release.status === ReleaseStatus.CANCELLING) {
+      throw new ConflictException(
+        'This release is already being cancelled; waiting for the agent to stop it.',
+      );
+    }
     if (!running.includes(release.status)) {
       throw new ConflictException(
         `Release is already ${release.status.toLowerCase()}; there is nothing to cancel.`,
       );
     }
 
-    const reason = 'Cancelled from the panel.';
+    const reason = 'Cancel requested from the panel; waiting for the agent.';
     await this.prisma.release.update({
       where: { id: releaseId },
-      data: { status: ReleaseStatus.CANCELLED, failureReason: reason },
+      data: { status: ReleaseStatus.CANCELLING, failureReason: reason },
     });
-    if (release.processId) {
-      await this.prisma.process.update({
-        where: { id: release.processId },
-        data: { status: ServerProcessStatus.FAILED },
-      });
-    }
 
-    if (release.processId) this.redaction.forget(release.processId);
     this.emit(
       release.applicationId,
       releaseId,
-      ReleaseStatus.CANCELLED,
+      ReleaseStatus.CANCELLING,
       reason,
     );
 
     try {
       await this.agent.cancelDeploy(releaseId);
     } catch (error) {
-      // Already cancelled where it matters; the agent finds out or times out.
+      // The release stays CANCELLING: the agent stops it when the message gets
+      // through, and sweepStale settles it if it never does.
       this.logger.warn(
         `Could not tell the agent to cancel ${releaseId}: ${
           error instanceof Error ? error.message : 'unknown error'
@@ -267,7 +271,7 @@ export class ReleaseService {
       entityType: 'Application',
       entityId: release.applicationId,
       entityName: release.application.slug,
-      diff: { status: { from: release.status, to: ReleaseStatus.CANCELLED } },
+      diff: { status: { from: release.status, to: ReleaseStatus.CANCELLING } },
     });
   }
 
@@ -291,7 +295,10 @@ export class ReleaseService {
       return;
     }
 
-    if (release.status !== ReleaseStatus.DEPLOYING) {
+    if (
+      release.status !== ReleaseStatus.DEPLOYING &&
+      release.status !== ReleaseStatus.CANCELLING
+    ) {
       this.logger.log(
         `Ignoring result for release ${dto.releaseId}: already ${release.status}`,
       );
@@ -302,7 +309,20 @@ export class ReleaseService {
       // I15 — a successful command is not a successful release. The health gate
       // decides, because `compose up` exiting 0 only means containers started.
       if (dto.success && dto.healthy) {
+        // Also when it was being cancelled: the cancel arrived too late and the
+        // new release is what runs now. Recording it as cancelled would leave
+        // the panel describing containers that are not there.
+        if (release.status === ReleaseStatus.CANCELLING) {
+          this.logger.warn(
+            `Release ${release.id} finished before the cancel reached it`,
+          );
+        }
         await this.succeed(release.id, release.applicationId, dto);
+        return;
+      }
+
+      if (release.status === ReleaseStatus.CANCELLING) {
+        await this.settleCancelled(release, dto.failureReason);
         return;
       }
 
@@ -409,21 +429,31 @@ export class ReleaseService {
 
     const stale = await this.prisma.release.findMany({
       where: {
-        status: { in: [ReleaseStatus.PENDING, ReleaseStatus.DEPLOYING] },
+        status: {
+          in: [
+            ReleaseStatus.PENDING,
+            ReleaseStatus.DEPLOYING,
+            ReleaseStatus.CANCELLING,
+          ],
+        },
         createdAt: { lt: cutoff },
       },
-      select: { id: true, applicationId: true },
+      select: { id: true, applicationId: true, status: true, processId: true },
     });
 
     for (const release of stale) {
+      // A cancel the agent never confirmed is UNKNOWN too, not CANCELLED: the
+      // deployment may have run to the end before the message got through.
+      const failureReason =
+        release.status === ReleaseStatus.CANCELLING
+          ? 'Cancel was requested, but the agent never confirmed it stopped; the outcome is unknown.'
+          : 'No result arrived within the deployment timeout; the outcome is unknown.';
+
       await this.prisma.release.update({
         where: { id: release.id },
-        data: {
-          status: ReleaseStatus.UNKNOWN,
-          failureReason:
-            'No result arrived within the deployment timeout; the outcome is unknown.',
-        },
+        data: { status: ReleaseStatus.UNKNOWN, failureReason },
       });
+      if (release.processId) this.redaction.forget(release.processId);
       this.emit(release.applicationId, release.id, ReleaseStatus.UNKNOWN);
     }
 
@@ -530,6 +560,42 @@ export class ReleaseService {
 
     this.emit(applicationId, releaseId, ReleaseStatus.ACTIVE);
     this.logger.log(`Release ${releaseId} is active`);
+  }
+
+  /**
+   * The agent has stopped a release that was being cancelled. Only now is the
+   * application free again: CANCELLED is outside the in-flight index (I13).
+   *
+   * Not a failure notification — the operator asked for this. The agent's own
+   * reason is kept, because a cancel in the middle of `up` leaves a stack that
+   * is partly the new release, and that is worth knowing.
+   */
+  private async settleCancelled(
+    release: { id: string; applicationId: string; processId: string | null },
+    agentReason?: string | null,
+  ): Promise<void> {
+    const reason = agentReason
+      ? `Cancelled from the panel. The agent stopped at: ${agentReason}`
+      : 'Cancelled from the panel.';
+
+    await this.prisma.release.update({
+      where: { id: release.id },
+      data: { status: ReleaseStatus.CANCELLED, failureReason: reason },
+    });
+    if (release.processId) {
+      await this.prisma.process.update({
+        where: { id: release.processId },
+        data: { status: ServerProcessStatus.FAILED },
+      });
+    }
+
+    this.emit(
+      release.applicationId,
+      release.id,
+      ReleaseStatus.CANCELLED,
+      reason,
+    );
+    this.logger.log(`Release ${release.id} cancelled`);
   }
 
   private async fail(releaseId: string, reason: string): Promise<void> {

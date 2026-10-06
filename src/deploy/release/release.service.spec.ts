@@ -283,7 +283,9 @@ describe('ReleaseService', () => {
         application: { slug: APP.slug },
       });
 
-    it('cancels a stuck release at once, freeing the application', async () => {
+    // I13 — the agent may still be running a step, so the application stays
+    // held until it confirms; a second deployment must not start beside it.
+    it('holds the application in CANCELLING until the agent confirms', async () => {
       inFlight(ReleaseStatus.DEPLOYING);
 
       await service.cancel('rel-1', 'user-1');
@@ -291,14 +293,29 @@ describe('ReleaseService', () => {
       expect(prisma.release.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'rel-1' },
-          data: expect.objectContaining({ status: ReleaseStatus.CANCELLED }),
+          data: expect.objectContaining({ status: ReleaseStatus.CANCELLING }),
         }),
       );
-      expect(prisma.process.update).toHaveBeenCalledWith({
-        where: { id: 'proc-1' },
-        data: { status: 'FAILED' },
-      });
       expect(agent.cancelDeploy).toHaveBeenCalledWith('rel-1');
+      expect(prisma.process.update).not.toHaveBeenCalled();
+    });
+
+    // I4 — the agent keeps writing log lines until it has actually stopped.
+    it('keeps the secrets armed for redaction while the agent stops', async () => {
+      inFlight(ReleaseStatus.DEPLOYING);
+
+      await service.cancel('rel-1');
+
+      expect(redaction.forget).not.toHaveBeenCalled();
+    });
+
+    it('refuses a second cancel of a release already being cancelled', async () => {
+      inFlight(ReleaseStatus.CANCELLING);
+
+      await expect(service.cancel('rel-1')).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(agent.cancelDeploy).not.toHaveBeenCalled();
     });
 
     it('still cancels when the agent cannot be told', async () => {
@@ -316,6 +333,84 @@ describe('ReleaseService', () => {
         ConflictException,
       );
       expect(agent.cancelDeploy).not.toHaveBeenCalled();
+    });
+
+    describe('when the agent reports back', () => {
+      const cancelling = {
+        id: 'rel-1',
+        status: ReleaseStatus.CANCELLING,
+        applicationId: APP.id,
+        processId: 'proc-1',
+      };
+
+      it('settles a stopped release as CANCELLED and frees its secrets', async () => {
+        prisma.release.findUnique.mockResolvedValue(cancelling);
+
+        await service.applyResult({
+          releaseId: 'rel-1',
+          success: false,
+          healthy: false,
+          failureReason: 'cancelled while running: docker compose pull',
+        });
+
+        expect(prisma.release.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: ReleaseStatus.CANCELLED,
+              failureReason: expect.stringContaining('docker compose pull'),
+            }),
+          }),
+        );
+        expect(prisma.process.update).toHaveBeenCalledWith({
+          where: { id: 'proc-1' },
+          data: { status: 'FAILED' },
+        });
+        expect(redaction.forget).toHaveBeenCalledWith('proc-1');
+        expect(notifications.releaseFailed).not.toHaveBeenCalled();
+      });
+
+      // The cancel arrived too late: the new release is what runs now.
+      it('promotes a release that finished healthy before the cancel landed', async () => {
+        const tx = {
+          release: {
+            update: jest.fn().mockResolvedValue({}),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+          application: { update: jest.fn().mockResolvedValue({}) },
+        };
+        prisma.$transaction = transaction(tx);
+        prisma.release.findUnique.mockResolvedValue(cancelling);
+
+        await service.applyResult({
+          releaseId: 'rel-1',
+          success: true,
+          healthy: true,
+        });
+
+        expect(tx.release.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ status: ReleaseStatus.ACTIVE }),
+          }),
+        );
+      });
+
+      it('gives up on a cancel the agent never confirmed, as UNKNOWN', async () => {
+        prisma.release.findMany.mockResolvedValue([
+          { ...cancelling, createdAt: new Date(0) },
+        ]);
+
+        await service.sweepStale();
+
+        expect(prisma.release.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: ReleaseStatus.UNKNOWN,
+              failureReason: expect.stringContaining('never confirmed'),
+            }),
+          }),
+        );
+        expect(redaction.forget).toHaveBeenCalledWith('proc-1');
+      });
     });
   });
 
