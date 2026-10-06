@@ -239,6 +239,14 @@ channels:
       x-interaction: event
       message:
         $ref: '#/components/messages/ContainersSnapshotRequestEvent'
+  deploy.cancel:
+    description: 'Direction: Backend → Server. Stop a running or queued deployment.'
+    subscribe:
+      operationId: send_deploy_cancel
+      x-direction: backend->server
+      x-interaction: event
+      message:
+        $ref: '#/components/messages/DeployCancelEvent'
   deploy.execute:
     description: >-
       Direction: Backend → Server. Materialise the stack files and run a
@@ -428,6 +436,12 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/ContainersSnapshotRequestEvent'
+    DeployCancelEvent:
+      name: DeployCancelEvent
+      title: DeployCancelEvent
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/DeployCancelEvent'
     DeployCommandEvent:
       name: DeployCommandEvent
       title: DeployCommandEvent
@@ -1059,6 +1073,13 @@ components:
           type: string
       required:
         - reason
+    DeployCancelEvent:
+      type: object
+      properties:
+        releaseId:
+          type: string
+      required:
+        - releaseId
     BuildMode:
       type: string
       enum:
