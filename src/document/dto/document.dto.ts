@@ -97,3 +97,9 @@ export class DocumentFileQueryDto {
   @IsString({ optional: true })
   download?: string;
 }
+
+/** Just the image. */
+export class BomPhotoUploadDto {
+  @ApiProperty({ type: 'string', format: 'binary' })
+  file: unknown;
+}

@@ -40,6 +40,11 @@ import { TaskService } from './task.service';
     TaskReminderService,
     TaskService,
   ],
-  exports: [ProjectAccessService, ProjectEventsService, ProjectService],
+  exports: [
+    ProjectAccessService,
+    ProjectEventsService,
+    ProjectService,
+    BomService,
+  ],
 })
 export class ProjectModule {}

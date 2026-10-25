@@ -1,4 +1,4 @@
-import { BomStatus } from '@prisma/client';
+import { BomPartKind, BomStatus } from '@prisma/client';
 import { IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
 
 // — bill of materials —
@@ -6,6 +6,10 @@ import { IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
 export class CreateBomItemDto {
   @IsString({ minLength: 1, maxLength: 300 })
   name: string;
+
+  /** What the part is (screw, enclosure, sensor…); OTHER when not said. */
+  @IsEnum({ enum: { BomPartKind }, optional: true })
+  kind?: BomPartKind;
 
   @IsNumber({ optional: true, min: 0 })
   quantity?: number;
@@ -51,6 +55,10 @@ export class UpdateBomItemDto {
   @IsString({ optional: true, minLength: 1, maxLength: 300 })
   name?: string;
 
+  /** What the part is (screw, enclosure, sensor…); OTHER when not said. */
+  @IsEnum({ enum: { BomPartKind }, optional: true })
+  kind?: BomPartKind;
+
   @IsNumber({ optional: true, min: 0 })
   quantity?: number;
 
@@ -87,6 +95,12 @@ export class UpdateBomItemDto {
 
   @IsString({ optional: true, nullable: true })
   gearItemId?: string | null;
+}
+
+/** One of the part's own pinned images, as its photo. */
+export class SetBomPhotoDto {
+  @IsString()
+  documentId: string;
 }
 
 /** Ordered, have, used: a viewer may do this when the project lets them tick. */

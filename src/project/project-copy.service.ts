@@ -182,6 +182,7 @@ export class ProjectCopyService {
           id: bomIds.get(b.id)!,
           projectId,
           name: b.name,
+          kind: b.kind,
           quantity: b.quantity,
           unit: b.unit,
           status: BomStatus.NEEDED,
@@ -191,6 +192,8 @@ export class ProjectCopyService {
           url: b.url,
           note: b.note,
           gearItemId: b.gearItemId,
+          // The photo travels only with your own image, as the pins do.
+          photoId: b.photoId && owned.has(b.photoId) ? b.photoId : null,
           order: b.order,
         })),
       }),

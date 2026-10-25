@@ -254,3 +254,13 @@ export const documentIdFromFile = (
 ): string | null =>
   (folder === 'original' ? ORIGINAL_FILE : PREVIEW_FILE).exec(name)?.[1] ??
   null;
+
+/** The API path of a signed document file; the panel prefixes the API's address. */
+export const signedDocumentPath = (
+  secret: string,
+  id: string,
+  variant: DocumentVariant,
+  exp: number,
+  download = false,
+) =>
+  `/documents/${id}/file?variant=${variant}&exp=${exp}&sig=${signDocument(secret, id, variant, exp)}${download ? '&download=1' : ''}`;

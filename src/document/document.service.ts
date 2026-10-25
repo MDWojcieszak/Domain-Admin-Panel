@@ -33,7 +33,7 @@ import {
   documentUrlExpiry,
   isInlineSafe,
   PREVIEW_WIDTH,
-  signDocument,
+  signedDocumentPath,
   SNIFF_BYTES,
   titleFromName,
   verifyDocument,
@@ -350,6 +350,14 @@ export class DocumentService {
     }
 
     await this.prisma.documentLink.delete({ where: { id: linkId } });
+    if (link.bomItemId) {
+      // A photo is only shown while it is pinned to its part (its URL is
+      // handed to whoever sees the part).
+      await this.prisma.bomItem.updateMany({
+        where: { id: link.bomItemId, photoId: id },
+        data: { photoId: null },
+      });
+    }
     this.announce(userId, [this.toLink(link)]);
     // Unpinning from the last place you could see it from hides it from you.
     return this.get(userId, id).catch(() => null);
@@ -397,6 +405,32 @@ export class DocumentService {
         document.originalName,
       ),
     };
+  }
+
+  // — a part's photo —
+
+  /**
+   * Uploads an image as a part's photo: a document pinned to the part, set as
+   * what the parts list shows. Anything but an image is refused, and a file
+   * made only for this goes again.
+   */
+  async uploadBomPhoto(
+    userId: string,
+    itemId: string,
+    file: Express.Multer.File | undefined,
+  ): Promise<string> {
+    const { document, duplicate } = await this.upload(userId, file, {
+      bomItemId: itemId,
+    } as UploadDocumentDto);
+    if (document.kind !== 'IMAGE' || !document.thumbUrl) {
+      if (!duplicate) await this.remove(userId, document.id);
+      throw new BadRequestException('A part photo has to be an image.');
+    }
+    await this.prisma.bomItem.update({
+      where: { id: itemId },
+      data: { photoId: document.id },
+    });
+    return document.id;
   }
 
   // — upkeep —
@@ -679,8 +713,7 @@ export class DocumentService {
     exp: number,
     download = false,
   ) {
-    const sig = signDocument(this.requireSecret(), id, variant, exp);
-    return `/documents/${id}/file?variant=${variant}&exp=${exp}&sig=${sig}${download ? '&download=1' : ''}`;
+    return signedDocumentPath(this.requireSecret(), id, variant, exp, download);
   }
 
   private toLink(link: LinkRow): DocumentLinkResponse {

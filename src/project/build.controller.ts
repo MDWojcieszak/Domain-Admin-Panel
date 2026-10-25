@@ -16,6 +16,7 @@ import {
   CreateBomItemDto,
   CreateJournalEntryDto,
   ReorderIdsDto,
+  SetBomPhotoDto,
   SetBomStatusDto,
   UpdateBomItemDto,
   UpdateJournalEntryDto,
@@ -87,6 +88,26 @@ export class BuildController {
     @Body() dto: SetBomStatusDto,
   ): Promise<BomResponse> {
     return this.bom.setStatus(userId, itemId, dto.status);
+  }
+
+  /** One of the part's own pinned images becomes its photo. */
+  @Put('bom/:itemId/photo')
+  @ApiOkResponse({ type: BomResponse })
+  setBomPhoto(
+    @GetCurrentUser('sub') userId: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: SetBomPhotoDto,
+  ): Promise<BomResponse> {
+    return this.bom.setPhoto(userId, itemId, dto.documentId);
+  }
+
+  @Delete('bom/:itemId/photo')
+  @ApiOkResponse({ type: BomResponse })
+  clearBomPhoto(
+    @GetCurrentUser('sub') userId: string,
+    @Param('itemId') itemId: string,
+  ): Promise<BomResponse> {
+    return this.bom.clearPhoto(userId, itemId);
   }
 
   @Delete('bom/:itemId')

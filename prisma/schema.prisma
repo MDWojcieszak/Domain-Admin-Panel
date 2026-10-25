@@ -3008,7 +3008,9 @@ model Document {
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId String
 
-  links DocumentLink[]
+  links     DocumentLink[]
+  /// Parts that show this image as their photo.
+  bomPhotos BomItem[]      @relation("BomItemPhoto")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3060,6 +3062,114 @@ enum BomStatus {
   USED
 }
 
+/// What a part is, for grouping the list. The panel groups these further
+/// (fasteners, mechanical, motion, electronics, optics, materials,
+/// consumables, tools); the database keeps the plain kind.
+enum BomPartKind {
+  // fasteners
+  SCREW
+  BOLT
+  NUT
+  WASHER
+  THREADED_INSERT
+  RIVET
+  STANDOFF
+  PIN
+  CLIP
+  ANCHOR
+  // mechanical
+  ENCLOSURE
+  BRACKET
+  PLATE
+  PROFILE
+  TUBE
+  ROD
+  SHAFT
+  BEARING
+  BUSHING
+  GEAR
+  BELT
+  PULLEY
+  SPRING
+  HINGE
+  HANDLE
+  KNOB
+  FOOT
+  SEAL
+  // motion
+  MOTOR
+  STEPPER_MOTOR
+  SERVO
+  LINEAR_ACTUATOR
+  LEADSCREW
+  LINEAR_RAIL
+  COUPLER
+  // electronics
+  PCB
+  MICROCONTROLLER
+  MODULE
+  SENSOR
+  MOTOR_DRIVER
+  POWER_SUPPLY
+  BATTERY
+  CHARGER
+  CONNECTOR
+  CABLE
+  WIRE
+  SWITCH
+  BUTTON
+  RELAY
+  FUSE
+  LED
+  DISPLAY
+  RESISTOR
+  CAPACITOR
+  INDUCTOR
+  DIODE
+  TRANSISTOR
+  IC
+  CRYSTAL
+  ANTENNA
+  HEATSINK
+  FAN
+  HEATER
+  // optics and photo
+  LENS
+  FILTER
+  MIRROR
+  PRISM
+  CAMERA
+  CAMERA_ACCESSORY
+  // materials
+  FILAMENT
+  RESIN
+  PRINTED_PART
+  WOOD
+  METAL_STOCK
+  PLASTIC_STOCK
+  GLASS
+  FOAM
+  RUBBER
+  FABRIC
+  LEATHER
+  // consumables
+  ADHESIVE
+  TAPE
+  PAINT
+  LUBRICANT
+  SOLDER
+  FLUX
+  HEAT_SHRINK
+  CABLE_TIE
+  SANDPAPER
+  // tools and services
+  TOOL
+  TOOL_BIT
+  SOFTWARE
+  SERVICE
+  OTHER
+}
+
 /// One line of a build's bill of materials.
 model BomItem {
   id String @id @default(uuid())
@@ -3068,9 +3178,10 @@ model BomItem {
   projectId String
 
   name     String
-  quantity Decimal   @default(1) @db.Decimal(12, 3)
+  kind     BomPartKind @default(OTHER)
+  quantity Decimal     @default(1) @db.Decimal(12, 3)
   unit     String?
-  status   BomStatus @default(NEEDED)
+  status   BomStatus   @default(NEEDED)
 
   /// Price of one unit; the line's cost is computed, never stored (I5).
   unitPrice Decimal? @db.Decimal(12, 2)
@@ -3082,6 +3193,10 @@ model BomItem {
   /// A piece of gear this part is, or becomes.
   gearItem   GearItem? @relation(fields: [gearItemId], references: [id], onDelete: SetNull)
   gearItemId String?
+
+  /// The part's own photo: an image document pinned to the part, shown in the list.
+  photo   Document? @relation("BomItemPhoto", fields: [photoId], references: [id], onDelete: SetNull)
+  photoId String?
 
   order Int @default(0)
 

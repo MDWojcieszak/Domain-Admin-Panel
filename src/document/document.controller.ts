@@ -40,7 +40,7 @@ import {
 import { DocumentResponse, UploadDocumentResponse } from './responses';
 
 /** Straight to disk: a 200 MB model never sits in memory. */
-const uploadStorage = diskStorage({
+export const uploadStorage = diskStorage({
   destination: (_req, _file, done) => {
     try {
       mkdirSync(DOCUMENT_TMP_DIR, { recursive: true });

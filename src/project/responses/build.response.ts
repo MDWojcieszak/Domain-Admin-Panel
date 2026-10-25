@@ -1,4 +1,4 @@
-import { BomStatus, GearCategory } from '@prisma/client';
+import { BomPartKind, BomStatus, GearCategory } from '@prisma/client';
 import {
   IsBoolean,
   IsDate,
@@ -27,12 +27,27 @@ export class BomGearResponse {
   model: string;
 }
 
+/** A part's photo, through signed short-lived URLs like any document's. */
+export class BomPhotoResponse {
+  @IsString()
+  documentId: string;
+
+  @IsString()
+  thumbUrl: string;
+
+  @IsString()
+  previewUrl: string;
+}
+
 export class BomItemResponse {
   @IsString()
   id: string;
 
   @IsString()
   name: string;
+
+  @IsEnum({ enum: { BomPartKind } })
+  kind: BomPartKind;
 
   @IsNumber()
   quantity: number;
@@ -64,6 +79,9 @@ export class BomItemResponse {
 
   @IsNested({ type: BomGearResponse, optional: true, nullable: true })
   gearItem: BomGearResponse | null;
+
+  @IsNested({ type: BomPhotoResponse, optional: true, nullable: true })
+  photo: BomPhotoResponse | null;
 
   @IsNumber({ type: 'integer' })
   order: number;
