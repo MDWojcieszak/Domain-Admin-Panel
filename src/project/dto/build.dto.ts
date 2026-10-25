@@ -97,6 +97,19 @@ export class UpdateBomItemDto {
   gearItemId?: string | null;
 }
 
+/**
+ * The parts still NEEDED, onto a shopping list: an existing list project, or
+ * a new one when none is named.
+ */
+export class BomShoppingListDto {
+  @IsString({ optional: true })
+  targetProjectId?: string;
+
+  /** The new list's title; "Shopping: <build>" when omitted. */
+  @IsString({ optional: true, maxLength: 200 })
+  title?: string;
+}
+
 /** One of the part's own pinned images, as its photo. */
 export class SetBomPhotoDto {
   @IsString()

@@ -380,7 +380,11 @@ model Task {
 
   parentTaskId String?
   parentTask   Task?   @relation("Subtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
-  subtasks     Task[]  @relation("Subtasks")
+
+  /// A shopping-list line for this part: ticking the task off marks the part as at hand.
+  bomItem   BomItem? @relation("BomShopping", fields: [bomItemId], references: [id], onDelete: SetNull)
+  bomItemId String?
+  subtasks  Task[]   @relation("Subtasks")
 
   blocks    TaskBlock[] @relation("Blocks")
   blockedBy TaskBlock[] @relation("BlockedBy")
@@ -396,6 +400,7 @@ model Task {
 
   @@unique([projectId, number])
   @@index([projectId, statusId, order])
+  @@index([bomItemId])
   @@index([assigneeId])
   @@index([dueDate])
 }
@@ -3200,8 +3205,10 @@ model BomItem {
 
   order Int @default(0)
 
-  documents DocumentLink[]
-  comments  Comment[]
+  documents     DocumentLink[]
+  comments      Comment[]
+  /// Lines on shopping lists that buy this part.
+  shoppingTasks Task[]         @relation("BomShopping")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

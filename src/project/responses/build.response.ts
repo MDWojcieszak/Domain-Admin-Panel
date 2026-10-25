@@ -91,6 +91,10 @@ export class BomItemResponse {
 
   @IsNumber({ type: 'integer' })
   documentCount: number;
+
+  /** On a shopping list and not bought yet. */
+  @IsBoolean()
+  onShoppingList: boolean;
 }
 
 /** What a currency's parts cost, and what is still to buy (NEEDED). */
@@ -194,4 +198,17 @@ export class ProjectCommentResponse {
 
   @IsDate({ format: 'date-time' })
   createdAt: Date;
+}
+
+export class BomShoppingListResponse {
+  /** The list the parts went to. */
+  @IsString()
+  projectId: string;
+
+  @IsNumber({ type: 'integer' })
+  added: number;
+
+  /** Needed parts already waiting on a list. */
+  @IsNumber({ type: 'integer' })
+  alreadyListed: number;
 }

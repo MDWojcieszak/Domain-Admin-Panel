@@ -96,6 +96,16 @@ export class UpdateTaskDto {
 }
 
 /** Drag on the board: into a status column, at a position. */
+/** To another project: the inbox's way out, or a task that belongs elsewhere. */
+export class MoveTaskToProjectDto {
+  @IsString()
+  projectId: string;
+
+  /** In the target's workflow; the first status of the same category when omitted. */
+  @IsString({ optional: true })
+  statusId?: string;
+}
+
 export class MoveTaskDto {
   @IsString()
   statusId: string;

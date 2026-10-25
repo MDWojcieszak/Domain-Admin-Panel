@@ -169,3 +169,15 @@ export class TaskDetailResponse extends TaskResponse {
   @IsNested({ type: TaskParentRefResponse, optional: true, nullable: true })
   parent: TaskParentRefResponse | null;
 }
+
+export class MovedTaskResponse {
+  @IsNested({ type: TaskDetailResponse })
+  task: TaskDetailResponse;
+
+  /**
+   * Files pinned by someone else that stayed behind: only a document's owner
+   * takes it into another project (D8).
+   */
+  @IsNumber({ type: 'integer' })
+  droppedDocuments: number;
+}

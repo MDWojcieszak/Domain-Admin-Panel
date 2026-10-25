@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { GetCurrentUser } from '../common/decorators';
 import { BomService } from './bom.service';
 import {
+  BomShoppingListDto,
   CreateBomItemDto,
   CreateJournalEntryDto,
   ReorderIdsDto,
@@ -22,7 +23,11 @@ import {
   UpdateJournalEntryDto,
 } from './dto';
 import { JournalService } from './journal.service';
-import { BomResponse, JournalEntryResponse } from './responses';
+import {
+  BomResponse,
+  BomShoppingListResponse,
+  JournalEntryResponse,
+} from './responses';
 
 /**
  * What a build (DIY) project adds: its parts list and its work journal (D6).
@@ -57,6 +62,17 @@ export class BuildController {
     @Body() dto: CreateBomItemDto,
   ): Promise<BomResponse> {
     return this.bom.create(userId, projectId, dto);
+  }
+
+  /** Needed parts onto a shopping list, new or existing. */
+  @Post('projects/:id/bom/shopping-list')
+  @ApiOkResponse({ type: BomShoppingListResponse })
+  toShoppingList(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') projectId: string,
+    @Body() dto: BomShoppingListDto,
+  ): Promise<BomShoppingListResponse> {
+    return this.bom.toShoppingList(userId, projectId, dto);
   }
 
   @Put('projects/:id/bom/order')

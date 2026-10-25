@@ -6,11 +6,13 @@ import {
 import { Prisma, RepeatType, StatusCategory } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { BomService } from './bom.service';
 import {
   CreateChecklistItemDto,
   CreateTaskDto,
   ListTasksQueryDto,
   MoveTaskDto,
+  MoveTaskToProjectDto,
   MyTasksView,
   UpdateChecklistItemDto,
   UpdateTaskDto,
@@ -22,6 +24,7 @@ import { ProjectEventsService } from './project-events.service';
 import { USER_SELECT } from './project.service';
 import {
   ChecklistItemResponse,
+  MovedTaskResponse,
   TaskDetailResponse,
   TaskResponse,
 } from './responses';
@@ -59,6 +62,7 @@ export class TaskService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly events: ProjectEventsService,
+    private readonly bom: BomService,
   ) {}
 
   async list(
@@ -245,10 +249,120 @@ export class TaskService {
       );
     }
 
+    const before = current.status.category;
     await this.prisma.task.update({ where: { id: taskId }, data });
-    if (data.completedAt) await this.repeatAfterDone(taskId, userId);
+    if (data.statusId) {
+      const after = (await this.statusOf(project.id, data.statusId as string))
+        .category;
+      await this.afterCategoryChange(taskId, before, after, userId);
+    }
     this.notify(userId, project.id, taskId);
     return this.detail(taskId);
+  }
+
+  /**
+   * Into another project, with its subtasks, checklist and comments. Each
+   * gets the next number there and the first status of the same category;
+   * an assignee who is not in the target is dropped, and so are blocks with
+   * tasks left behind and pins of other people's files (D8).
+   */
+  async moveToProject(
+    userId: string,
+    taskId: string,
+    dto: MoveTaskToProjectDto,
+  ): Promise<MovedTaskResponse> {
+    const { project: source } = await this.access.assertTask(
+      userId,
+      taskId,
+      ProjectAccess.EDIT,
+    );
+    if (dto.projectId === source.id) {
+      throw new BadRequestException('The task is already in that project.');
+    }
+    await this.access.assert(userId, dto.projectId, ProjectAccess.EDIT);
+
+    const task = await this.prisma.task.findUniqueOrThrow({
+      where: { id: taskId },
+      include: {
+        status: true,
+        subtasks: { include: { status: true }, orderBy: { number: 'asc' } },
+      },
+    });
+    const moving = [task, ...task.subtasks];
+    const ids = moving.map((t) => t.id);
+
+    const target = await this.prisma.projectTaskStatus.findMany({
+      where: { projectId: dto.projectId },
+      orderBy: { order: 'asc' },
+    });
+    const chosen = dto.statusId
+      ? await this.statusOf(dto.projectId, dto.statusId)
+      : null;
+    const statusFor = (category: StatusCategory) =>
+      target.find((s) => s.category === category) ??
+      target.find((s) => s.category === StatusCategory.TODO)!;
+    const people = new Set(await this.access.audience(dto.projectId));
+
+    const pins = await this.prisma.documentLink.findMany({
+      where: { taskId: { in: ids } },
+      select: { id: true, document: { select: { ownerId: true } } },
+    });
+    const foreignPins = pins
+      .filter((p) => p.document.ownerId !== userId)
+      .map((p) => p.id);
+
+    await this.prisma.$transaction(async (tx) => {
+      const { taskCounter } = await tx.project.update({
+        where: { id: dto.projectId },
+        data: { taskCounter: { increment: moving.length } },
+        select: { taskCounter: true },
+      });
+      let number = taskCounter - moving.length;
+      for (const t of moving) {
+        const status =
+          t.id === task.id && chosen ? chosen : statusFor(t.status.category);
+        const last = await tx.task.findFirst({
+          where: { statusId: status.id },
+          orderBy: { order: 'desc' },
+          select: { order: true },
+        });
+        await tx.task.update({
+          where: { id: t.id },
+          data: {
+            projectId: dto.projectId,
+            number: ++number,
+            statusId: status.id,
+            order: (last?.order ?? -1) + 1,
+            // A moved subtask on its own becomes a task of its own there.
+            ...(t.id === task.id ? { parentTaskId: null } : {}),
+            ...(t.assigneeId && !people.has(t.assigneeId)
+              ? { assigneeId: null }
+              : {}),
+            ...completion(t.status.category, status.category, userId),
+          },
+        });
+      }
+      await tx.taskBlock.deleteMany({
+        where: {
+          OR: [
+            { blockerId: { in: ids }, blockedId: { notIn: ids } },
+            { blockedId: { in: ids }, blockerId: { notIn: ids } },
+          ],
+        },
+      });
+      if (foreignPins.length) {
+        await tx.documentLink.deleteMany({
+          where: { id: { in: foreignPins } },
+        });
+      }
+    });
+
+    this.notify(userId, source.id, taskId);
+    this.notify(userId, dto.projectId, taskId);
+    return {
+      task: await this.detail(taskId),
+      droppedDocuments: foreignPins.length,
+    };
   }
 
   /** Drag on the board: into a column, at a position; the column is renumbered. */
@@ -297,12 +411,12 @@ export class TaskService {
       }
     });
 
-    if (
-      target.category === StatusCategory.DONE &&
-      current.status.category !== StatusCategory.DONE
-    ) {
-      await this.repeatAfterDone(taskId, userId);
-    }
+    await this.afterCategoryChange(
+      taskId,
+      current.status.category,
+      target.category,
+      userId,
+    );
     this.notify(userId, project.id, taskId);
     return this.detail(taskId);
   }
@@ -354,9 +468,12 @@ export class TaskService {
         ...completion(current.status.category, target.category, actorId),
       },
     });
-    if (target.category === StatusCategory.DONE) {
-      await this.repeatAfterDone(taskId, actorId);
-    }
+    await this.afterCategoryChange(
+      taskId,
+      current.status.category,
+      target.category,
+      actorId,
+    );
 
     this.notify(actorId, projectId, taskId);
   }
@@ -574,6 +691,23 @@ export class TaskService {
    * a fresh copy due one step later (checklist unticked), so the done one
    * stays done and ticking it again never makes a second copy.
    */
+  /**
+   * What follows a task becoming done or undone: a repeating task hands its
+   * repeat on, a shopping-list line moves its part along.
+   */
+  private async afterCategoryChange(
+    taskId: string,
+    from: StatusCategory,
+    to: StatusCategory,
+    actorId: string | null,
+  ) {
+    const entered = to === StatusCategory.DONE && from !== StatusCategory.DONE;
+    const left = from === StatusCategory.DONE && to !== StatusCategory.DONE;
+    if (!entered && !left) return;
+    if (entered) await this.repeatAfterDone(taskId, actorId);
+    await this.bom.followShopping(taskId, entered, actorId);
+  }
+
   private async repeatAfterDone(taskId: string, actorId: string | null) {
     const task = await this.prisma.task.findUniqueOrThrow({
       where: { id: taskId },

@@ -15,6 +15,7 @@ import { GetCurrentUser } from '../common/decorators';
 import {
   CreateChecklistItemDto,
   MoveTaskDto,
+  MoveTaskToProjectDto,
   MyTasksQueryDto,
   ReorderIdsDto,
   UpdateChecklistItemDto,
@@ -22,6 +23,7 @@ import {
 } from './dto';
 import {
   ChecklistItemResponse,
+  MovedTaskResponse,
   TaskDetailResponse,
   TaskResponse,
 } from './responses';
@@ -72,6 +74,17 @@ export class TaskController {
     @Body() dto: MoveTaskDto,
   ): Promise<TaskDetailResponse> {
     return this.tasks.move(userId, id, dto);
+  }
+
+  /** Into another project: you need to edit both. */
+  @Post(':id/move-to-project')
+  @ApiOkResponse({ type: MovedTaskResponse })
+  moveToProject(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: MoveTaskToProjectDto,
+  ): Promise<MovedTaskResponse> {
+    return this.tasks.moveToProject(userId, id, dto);
   }
 
   /** Tick on or off; viewers too when the project lets them. */
