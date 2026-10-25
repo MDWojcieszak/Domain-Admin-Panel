@@ -59,7 +59,7 @@ const uploadStorage = diskStorage({
  */
 @ApiTags('Documents')
 @Controller('documents')
-export class DocumentController {
+export class DocumentLibraryController {
   constructor(private readonly documents: DocumentService) {}
 
   @Get()

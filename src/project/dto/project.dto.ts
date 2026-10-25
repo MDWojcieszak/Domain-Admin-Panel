@@ -115,7 +115,7 @@ export class UpdateProjectStatusDto {
   color?: string | null;
 }
 
-export class ReorderDto {
+export class ReorderIdsDto {
   /** Every id, in the new order. */
   @IsString({ isArray: true })
   ids: string[];

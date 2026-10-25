@@ -16,7 +16,7 @@ import {
   CreateChecklistItemDto,
   MoveTaskDto,
   MyTasksQueryDto,
-  ReorderDto,
+  ReorderIdsDto,
   UpdateChecklistItemDto,
   UpdateTaskDto,
 } from './dto';
@@ -109,7 +109,7 @@ export class TaskController {
   reorderChecklist(
     @GetCurrentUser('sub') userId: string,
     @Param('id') id: string,
-    @Body() dto: ReorderDto,
+    @Body() dto: ReorderIdsDto,
   ): Promise<ChecklistItemResponse[]> {
     return this.tasks.reorderChecklist(userId, id, dto.ids);
   }

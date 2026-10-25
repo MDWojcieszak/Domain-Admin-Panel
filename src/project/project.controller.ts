@@ -25,7 +25,7 @@ import {
   CreateTaskDto,
   ListProjectsQueryDto,
   ListTasksQueryDto,
-  ReorderDto,
+  ReorderIdsDto,
   UpdateProjectDto,
   UpdateProjectMemberDto,
   UpdateProjectStatusDto,
@@ -128,7 +128,7 @@ export class ProjectController {
   reorderStatuses(
     @GetCurrentUser('sub') userId: string,
     @Param('id') id: string,
-    @Body() dto: ReorderDto,
+    @Body() dto: ReorderIdsDto,
   ): Promise<ProjectStatusResponse[]> {
     return this.projects.reorderStatuses(userId, id, dto.ids);
   }
