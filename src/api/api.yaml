@@ -8604,7 +8604,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReorderDto'
+              $ref: '#/components/schemas/ReorderIdsDto'
       responses:
         '200':
           description: ''
@@ -9062,7 +9062,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReorderDto'
+              $ref: '#/components/schemas/ReorderIdsDto'
       responses:
         '200':
           description: ''
@@ -9185,9 +9185,221 @@ paths:
               schema:
                 $ref: '#/components/schemas/SharedProjectResponse'
       tags: *ref_87
-  /documents:
+  /projects/{id}/bom:
     get:
-      operationId: DocumentController_list
+      operationId: BuildController_listBom
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BomResponse'
+      tags: &ref_88
+        - Builds
+      security: &ref_89
+        - bearer: []
+    post:
+      operationId: BuildController_addBomItem
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBomItemDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BomResponse'
+      tags: *ref_88
+      security: *ref_89
+  /projects/{id}/bom/order:
+    put:
+      operationId: BuildController_reorderBom
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderIdsDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BomResponse'
+      tags: *ref_88
+      security: *ref_89
+  /bom/{itemId}:
+    patch:
+      operationId: BuildController_updateBomItem
+      parameters:
+        - name: itemId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBomItemDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BomResponse'
+      tags: *ref_88
+      security: *ref_89
+    delete:
+      operationId: BuildController_removeBomItem
+      parameters:
+        - name: itemId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BomResponse'
+      tags: *ref_88
+      security: *ref_89
+  /bom/{itemId}/status:
+    post:
+      operationId: BuildController_setBomStatus
+      parameters:
+        - name: itemId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetBomStatusDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BomResponse'
+      tags: *ref_88
+      security: *ref_89
+  /projects/{id}/journal:
+    get:
+      operationId: BuildController_listJournal
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JournalEntryResponse'
+      tags: *ref_88
+      security: *ref_89
+    post:
+      operationId: BuildController_addJournalEntry
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJournalEntryDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntryResponse'
+      tags: *ref_88
+      security: *ref_89
+  /journal/{entryId}:
+    patch:
+      operationId: BuildController_updateJournalEntry
+      parameters:
+        - name: entryId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJournalEntryDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntryResponse'
+      tags: *ref_88
+      security: *ref_89
+    delete:
+      operationId: BuildController_removeJournalEntry
+      parameters:
+        - name: entryId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_88
+      security: *ref_89
+  /comments:
+    get:
+      operationId: ProjectCommentController_list
       parameters:
         - name: projectId
           required: false
@@ -9195,6 +9407,108 @@ paths:
           schema:
             type: string
         - name: taskId
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: bomItemId
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: journalEntryId
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectCommentResponse'
+      tags: &ref_90
+        - Comments
+      security: &ref_91
+        - bearer: []
+    post:
+      operationId: ProjectCommentController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectCommentDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectCommentResponse'
+      tags: *ref_90
+      security: *ref_91
+  /comments/{id}:
+    patch:
+      operationId: ProjectCommentController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectCommentDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectCommentResponse'
+      tags: *ref_90
+      security: *ref_91
+    delete:
+      operationId: ProjectCommentController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_90
+      security: *ref_91
+  /documents:
+    get:
+      operationId: DocumentLibraryController_list
+      parameters:
+        - name: projectId
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: taskId
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: bomItemId
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: journalEntryId
           required: false
           in: query
           schema:
@@ -9219,12 +9533,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/DocumentResponse'
-      tags: &ref_88
+      tags: &ref_92
         - Documents
       security:
         - bearer: []
     post:
-      operationId: DocumentController_upload
+      operationId: DocumentLibraryController_upload
       summary: Upload any file to your library
       description: >-
         Optionally pinned to a project or task at once. The same file uploaded
@@ -9243,12 +9557,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadDocumentResponse'
-      tags: *ref_88
+      tags: *ref_92
       security:
         - bearer: []
   /documents/{id}:
     get:
-      operationId: DocumentController_get
+      operationId: DocumentLibraryController_get
       parameters:
         - name: id
           required: true
@@ -9262,11 +9576,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
-      tags: *ref_88
+      tags: *ref_92
       security:
         - bearer: []
     patch:
-      operationId: DocumentController_update
+      operationId: DocumentLibraryController_update
       parameters:
         - name: id
           required: true
@@ -9286,11 +9600,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
-      tags: *ref_88
+      tags: *ref_92
       security:
         - bearer: []
     delete:
-      operationId: DocumentController_remove
+      operationId: DocumentLibraryController_remove
       parameters:
         - name: id
           required: true
@@ -9300,12 +9614,12 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_88
+      tags: *ref_92
       security:
         - bearer: []
   /documents/{id}/links:
     post:
-      operationId: DocumentController_link
+      operationId: DocumentLibraryController_link
       parameters:
         - name: id
           required: true
@@ -9325,12 +9639,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
-      tags: *ref_88
+      tags: *ref_92
       security:
         - bearer: []
   /documents/{id}/links/{linkId}:
     delete:
-      operationId: DocumentController_unlink
+      operationId: DocumentLibraryController_unlink
       parameters:
         - name: id
           required: true
@@ -9349,12 +9663,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
-      tags: *ref_88
+      tags: *ref_92
       security:
         - bearer: []
   /documents/{id}/file:
     get:
-      operationId: DocumentController_file
+      operationId: DocumentLibraryController_file
       summary: A document file or preview (signed URL)
       description: >-
         Do not build this URL: take fileUrl / thumbUrl / previewUrl from the
@@ -9389,7 +9703,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_88
+      tags: *ref_92
 info:
   title: WHCP Backend
   description: XD
@@ -16936,12 +17250,12 @@ components:
     ReorderDto:
       type: object
       properties:
-        ids:
+        items:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/OrderItemDto'
       required:
-        - ids
+        - items
     PatchSectionDto:
       type: object
       properties:
@@ -20756,6 +21070,15 @@ components:
       required:
         - name
         - category
+    ReorderIdsDto:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+      required:
+        - ids
     UpdateProjectStatusDto:
       type: object
       properties:
@@ -21015,6 +21338,10 @@ components:
           $ref: '#/components/schemas/ChecklistCountResponse'
         subtaskCount:
           type: integer
+        commentCount:
+          type: integer
+        documentCount:
+          type: integer
         overdue:
           type: boolean
         createdAt:
@@ -21035,6 +21362,8 @@ components:
         - order
         - checklist
         - subtaskCount
+        - commentCount
+        - documentCount
         - overdue
         - createdAt
         - updatedAt
@@ -21167,6 +21496,10 @@ components:
           $ref: '#/components/schemas/ChecklistCountResponse'
         subtaskCount:
           type: integer
+        commentCount:
+          type: integer
+        documentCount:
+          type: integer
         overdue:
           type: boolean
         createdAt:
@@ -21199,6 +21532,8 @@ components:
         - order
         - checklist
         - subtaskCount
+        - commentCount
+        - documentCount
         - overdue
         - createdAt
         - updatedAt
@@ -21394,6 +21729,337 @@ components:
         - statuses
         - tasks
         - liveToken
+    BomStatus:
+      type: string
+      enum:
+        - NEEDED
+        - ORDERED
+        - HAVE
+        - USED
+    BomGearResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          $ref: '#/components/schemas/GearCategory'
+        brand:
+          type: string
+        model:
+          type: string
+      required:
+        - id
+        - category
+        - brand
+        - model
+    BomItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/BomStatus'
+        unitPrice:
+          type: number
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+        cost:
+          type: number
+          nullable: true
+        supplier:
+          type: string
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        gearItem:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/BomGearResponse'
+        order:
+          type: integer
+        commentCount:
+          type: integer
+        documentCount:
+          type: integer
+      required:
+        - id
+        - name
+        - quantity
+        - status
+        - order
+        - commentCount
+        - documentCount
+    BomCostResponse:
+      type: object
+      properties:
+        currency:
+          type: string
+          nullable: true
+        total:
+          type: number
+        toBuy:
+          type: number
+      required:
+        - total
+        - toBuy
+    BomSummaryResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        needed:
+          type: integer
+        ordered:
+          type: integer
+        have:
+          type: integer
+        used:
+          type: integer
+        costs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BomCostResponse'
+      required:
+        - total
+        - needed
+        - ordered
+        - have
+        - used
+        - costs
+    BomResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BomItemResponse'
+        summary:
+          $ref: '#/components/schemas/BomSummaryResponse'
+      required:
+        - items
+        - summary
+    CreateBomItemDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        quantity:
+          type: number
+          minimum: 0
+        unit:
+          type: string
+          maxLength: 30
+          nullable: true
+        status:
+          $ref: '#/components/schemas/BomStatus'
+        unitPrice:
+          type: number
+          minimum: 0
+          nullable: true
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          nullable: true
+        supplier:
+          type: string
+          maxLength: 200
+          nullable: true
+        url:
+          type: string
+          maxLength: 2000
+          pattern: ^https?:\/\/\S+$/
+          nullable: true
+        note:
+          type: string
+          maxLength: 5000
+          nullable: true
+        gearItemId:
+          type: string
+          nullable: true
+      required:
+        - name
+    UpdateBomItemDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        quantity:
+          type: number
+          minimum: 0
+        unit:
+          type: string
+          maxLength: 30
+          nullable: true
+        status:
+          $ref: '#/components/schemas/BomStatus'
+        unitPrice:
+          type: number
+          minimum: 0
+          nullable: true
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          nullable: true
+        supplier:
+          type: string
+          maxLength: 200
+          nullable: true
+        url:
+          type: string
+          maxLength: 2000
+          pattern: ^https?:\/\/\S+$/
+          nullable: true
+        note:
+          type: string
+          maxLength: 5000
+          nullable: true
+        gearItemId:
+          type: string
+          nullable: true
+    SetBomStatusDto:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/BomStatus'
+      required:
+        - status
+    JournalEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+        happenedAt:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/ProjectUserResponse'
+        canEdit:
+          type: boolean
+        commentCount:
+          type: integer
+        documentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - body
+        - happenedAt
+        - author
+        - canEdit
+        - commentCount
+        - documentCount
+        - createdAt
+        - updatedAt
+    CreateJournalEntryDto:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          nullable: true
+        body:
+          type: string
+          minLength: 1
+          maxLength: 50000
+        happenedAt:
+          type: string
+          format: date-time
+      required:
+        - body
+    UpdateJournalEntryDto:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          nullable: true
+        body:
+          type: string
+          minLength: 1
+          maxLength: 50000
+        happenedAt:
+          type: string
+          format: date-time
+    ProjectCommentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        body:
+          type: string
+        author:
+          $ref: '#/components/schemas/ProjectUserResponse'
+        canEdit:
+          type: boolean
+        canDelete:
+          type: boolean
+        editedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - body
+        - author
+        - canEdit
+        - canDelete
+        - createdAt
+    CreateProjectCommentDto:
+      type: object
+      properties:
+        projectId:
+          type: string
+        taskId:
+          type: string
+        bomItemId:
+          type: string
+        journalEntryId:
+          type: string
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000
+      required:
+        - body
+    UpdateProjectCommentDto:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000
+      required:
+        - body
     DocumentKind:
       type: string
       enum:
@@ -21430,6 +22096,30 @@ components:
         - id
         - key
         - title
+    DocumentLinkBomItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+    DocumentLinkJournalEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          nullable: true
+        happenedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - happenedAt
     DocumentLinkResponse:
       type: object
       properties:
@@ -21441,6 +22131,14 @@ components:
           nullable: true
           allOf:
             - $ref: '#/components/schemas/DocumentLinkTaskResponse'
+        bomItem:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/DocumentLinkBomItemResponse'
+        journalEntry:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/DocumentLinkJournalEntryResponse'
         addedBy:
           $ref: '#/components/schemas/ProjectUserResponse'
         createdAt:
@@ -21535,6 +22233,10 @@ components:
           type: string
         taskId:
           type: string
+        bomItemId:
+          type: string
+        journalEntryId:
+          type: string
       required:
         - file
     UploadDocumentResponse:
@@ -21564,6 +22266,10 @@ components:
         projectId:
           type: string
         taskId:
+          type: string
+        bomItemId:
+          type: string
+        journalEntryId:
           type: string
     DocumentVariant:
       type: string
