@@ -10075,6 +10075,8 @@ components:
           type: boolean
         inquiryEmailNotifications:
           type: boolean
+        taskEmailNotifications:
+          type: boolean
       required:
         - id
         - serverStatusEmailNotifications
@@ -10085,6 +10087,7 @@ components:
         - photoMediaEmailNotifications
         - tripEmailNotifications
         - inquiryEmailNotifications
+        - taskEmailNotifications
     PatchUserSettingsDto:
       type: object
       properties:
@@ -10103,6 +10106,8 @@ components:
         tripEmailNotifications:
           type: boolean
         inquiryEmailNotifications:
+          type: boolean
+        taskEmailNotifications:
           type: boolean
     PatchUserAdminDto:
       type: object
@@ -21393,6 +21398,9 @@ components:
           nullable: true
         repeat:
           $ref: '#/components/schemas/RepeatType'
+        repeatCustom:
+          type: string
+          nullable: true
         quantity:
           type: number
           nullable: true
@@ -21477,6 +21485,10 @@ components:
           nullable: true
         repeat:
           $ref: '#/components/schemas/RepeatType'
+        repeatCustom:
+          type: string
+          pattern: ^([1-9]\d{0,2})\s*([dwmy])$/
+          nullable: true
         quantity:
           type: number
           minimum: 0
@@ -21551,6 +21563,9 @@ components:
           nullable: true
         repeat:
           $ref: '#/components/schemas/RepeatType'
+        repeatCustom:
+          type: string
+          nullable: true
         quantity:
           type: number
           nullable: true
@@ -21656,6 +21671,10 @@ components:
           nullable: true
         repeat:
           $ref: '#/components/schemas/RepeatType'
+        repeatCustom:
+          type: string
+          pattern: ^([1-9]\d{0,2})\s*([dwmy])$/
+          nullable: true
         quantity:
           type: number
           minimum: 0
