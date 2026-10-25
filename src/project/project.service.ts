@@ -593,7 +593,7 @@ export class ProjectService {
   }
 
   /** Counted from the tasks, per category — never stored (I5). */
-  private async progressFor(
+  async progressFor(
     projectIds: string[],
   ): Promise<Map<string, ProjectProgressResponse>> {
     const result = new Map<string, ProjectProgressResponse>();

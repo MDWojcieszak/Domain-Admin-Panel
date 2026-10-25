@@ -7,6 +7,7 @@ import {
   deriveProjectKey,
   taskKey,
 } from './project-defaults';
+import { hashShareToken, isLinkActive } from './project-share.service';
 import { completion } from './task.service';
 
 describe('deriveProjectKey (D14)', () => {
@@ -77,5 +78,35 @@ describe('completion (I8)', () => {
     expect(
       completion(StatusCategory.TODO, StatusCategory.IN_PROGRESS, 'u1'),
     ).toEqual({});
+  });
+});
+
+describe('share links (D3, I3)', () => {
+  it('stores a hash, never the token', () => {
+    const hash = hashShareToken('abc');
+    expect(hash).toHaveLength(64);
+    expect(hash).not.toContain('abc');
+    expect(hashShareToken('abc')).toBe(hash);
+  });
+
+  it('is active until revoked or past its expiry', () => {
+    const now = new Date('2026-10-25T12:00:00Z');
+    const later = new Date('2026-10-26T12:00:00Z');
+    const earlier = new Date('2026-10-24T12:00:00Z');
+    expect(isLinkActive({ revokedAt: null, expiresAt: null }, now)).toBe(true);
+    expect(isLinkActive({ revokedAt: null, expiresAt: later }, now)).toBe(true);
+    expect(isLinkActive({ revokedAt: null, expiresAt: earlier }, now)).toBe(
+      false,
+    );
+    expect(isLinkActive({ revokedAt: earlier, expiresAt: null }, now)).toBe(
+      false,
+    );
+  });
+
+  it('records a tick from a link without anyone to credit', () => {
+    expect(completion(StatusCategory.TODO, StatusCategory.DONE, null)).toEqual({
+      completedAt: expect.any(Date),
+      completedById: null,
+    });
   });
 });

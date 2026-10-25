@@ -21,6 +21,7 @@ import {
   AddProjectMemberDto,
   CreateProjectDto,
   CreateProjectStatusDto,
+  CreateShareLinkDto,
   CreateTaskDto,
   ListProjectsQueryDto,
   ListTasksQueryDto,
@@ -29,12 +30,15 @@ import {
   UpdateProjectMemberDto,
   UpdateProjectStatusDto,
 } from './dto';
+import { ProjectShareService } from './project-share.service';
 import { ProjectService } from './project.service';
 import {
+  CreatedShareLinkResponse,
   ProjectDetailResponse,
   ProjectMemberResponse,
   ProjectStatusResponse,
   ProjectSummaryResponse,
+  ShareLinkResponse,
   TaskDetailResponse,
   TaskResponse,
 } from './responses';
@@ -52,6 +56,7 @@ export class ProjectController {
   constructor(
     private readonly projects: ProjectService,
     private readonly tasks: TaskService,
+    private readonly shares: ProjectShareService,
   ) {}
 
   @Get()
@@ -150,6 +155,39 @@ export class ProjectController {
     @Query('moveToStatusId') moveToStatusId: string,
   ): Promise<ProjectStatusResponse[]> {
     return this.projects.removeStatus(userId, id, statusId, moveToStatusId);
+  }
+
+  // — public links (owner) —
+
+  @Get(':id/links')
+  @ApiOkResponse({ type: ShareLinkResponse, isArray: true })
+  listLinks(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ): Promise<ShareLinkResponse[]> {
+    return this.shares.list(userId, id);
+  }
+
+  /** The token is in this response only; it cannot be shown again. */
+  @Post(':id/links')
+  @ApiOkResponse({ type: CreatedShareLinkResponse })
+  createLink(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateShareLinkDto,
+  ): Promise<CreatedShareLinkResponse> {
+    return this.shares.create(userId, id, dto);
+  }
+
+  /** Revokes the link; it stays listed so you can see it was used. */
+  @Delete(':id/links/:linkId')
+  @ApiOkResponse({ type: ShareLinkResponse })
+  revokeLink(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Param('linkId') linkId: string,
+  ): Promise<ShareLinkResponse> {
+    return this.shares.revoke(userId, id, linkId);
   }
 
   // — members —

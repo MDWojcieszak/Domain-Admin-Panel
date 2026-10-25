@@ -11,6 +11,12 @@ import { Server, Socket } from 'socket.io';
 
 import { PermissionsService } from '../common/acl/permissions.service';
 import { PERMISSIONS } from '../common/acl/permissions';
+import {
+  projectShareRoom,
+  shareLinkRoom,
+  ShareSessionPayload,
+  shareSessionSecret,
+} from './share-session';
 
 export enum WsRoom {
   SERVERS = 'servers',
@@ -33,6 +39,12 @@ export class WebsocketGateway implements OnGatewayConnection {
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
+    const shareToken = client.handshake.auth?.shareToken;
+    if (typeof shareToken === 'string' && shareToken.length > 0) {
+      await this.connectShareViewer(client, shareToken);
+      return;
+    }
+
     const token = this.extractToken(client);
 
     if (!token) {
@@ -65,6 +77,37 @@ export class WebsocketGateway implements OnGatewayConnection {
       this.logger.warn(`Rejected socket ${client.id}: invalid token`);
       client.disconnect();
     }
+  }
+
+  /**
+   * Someone holding a public project link: no account, one project, and
+   * only the change notices for it.
+   */
+  private async connectShareViewer(client: Socket, token: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync<ShareSessionPayload>(
+        token,
+        { secret: shareSessionSecret(this.config.getOrThrow('JWT_SECRET')) },
+      );
+      if (payload.kind !== 'project-share') throw new Error('not a share');
+      client.data.share = payload;
+      client.join([
+        projectShareRoom(payload.projectId),
+        shareLinkRoom(payload.linkId),
+      ]);
+    } catch {
+      client.disconnect();
+    }
+  }
+
+  /** To everyone viewing the project through a public link. */
+  emitToShareViewers(projectId: string, event: string, data?: unknown): void {
+    this.server.to(projectShareRoom(projectId)).emit(event, data);
+  }
+
+  /** A revoked link stops at once, not when its session runs out. */
+  disconnectShareLink(linkId: string): void {
+    this.server.in(shareLinkRoom(linkId)).disconnectSockets(true);
   }
 
   emitToRoom(room: WsRoom, event: string, data?: unknown): void {

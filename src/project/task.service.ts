@@ -305,6 +305,19 @@ export class TaskService {
       taskId,
       ProjectAccess.CHECK,
     );
+    await this.applyToggle(project.id, taskId, userId);
+    return this.detail(taskId);
+  }
+
+  /**
+   * Done ↔ not done: into the first DONE status, or back to the first TODO.
+   * Access is the caller's to check; `actorId` is null for a public link.
+   */
+  async applyToggle(
+    projectId: string,
+    taskId: string,
+    actorId: string | null,
+  ): Promise<void> {
     const current = await this.prisma.task.findUniqueOrThrow({
       where: { id: taskId },
       include: { status: true },
@@ -312,7 +325,7 @@ export class TaskService {
 
     const done = current.status.category === StatusCategory.DONE;
     const target = await this.firstStatus(
-      project.id,
+      projectId,
       done ? StatusCategory.TODO : StatusCategory.DONE,
     );
     const last = await this.prisma.task.findFirst({
@@ -326,12 +339,11 @@ export class TaskService {
       data: {
         statusId: target.id,
         order: (last?.order ?? -1) + 1,
-        ...completion(current.status.category, target.category, userId),
+        ...completion(current.status.category, target.category, actorId),
       },
     });
 
-    this.notify(userId, project.id, taskId);
-    return this.detail(taskId);
+    this.notify(actorId, projectId, taskId);
   }
 
   async remove(userId: string, taskId: string): Promise<void> {
@@ -542,7 +554,7 @@ export class TaskService {
     }
   }
 
-  private notify(actorId: string, projectId: string, taskId: string) {
+  private notify(actorId: string | null, projectId: string, taskId: string) {
     void this.events.changed({ projectId, kind: 'task', taskId, actorId });
   }
 }
@@ -551,7 +563,7 @@ export class TaskService {
 export const completion = (
   from: StatusCategory,
   to: StatusCategory,
-  userId: string,
+  userId: string | null,
 ): Prisma.TaskUncheckedUpdateInput => {
   if (to === StatusCategory.DONE && from !== StatusCategory.DONE) {
     return { completedAt: new Date(), completedById: userId };

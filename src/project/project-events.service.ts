@@ -9,14 +9,15 @@ export interface ProjectChangedEvent {
   projectId: string;
   kind: ProjectChangeKind;
   taskId?: string;
-  /** Who made the change, so their own client can skip the refetch. */
-  actorId: string;
+  /** Who made the change; null for someone holding a public link. */
+  actorId: string | null;
 }
 
 /**
  * Live updates (D11): every change goes to the people who may see the
  * project, through their personal rooms. The audience is read at send time,
- * so a removed member stops receiving at once.
+ * so a removed member stops receiving at once. Public link holders get the
+ * same notice, without the actor.
  */
 @Injectable()
 export class ProjectEventsService {
@@ -34,6 +35,13 @@ export class ProjectEventsService {
       [...audience, ...alsoNotify],
       'project.changed',
       event,
+    );
+    // Link holders learn only that something changed, not who changed it.
+    const { actorId: _actor, ...anonymous } = event;
+    this.websocket.emitToShareViewers(
+      event.projectId,
+      'project.changed',
+      anonymous,
     );
   }
 }
