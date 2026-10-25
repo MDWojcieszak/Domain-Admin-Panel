@@ -8676,6 +8676,72 @@ paths:
                   $ref: '#/components/schemas/ProjectStatusResponse'
       tags: *ref_83
       security: *ref_84
+  /projects/{id}/links:
+    get:
+      operationId: ProjectController_listLinks
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShareLinkResponse'
+      tags: *ref_83
+      security: *ref_84
+    post:
+      operationId: ProjectController_createLink
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateShareLinkDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedShareLinkResponse'
+      tags: *ref_83
+      security: *ref_84
+  /projects/{id}/links/{linkId}:
+    delete:
+      operationId: ProjectController_revokeLink
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: linkId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareLinkResponse'
+      tags: *ref_83
+      security: *ref_84
   /projects/{id}/members:
     get:
       operationId: ProjectController_listMembers
@@ -9063,6 +9129,62 @@ paths:
                   $ref: '#/components/schemas/ChecklistItemResponse'
       tags: *ref_85
       security: *ref_86
+  /shared/{token}:
+    get:
+      operationId: SharedController_view
+      parameters:
+        - name: token
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: x-share-password
+          required: false
+          in: header
+          schema:
+            type: string
+        - name: reload
+          required: false
+          in: query
+          description: A refresh after a live change; not counted as a visit.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedProjectResponse'
+      tags: &ref_87
+        - Shared
+  /shared/{token}/tasks/{taskId}/toggle:
+    post:
+      operationId: SharedController_toggle
+      parameters:
+        - name: token
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: taskId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: x-share-password
+          required: false
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedProjectResponse'
+      tags: *ref_87
 info:
   title: WHCP Backend
   description: XD
@@ -20441,6 +20563,116 @@ components:
         color:
           type: string
           nullable: true
+    ShareLinkAccess:
+      type: string
+      enum:
+        - VIEW
+        - CHECK
+    ShareLinkResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+          nullable: true
+        access:
+          $ref: '#/components/schemas/ShareLinkAccess'
+        hasPassword:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        openCount:
+          type: integer
+        active:
+          type: boolean
+        createdBy:
+          $ref: '#/components/schemas/ProjectUserResponse'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - access
+        - hasPassword
+        - openCount
+        - active
+        - createdBy
+        - createdAt
+    CreateShareLinkDto:
+      type: object
+      properties:
+        label:
+          type: string
+          maxLength: 100
+          nullable: true
+        access:
+          $ref: '#/components/schemas/ShareLinkAccess'
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        password:
+          type: string
+          minLength: 4
+          maxLength: 200
+          nullable: true
+      required:
+        - access
+    CreatedShareLinkResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+          nullable: true
+        access:
+          $ref: '#/components/schemas/ShareLinkAccess'
+        hasPassword:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        openCount:
+          type: integer
+        active:
+          type: boolean
+        createdBy:
+          $ref: '#/components/schemas/ProjectUserResponse'
+        createdAt:
+          type: string
+          format: date-time
+        token:
+          type: string
+      required:
+        - id
+        - access
+        - hasPassword
+        - openCount
+        - active
+        - createdBy
+        - createdAt
+        - token
     AddProjectMemberDto:
       type: object
       properties:
@@ -20839,3 +21071,121 @@ components:
           maxLength: 500
         done:
           type: boolean
+    SharedStatusResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+          nullable: true
+        category:
+          $ref: '#/components/schemas/StatusCategory'
+      required:
+        - id
+        - name
+        - category
+    SharedChecklistItemResponse:
+      type: object
+      properties:
+        content:
+          type: string
+        done:
+          type: boolean
+      required:
+        - content
+        - done
+    SharedTaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        title:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        statusId:
+          type: string
+        quantity:
+          type: number
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        parentTaskId:
+          type: string
+          nullable: true
+        checklist:
+          type: array
+          items:
+            $ref: '#/components/schemas/SharedChecklistItemResponse'
+      required:
+        - id
+        - key
+        - title
+        - statusId
+        - checklist
+    SharedProjectResponse:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          $ref: '#/components/schemas/ProjectType'
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        key:
+          type: string
+        color:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        sharedBy:
+          type: string
+          nullable: true
+        label:
+          type: string
+          nullable: true
+        access:
+          $ref: '#/components/schemas/ShareLinkAccess'
+        progress:
+          $ref: '#/components/schemas/ProjectProgressResponse'
+        statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/SharedStatusResponse'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SharedTaskResponse'
+        liveToken:
+          type: string
+      required:
+        - title
+        - type
+        - status
+        - key
+        - access
+        - progress
+        - statuses
+        - tasks
+        - liveToken
