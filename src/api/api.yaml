@@ -9185,6 +9185,211 @@ paths:
               schema:
                 $ref: '#/components/schemas/SharedProjectResponse'
       tags: *ref_87
+  /documents:
+    get:
+      operationId: DocumentController_list
+      parameters:
+        - name: projectId
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: taskId
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: q
+          required: false
+          in: query
+          schema:
+            maxLength: 200
+            type: string
+        - name: kind
+          required: false
+          in: query
+          schema:
+            $ref: '#/components/schemas/DocumentKind'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentResponse'
+      tags: &ref_88
+        - Documents
+      security:
+        - bearer: []
+    post:
+      operationId: DocumentController_upload
+      summary: Upload any file to your library
+      description: >-
+        Optionally pinned to a project or task at once. The same file uploaded
+        again returns the document you already have (duplicate: true).
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadDocumentDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadDocumentResponse'
+      tags: *ref_88
+      security:
+        - bearer: []
+  /documents/{id}:
+    get:
+      operationId: DocumentController_get
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+      tags: *ref_88
+      security:
+        - bearer: []
+    patch:
+      operationId: DocumentController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+      tags: *ref_88
+      security:
+        - bearer: []
+    delete:
+      operationId: DocumentController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_88
+      security:
+        - bearer: []
+  /documents/{id}/links:
+    post:
+      operationId: DocumentController_link
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentLinkDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+      tags: *ref_88
+      security:
+        - bearer: []
+  /documents/{id}/links/{linkId}:
+    delete:
+      operationId: DocumentController_unlink
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: linkId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+      tags: *ref_88
+      security:
+        - bearer: []
+  /documents/{id}/file:
+    get:
+      operationId: DocumentController_file
+      summary: A document file or preview (signed URL)
+      description: >-
+        Do not build this URL: take fileUrl / thumbUrl / previewUrl from the
+        document.
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: variant
+          required: true
+          in: query
+          schema:
+            $ref: '#/components/schemas/DocumentVariant'
+        - name: exp
+          required: true
+          in: query
+          schema:
+            pattern: ^\d+$
+            type: string
+        - name: sig
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: download
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_88
 info:
   title: WHCP Backend
   description: XD
@@ -21189,3 +21394,180 @@ components:
         - statuses
         - tasks
         - liveToken
+    DocumentKind:
+      type: string
+      enum:
+        - IMAGE
+        - PDF
+        - MODEL_3D
+        - CAD
+        - ARCHIVE
+        - TEXT
+        - OTHER
+    DocumentLinkProjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        key:
+          type: string
+      required:
+        - id
+        - title
+        - key
+    DocumentLinkTaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        title:
+          type: string
+      required:
+        - id
+        - key
+        - title
+    DocumentLinkResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        project:
+          $ref: '#/components/schemas/DocumentLinkProjectResponse'
+        task:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/DocumentLinkTaskResponse'
+        addedBy:
+          $ref: '#/components/schemas/ProjectUserResponse'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - project
+        - addedBy
+        - createdAt
+    DocumentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        originalName:
+          type: string
+        mimeType:
+          type: string
+        kind:
+          $ref: '#/components/schemas/DocumentKind'
+        sizeBytes:
+          type: integer
+        extension:
+          type: string
+          nullable: true
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        owner:
+          $ref: '#/components/schemas/ProjectUserResponse'
+        isMine:
+          type: boolean
+        inline:
+          type: boolean
+        thumbUrl:
+          type: string
+          nullable: true
+        previewUrl:
+          type: string
+          nullable: true
+        fileUrl:
+          type: string
+        downloadUrl:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentLinkResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - originalName
+        - mimeType
+        - kind
+        - sizeBytes
+        - owner
+        - isMine
+        - inline
+        - fileUrl
+        - downloadUrl
+        - links
+        - createdAt
+        - updatedAt
+    UploadDocumentDto:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        projectId:
+          type: string
+        taskId:
+          type: string
+      required:
+        - file
+    UploadDocumentResponse:
+      type: object
+      properties:
+        document:
+          $ref: '#/components/schemas/DocumentResponse'
+        duplicate:
+          type: boolean
+      required:
+        - document
+        - duplicate
+    UpdateDocumentDto:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+    CreateDocumentLinkDto:
+      type: object
+      properties:
+        projectId:
+          type: string
+        taskId:
+          type: string
+    DocumentVariant:
+      type: string
+      enum:
+        - original
+        - thumb
+        - large
