@@ -1,6 +1,7 @@
 import {
   classifyDocument,
   contentDisposition,
+  documentIdFromFile,
   documentUrlExpiry,
   isInlineSafe,
   sanitizeExtension,
@@ -122,5 +123,25 @@ describe('signed URLs (D9)', () => {
       expect(exp - t).toBeGreaterThanOrEqual(3600);
       expect(exp - t).toBeLessThanOrEqual(5400);
     }
+  });
+});
+
+describe('documentIdFromFile (upkeep)', () => {
+  const id = '0f8fad5b-d9cb-469f-a165-70867728950e';
+
+  it('reads the id from the names the library writes', () => {
+    expect(documentIdFromFile('original', `${id}.pdf`)).toBe(id);
+    expect(documentIdFromFile('original', id)).toBe(id);
+    expect(documentIdFromFile('preview', `${id}-thumb.webp`)).toBe(id);
+    expect(documentIdFromFile('preview', `${id}-large.webp`)).toBe(id);
+  });
+
+  it('ignores anything else, so it is never deleted by mistake', () => {
+    expect(documentIdFromFile('original', '.gitkeep')).toBeNull();
+    expect(documentIdFromFile('original', `${id}-thumb.webp`)).toBeNull();
+    expect(documentIdFromFile('preview', `${id}.webp`)).toBeNull();
+    expect(documentIdFromFile('original', `notes-${id}.txt`)).toBeNull();
+    expect(documentIdFromFile('preview', `${id}-thumbXwebp`)).toBeNull();
+    expect(documentIdFromFile('original', `${id}Xpdf`)).toBeNull();
   });
 });

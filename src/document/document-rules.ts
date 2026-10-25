@@ -237,3 +237,20 @@ export const verifyDocument = (
  */
 export const documentUrlExpiry = (nowSeconds = Math.floor(Date.now() / 1000)) =>
   Math.floor(nowSeconds / 1800) * 1800 + 3600 + 1800;
+
+// ------------------------------------------------------------- upkeep
+
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const ORIGINAL_FILE = new RegExp(`^(${UUID})(?:[.][a-z0-9]{1,10})?$`);
+const PREVIEW_FILE = new RegExp(`^(${UUID})-(?:thumb|large)[.]webp$`);
+
+/**
+ * Which document a stored file belongs to, from its name; null for anything
+ * the library did not write, which upkeep then leaves alone.
+ */
+export const documentIdFromFile = (
+  folder: 'original' | 'preview',
+  name: string,
+): string | null =>
+  (folder === 'original' ? ORIGINAL_FILE : PREVIEW_FILE).exec(name)?.[1] ??
+  null;

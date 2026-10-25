@@ -399,6 +399,32 @@ export class DocumentService {
     };
   }
 
+  // — upkeep —
+
+  /**
+   * PDFs that have no preview yet: uploaded before previews existed, or on a
+   * machine without pdftoppm. Returns how many got one.
+   */
+  async backfillPdfPreviews(limit = 100): Promise<number> {
+    const pending = await this.prisma.document.findMany({
+      where: { kind: 'PDF', hasPreview: false },
+      select: { id: true, extension: true },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    let done = 0;
+    for (const doc of pending) {
+      const path = documentPath(doc.id, doc.extension, 'original');
+      if (!(await this.pdfPreview(doc.id, path))) continue;
+      await this.prisma.document.update({
+        where: { id: doc.id },
+        data: { hasPreview: true },
+      });
+      done++;
+    }
+    return done;
+  }
+
   // — internals —
 
   private async findVisible(userId: string, id: string): Promise<DocumentRow> {
