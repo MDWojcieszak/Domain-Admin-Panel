@@ -8466,6 +8466,11 @@ paths:
           in: query
           schema:
             type: boolean
+        - name: templates
+          required: false
+          in: query
+          schema:
+            type: boolean
       responses:
         '200':
           description: ''
@@ -8674,6 +8679,30 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProjectStatusResponse'
+      tags: *ref_83
+      security: *ref_84
+  /projects/{id}/duplicate:
+    post:
+      operationId: ProjectController_duplicate
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuplicateProjectDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuplicateProjectResponse'
       tags: *ref_83
       security: *ref_84
   /projects/{id}/links:
@@ -20754,6 +20783,24 @@ components:
         - LIST
         - TRIP
         - DIY
+    ProjectPhotoEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - name
     ProjectRole:
       type: string
       enum:
@@ -20831,6 +20878,10 @@ components:
           type: boolean
         viewersCanCheck:
           type: boolean
+        photoEntry:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ProjectPhotoEntryResponse'
         archivedAt:
           type: string
           format: date-time
@@ -20942,6 +20993,10 @@ components:
           type: boolean
         viewersCanCheck:
           type: boolean
+        photoEntry:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ProjectPhotoEntryResponse'
         archivedAt:
           type: string
           format: date-time
@@ -21018,6 +21073,9 @@ components:
           nullable: true
         viewersCanCheck:
           type: boolean
+        photoEntryId:
+          type: string
+          nullable: true
       required:
         - title
     UpdateProjectDto:
@@ -21053,6 +21111,9 @@ components:
           nullable: true
         viewersCanCheck:
           type: boolean
+        photoEntryId:
+          type: string
+          nullable: true
         archived:
           type: boolean
     CreateProjectStatusDto:
@@ -21091,6 +21152,31 @@ components:
         color:
           type: string
           nullable: true
+    DuplicateProjectDto:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        asTemplate:
+          type: boolean
+      required:
+        - title
+    DuplicateProjectResponse:
+      type: object
+      properties:
+        project:
+          $ref: '#/components/schemas/ProjectDetailResponse'
+        skippedDocuments:
+          type: integer
+      required:
+        - project
+        - skippedDocuments
     ShareLinkAccess:
       type: string
       enum:
