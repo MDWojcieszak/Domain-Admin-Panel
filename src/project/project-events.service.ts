@@ -8,7 +8,10 @@ export type ProjectChangeKind =
   | 'status'
   | 'member'
   | 'task'
-  | 'document';
+  | 'document'
+  | 'bom'
+  | 'journal'
+  | 'comment';
 
 export interface ProjectChangedEvent {
   projectId: string;

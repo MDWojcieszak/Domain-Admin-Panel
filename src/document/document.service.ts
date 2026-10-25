@@ -58,15 +58,47 @@ const visibleTo = (userId: string): Prisma.ProjectWhereInput => ({
   OR: [{ ownerId: userId }, { members: { some: { userId } } }],
 });
 
+/** A pin inside a matching project, whatever it is pinned to there. */
+const pinnedIn = (
+  project: Prisma.ProjectWhereInput,
+): Prisma.DocumentLinkWhereInput => ({
+  OR: [
+    { project },
+    { task: { project } },
+    { bomItem: { project } },
+    { journalEntry: { project } },
+  ],
+});
+
+export const PIN_TARGETS = [
+  'projectId',
+  'taskId',
+  'bomItemId',
+  'journalEntryId',
+] as const;
+type PinKey = (typeof PIN_TARGETS)[number];
+
+interface PinTarget {
+  key: PinKey;
+  id: string;
+  projectId: string;
+}
+
+const PROJECT_REF = { select: { id: true, title: true, key: true } } as const;
+
 const LINK_INCLUDE = {
-  project: { select: { id: true, title: true, key: true } },
+  project: PROJECT_REF,
   task: {
     select: {
       id: true,
       number: true,
       title: true,
-      project: { select: { id: true, title: true, key: true } },
+      project: PROJECT_REF,
     },
+  },
+  bomItem: { select: { id: true, name: true, project: PROJECT_REF } },
+  journalEntry: {
+    select: { id: true, title: true, happenedAt: true, project: PROJECT_REF },
   },
   addedBy: { select: USER_SELECT },
 } satisfies Prisma.DocumentLinkInclude;
@@ -79,12 +111,7 @@ const documentInclude = (userId: string) =>
     // Only pins in places the reader can see: a document in someone else's
     // private project does not reveal that project.
     links: {
-      where: {
-        OR: [
-          { project: visibleTo(userId) },
-          { task: { project: visibleTo(userId) } },
-        ],
-      },
+      where: pinnedIn(visibleTo(userId)),
       include: LINK_INCLUDE,
       orderBy: { createdAt: 'asc' },
     },
@@ -128,21 +155,21 @@ export class DocumentService {
     query: ListDocumentsQueryDto,
   ): Promise<DocumentResponse[]> {
     let where: Prisma.DocumentWhereInput;
-    if (query.taskId) {
-      await this.access.assertTask(userId, query.taskId, ProjectAccess.VIEW);
-      where = { links: { some: { taskId: query.taskId } } };
-    } else if (query.projectId) {
+    const targets = PIN_TARGETS.filter((k) => !!query[k]);
+    if (targets.length > 1) {
+      throw new BadRequestException('List one place at a time.');
+    }
+    if (query.projectId) {
+      // The project's whole drawer: pinned to it or to anything in it.
       await this.access.assert(userId, query.projectId, ProjectAccess.VIEW);
-      where = {
-        links: {
-          some: {
-            OR: [
-              { projectId: query.projectId },
-              { task: { projectId: query.projectId } },
-            ],
-          },
-        },
-      };
+      where = { links: { some: pinnedIn({ id: query.projectId }) } };
+    } else if (targets.length) {
+      const target = await this.resolveTarget(
+        userId,
+        query,
+        ProjectAccess.VIEW,
+      );
+      where = { links: { some: { [target.key]: target.id } } };
     } else {
       where = { ownerId: userId };
     }
@@ -183,19 +210,10 @@ export class DocumentService {
     if (!file?.path)
       throw new BadRequestException('Attach the file as "file".');
     try {
-      if (dto.projectId && dto.taskId) {
-        throw new BadRequestException(
-          'Pin it to a project or a task, not both.',
-        );
-      }
       // Checked before any work, so a refused pin leaves nothing behind.
-      const target =
-        dto.projectId || dto.taskId
-          ? await this.resolveTarget(userId, {
-              projectId: dto.projectId,
-              taskId: dto.taskId,
-            })
-          : null;
+      const target = PIN_TARGETS.some((k) => !!dto[k])
+        ? await this.resolveTarget(userId, dto, ProjectAccess.EDIT)
+        : null;
 
       const originalName = this.originalName(file.originalname);
       const [head, sha256] = await Promise.all([
@@ -301,7 +319,7 @@ export class DocumentService {
     dto: CreateDocumentLinkDto,
   ): Promise<DocumentResponse> {
     await this.findVisible(userId, id);
-    const target = await this.resolveTarget(userId, dto);
+    const target = await this.resolveTarget(userId, dto, ProjectAccess.EDIT);
     await this.pin(userId, id, target, false);
     return this.get(userId, id);
   }
@@ -317,9 +335,9 @@ export class DocumentService {
       include: { ...LINK_INCLUDE, document: { select: { ownerId: true } } },
     });
     if (!link) throw new NotFoundException('No such pin.');
-    const projectId = link.projectId ?? link.task!.project.id;
     if (link.document.ownerId !== userId) {
-      await this.access.assert(userId, projectId, ProjectAccess.EDIT);
+      const { project } = this.toLink(link);
+      await this.access.assert(userId, project.id, ProjectAccess.EDIT);
     }
 
     await this.prisma.documentLink.delete({ where: { id: linkId } });
@@ -381,14 +399,7 @@ export class DocumentService {
         OR: [
           { ownerId: userId },
           {
-            links: {
-              some: {
-                OR: [
-                  { project: visibleTo(userId) },
-                  { task: { project: visibleTo(userId) } },
-                ],
-              },
-            },
+            links: { some: pinnedIn(visibleTo(userId)) },
           },
         ],
       },
@@ -409,23 +420,29 @@ export class DocumentService {
     return document;
   }
 
+  /** The one place named, after checking you may use it (I1). */
   private async resolveTarget(
     userId: string,
-    dto: CreateDocumentLinkDto,
-  ): Promise<{ projectId: string; taskId: string | null }> {
-    if (!!dto.projectId === !!dto.taskId) {
-      throw new BadRequestException('Pin it to exactly one project or task.');
-    }
-    if (dto.taskId) {
-      const { task } = await this.access.assertTask(
-        userId,
-        dto.taskId,
-        ProjectAccess.EDIT,
+    dto: Partial<Record<PinKey, string>>,
+    needed: ProjectAccess,
+  ): Promise<PinTarget> {
+    const keys = PIN_TARGETS.filter((k) => !!dto[k]);
+    if (keys.length !== 1) {
+      throw new BadRequestException(
+        'Pin it to exactly one place: a project, task, part or journal entry.',
       );
-      return { projectId: task.projectId, taskId: task.id };
     }
-    await this.access.assert(userId, dto.projectId!, ProjectAccess.EDIT);
-    return { projectId: dto.projectId!, taskId: null };
+    const key = keys[0];
+    const id = dto[key]!;
+    const { project } =
+      key === 'projectId'
+        ? await this.access.assert(userId, id, needed)
+        : key === 'taskId'
+          ? await this.access.assertTask(userId, id, needed)
+          : key === 'bomItemId'
+            ? await this.access.assertBomItem(userId, id, needed)
+            : await this.access.assertJournalEntry(userId, id, needed);
+    return { key, id, projectId: project.id };
   }
 
   /**
@@ -436,7 +453,7 @@ export class DocumentService {
   private async pin(
     userId: string,
     documentId: string,
-    target: { projectId: string; taskId: string | null },
+    target: PinTarget,
     tolerateDuplicate: boolean,
   ) {
     const document = await this.prisma.document.findUniqueOrThrow({
@@ -445,13 +462,7 @@ export class DocumentService {
     });
     if (document.ownerId !== userId) {
       const inProject = await this.prisma.documentLink.count({
-        where: {
-          documentId,
-          OR: [
-            { projectId: target.projectId },
-            { task: { projectId: target.projectId } },
-          ],
-        },
+        where: { documentId, ...pinnedIn({ id: target.projectId }) },
       });
       if (!inProject) {
         throw new ForbiddenException(
@@ -462,9 +473,7 @@ export class DocumentService {
 
     try {
       const link = await this.prisma.documentLink.create({
-        data: target.taskId
-          ? { documentId, taskId: target.taskId, addedById: userId }
-          : { documentId, projectId: target.projectId, addedById: userId },
+        data: { documentId, [target.key]: target.id, addedById: userId },
         include: LINK_INCLUDE,
       });
       this.announce(userId, [this.toLink(link)]);
@@ -596,12 +605,26 @@ export class DocumentService {
   private toLink(link: LinkRow): DocumentLinkResponse {
     return {
       id: link.id,
-      project: link.project ?? link.task!.project,
+      project:
+        link.project ??
+        link.task?.project ??
+        link.bomItem?.project ??
+        link.journalEntry!.project,
       task: link.task
         ? {
             id: link.task.id,
             key: taskKey(link.task.project.key, link.task.number),
             title: link.task.title,
+          }
+        : null,
+      bomItem: link.bomItem
+        ? { id: link.bomItem.id, name: link.bomItem.name }
+        : null,
+      journalEntry: link.journalEntry
+        ? {
+            id: link.journalEntry.id,
+            title: link.journalEntry.title,
+            happenedAt: link.journalEntry.happenedAt,
           }
         : null,
       addedBy: link.addedBy,

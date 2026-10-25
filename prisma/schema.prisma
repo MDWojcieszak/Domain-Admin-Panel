@@ -276,6 +276,8 @@ model User {
   projectShareLinks  ProjectShareLink[]
   documents          Document[]
   documentLinks      DocumentLink[]
+  journalEntries     JournalEntry[]
+  comments           Comment[]
 
   apiKeys              ApiKey[]
   integrationTokens    IntegrationToken[]
@@ -386,6 +388,7 @@ model Task {
   checklist     TaskChecklistItem[]
   tags          TaskTag[]
   documents     DocumentLink[]
+  comments      Comment[]
   notifications NotificationLog[]
 
   createdAt DateTime @default(now())
@@ -1047,6 +1050,9 @@ model GearItem {
 
   image   Image?  @relation("GearImage", fields: [imageId], references: [id], onDelete: SetNull)
   imageId String?
+
+  /// Parts lists of builds that use this piece of gear.
+  bomItems BomItem[]
 
   order   Int     @default(0)
   visible Boolean @default(true)
@@ -2878,6 +2884,9 @@ model Project {
   links     ProjectShareLink[]
   tasks     Task[]
   documents DocumentLink[]
+  bom       BomItem[]
+  journal   JournalEntry[]
+  comments  Comment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3008,10 +3017,14 @@ model DocumentLink {
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
 
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String?
-  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  taskId    String?
+  project        Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String?
+  task           Task?         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId         String?
+  bomItem        BomItem?      @relation(fields: [bomItemId], references: [id], onDelete: Cascade)
+  bomItemId      String?
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  journalEntryId String?
 
   addedBy   User   @relation(fields: [addedById], references: [id], onDelete: Cascade)
   addedById String
@@ -3020,6 +3033,108 @@ model DocumentLink {
 
   @@unique([documentId, projectId])
   @@unique([documentId, taskId])
+  @@unique([documentId, bomItemId])
+  @@unique([documentId, journalEntryId])
   @@index([projectId])
   @@index([taskId])
+  @@index([bomItemId])
+  @@index([journalEntryId])
+}
+
+// ============================================================================
+// Builds (DIY): parts list and work journal; comments on anything in a project
+// (docs/projects-design.md D6, D10)
+// ============================================================================
+
+enum BomStatus {
+  NEEDED
+  ORDERED
+  HAVE
+  USED
+}
+
+/// One line of a build's bill of materials.
+model BomItem {
+  id String @id @default(uuid())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  name     String
+  quantity Decimal   @default(1) @db.Decimal(12, 3)
+  unit     String?
+  status   BomStatus @default(NEEDED)
+
+  /// Price of one unit; the line's cost is computed, never stored (I5).
+  unitPrice Decimal? @db.Decimal(12, 2)
+  currency  String?
+  supplier  String?
+  url       String?
+  note      String?
+
+  /// A piece of gear this part is, or becomes.
+  gearItem   GearItem? @relation(fields: [gearItemId], references: [id], onDelete: SetNull)
+  gearItemId String?
+
+  order Int @default(0)
+
+  documents DocumentLink[]
+  comments  Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, order])
+}
+
+/// The build's documentation, entry by entry: what was done, when, by whom.
+model JournalEntry {
+  id String @id @default(uuid())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  title      String?
+  /// Markdown.
+  body       String
+  happenedAt DateTime @default(now())
+
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+
+  documents DocumentLink[]
+  comments  Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, happenedAt])
+}
+
+/// A comment on exactly one thing in a project (a CHECK in the migration, I6).
+model Comment {
+  id String @id @default(uuid())
+
+  /// Markdown.
+  body String
+
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+
+  project        Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String?
+  task           Task?         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId         String?
+  bomItem        BomItem?      @relation(fields: [bomItemId], references: [id], onDelete: Cascade)
+  bomItemId      String?
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  journalEntryId String?
+
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([taskId, createdAt])
+  @@index([bomItemId, createdAt])
+  @@index([journalEntryId, createdAt])
 }

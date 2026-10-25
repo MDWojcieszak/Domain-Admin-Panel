@@ -23,6 +23,14 @@ export class UploadDocumentDto {
   /** Or to this task. */
   @IsString({ optional: true })
   taskId?: string;
+
+  /** Or to a part of a build's bill of materials. */
+  @IsString({ optional: true })
+  bomItemId?: string;
+
+  /** Or to a journal entry. */
+  @IsString({ optional: true })
+  journalEntryId?: string;
 }
 
 export class UpdateDocumentDto {
@@ -42,6 +50,12 @@ export class ListDocumentsQueryDto {
   @IsString({ optional: true })
   taskId?: string;
 
+  @IsString({ optional: true })
+  bomItemId?: string;
+
+  @IsString({ optional: true })
+  journalEntryId?: string;
+
   @IsString({ optional: true, maxLength: 200 })
   q?: string;
 
@@ -56,6 +70,12 @@ export class CreateDocumentLinkDto {
 
   @IsString({ optional: true })
   taskId?: string;
+
+  @IsString({ optional: true })
+  bomItemId?: string;
+
+  @IsString({ optional: true })
+  journalEntryId?: string;
 }
 
 /** Issued with the document; never built by hand. */

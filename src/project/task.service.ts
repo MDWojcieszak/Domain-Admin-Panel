@@ -32,7 +32,7 @@ const TASK_INCLUDE = {
   createdBy: { select: USER_SELECT },
   completedBy: { select: USER_SELECT },
   checklist: { select: { done: true } },
-  _count: { select: { subtasks: true } },
+  _count: { select: { subtasks: true, comments: true, documents: true } },
 } satisfies Prisma.TaskInclude;
 
 type TaskRow = Prisma.TaskGetPayload<{ include: typeof TASK_INCLUDE }>;
@@ -599,6 +599,8 @@ export const toTask = (task: TaskRow): TaskResponse => ({
     done: task.checklist.filter((i) => i.done).length,
   },
   subtaskCount: task._count.subtasks,
+  commentCount: task._count.comments,
+  documentCount: task._count.documents,
   overdue:
     !!task.dueDate &&
     task.dueDate < new Date() &&

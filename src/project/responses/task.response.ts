@@ -127,6 +127,13 @@ export class TaskResponse {
   @IsNumber({ type: 'integer' })
   subtaskCount: number;
 
+  @IsNumber({ type: 'integer' })
+  commentCount: number;
+
+  /** Files pinned to the task. */
+  @IsNumber({ type: 'integer' })
+  documentCount: number;
+
   /** Past its due date and not done — derived, never stored. */
   @IsBoolean()
   overdue: boolean;

@@ -32,7 +32,29 @@ export class DocumentLinkTaskResponse {
   title: string;
 }
 
-/** Where a document is pinned: a project, or a task (with its project). */
+export class DocumentLinkBomItemResponse {
+  @IsString()
+  id: string;
+
+  @IsString()
+  name: string;
+}
+
+export class DocumentLinkJournalEntryResponse {
+  @IsString()
+  id: string;
+
+  @IsString({ optional: true, nullable: true })
+  title: string | null;
+
+  @IsDate({ format: 'date-time' })
+  happenedAt: Date;
+}
+
+/**
+ * Where a document is pinned: a project, or something in it (a task, a part,
+ * a journal entry), always with that project.
+ */
 export class DocumentLinkResponse {
   @IsString()
   id: string;
@@ -42,6 +64,20 @@ export class DocumentLinkResponse {
 
   @IsNested({ type: DocumentLinkTaskResponse, optional: true, nullable: true })
   task: DocumentLinkTaskResponse | null;
+
+  @IsNested({
+    type: DocumentLinkBomItemResponse,
+    optional: true,
+    nullable: true,
+  })
+  bomItem: DocumentLinkBomItemResponse | null;
+
+  @IsNested({
+    type: DocumentLinkJournalEntryResponse,
+    optional: true,
+    nullable: true,
+  })
+  journalEntry: DocumentLinkJournalEntryResponse | null;
 
   @IsNested({ type: ProjectUserResponse })
   addedBy: ProjectUserResponse;

@@ -92,6 +92,55 @@ export class ProjectAccessService {
     }
   }
 
+  async assertBomItem(userId: string, itemId: string, needed: ProjectAccess) {
+    const item = await this.prisma.bomItem.findUnique({
+      where: { id: itemId },
+      select: { id: true, projectId: true },
+    });
+    return {
+      ...(await this.assertWithin(userId, item?.projectId, needed, 'Part')),
+      item: item!,
+    };
+  }
+
+  async assertJournalEntry(
+    userId: string,
+    entryId: string,
+    needed: ProjectAccess,
+  ) {
+    const entry = await this.prisma.journalEntry.findUnique({
+      where: { id: entryId },
+      select: { id: true, projectId: true, authorId: true },
+    });
+    return {
+      ...(await this.assertWithin(
+        userId,
+        entry?.projectId,
+        needed,
+        'Journal entry',
+      )),
+      entry: entry!,
+    };
+  }
+
+  /** A thing inside a project: hidden exactly like the project when out of reach. */
+  private async assertWithin(
+    userId: string,
+    projectId: string | undefined,
+    needed: ProjectAccess,
+    what: string,
+  ): Promise<ProjectGrant> {
+    if (!projectId) throw new NotFoundException(`${what} not found`);
+    try {
+      return await this.assert(userId, projectId, needed);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(`${what} not found`);
+      }
+      throw error;
+    }
+  }
+
   /** Everyone who may see the project: the owner and its members. */
   async audience(projectId: string): Promise<string[]> {
     const project = await this.prisma.project.findUnique({
