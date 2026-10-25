@@ -18,6 +18,8 @@ export enum WsRoom {
   DEPLOYMENTS = 'deployments',
 }
 
+const userRoom = (userId: string) => `user:${userId}`;
+
 @WebSocketGateway({ cors: true })
 export class WebsocketGateway implements OnGatewayConnection {
   private readonly logger = new Logger(WebsocketGateway.name);
@@ -44,6 +46,9 @@ export class WebsocketGateway implements OnGatewayConnection {
       });
 
       client.data.user = payload;
+      // Personal room: data scoped to this account (projects it belongs to)
+      // is sent here, after the sender has checked who may see it.
+      client.join(userRoom(payload.sub));
 
       const isOwner = payload.role === Role.OWNER;
       const permissions = isOwner
@@ -64,6 +69,12 @@ export class WebsocketGateway implements OnGatewayConnection {
 
   emitToRoom(room: WsRoom, event: string, data?: unknown): void {
     this.server.to(room).emit(event, data);
+  }
+
+  /** To these accounts only, on every device they are connected from. */
+  emitToUsers(userIds: string[], event: string, data?: unknown): void {
+    if (!userIds.length) return;
+    this.server.to([...new Set(userIds)].map(userRoom)).emit(event, data);
   }
 
   private extractToken(client: Socket): string | undefined {

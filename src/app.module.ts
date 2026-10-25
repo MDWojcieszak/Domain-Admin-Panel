@@ -28,6 +28,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { GalleriesModule } from './galleries/galleries.module';
 import { DeployModule } from './deploy/deploy.module';
+import { ProjectModule } from './project/project.module';
 import { GearModule } from './gear/gear.module';
 import { TokenService } from './token/token.service';
 import { TokenModule } from './token/token.module';
@@ -35,7 +36,6 @@ import { PersonModule } from './person/person.module';
 import { PersonController } from './person/person.controller';
 import { PlaceModule } from './place/place.module';
 import { TagModule } from './tag/tag.module';
-import { TaskCommentModule } from './task-comment/task-comment.module';
 import { OcrModule } from './ocr/ocr.module';
 import { AiModule } from './ai/ai.module';
 import { ClassificationModule } from './classification/classification.module';
@@ -84,7 +84,6 @@ import { EcosystemModule } from './ecosystem/ecosystem.module';
     PersonModule,
     PlaceModule,
     TagModule,
-    TaskCommentModule,
     OcrModule,
     AiModule,
     ClassificationModule,
@@ -101,6 +100,7 @@ import { EcosystemModule } from './ecosystem/ecosystem.module';
     BlogModule,
     EcosystemModule,
     DeployModule,
+    ProjectModule,
   ],
   providers: [
     {

@@ -29,14 +29,6 @@ enum SocialMediaType {
   GITHUB
 }
 
-enum FileType {
-  IMAGE
-  PDF
-  AUDIO
-  VIDEO
-  OTHER
-}
-
 enum ServerProcessStatus {
   UNKNOWN
   STARTED
@@ -100,25 +92,6 @@ enum DiskType {
   NVME
 }
 
-enum TaskType {
-  TODO
-  TAKE_ITEM
-  CONVERSATION
-  NOTE
-  EVENT
-  HABIT
-  REMINDER
-  AUTOMATION
-}
-
-enum TaskStatus {
-  TODO
-  IN_PROGRESS
-  DEFERRED
-  DONE
-  CANCELLED
-}
-
 enum TaskPriority {
   LOW
   MEDIUM
@@ -133,12 +106,6 @@ enum RepeatType {
   MONTHLY
   YEARLY
   CUSTOM
-}
-
-enum CollaboratorRole {
-  OWNER
-  COLLABORATOR
-  OBSERVER
 }
 
 enum ConnectedServiceType {
@@ -295,17 +262,17 @@ model User {
   aiContextId String?
 
   // Assistant relations
-  personalTasks     Task[]
-  persons           Person[]
-  places            Place[]
-  tags              Tag[]
-  taskCustomFields  TaskCustomField[]
-  taskComments      TaskComment[]
-  taskActivities    TaskActivity[]
-  achievements      Achievement[]
-  taskCollaborators TaskCollaborator[]
-  notifications     NotificationLog[]
-  attachments       Attachment[]
+  persons       Person[]
+  places        Place[]
+  tags          Tag[]
+  notifications NotificationLog[]
+
+  // Projects (docs/projects-design.md)
+  ownedProjects      Project[]       @relation("ProjectOwner")
+  projectMemberships ProjectMember[]
+  tasksCreated       Task[]          @relation("TaskCreatedBy")
+  tasksAssigned      Task[]          @relation("TaskAssignee")
+  tasksCompleted     Task[]          @relation("TaskCompletedBy")
 
   apiKeys              ApiKey[]
   integrationTokens    IntegrationToken[]
@@ -364,82 +331,74 @@ model Person {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  tasks Task[] @relation("PersonTasks")
-
   @@index([userId])
 }
 
 model Task {
-  id              String       @id @default(uuid())
-  description     String
-  type            TaskType     @default(TODO)
-  status          TaskStatus   @default(TODO)
-  priority        TaskPriority @default(MEDIUM)
-  dueDate         DateTime?
-  repeat          RepeatType   @default(NONE)
-  repeatCustom    String?
-  estimatedTime   Int?
-  actualTime      Int?
-  energyLevel     String?
-  moodRequired    String?
-  calendarEventId String?
-  notes           String?
-  isTemplate      Boolean      @default(false)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  completedAt     DateTime?
-  archived        Boolean      @default(false)
-  score           Int          @default(0)
-  reward          String?
-  reminderAt      DateTime?
-  isPrivate       Boolean      @default(false)
+  id String @id @default(uuid())
 
-  aiSuggestions   Json?
-  aiSummary       String?
-  integrationMeta Json?
-  syncStatus      String?
-  externalSyncId  String?
-  requiresApiKey  Boolean               @default(false)
-  requiredService ConnectedServiceType?
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  /// ASTRO-<number>: sequential within the project, never reused.
+  number    Int
 
-  // Relations
+  title String
+  notes String? // markdown
 
-  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
-  aiContextId String?
+  /// The project's own workflow column; its category drives all logic (I8).
+  status   ProjectTaskStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  statusId String
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  priority     TaskPriority @default(MEDIUM)
+  dueDate      DateTime?
+  reminderAt   DateTime?
+  repeat       RepeatType   @default(NONE)
+  repeatCustom String?
 
-  placeId String?
-  place   Place?  @relation(fields: [placeId], references: [id])
+  /// Shopping-list items (LIST projects).
+  quantity Decimal? @db.Decimal(12, 3)
+  unit     String?
 
-  personId String?
-  person   Person? @relation("PersonTasks", fields: [personId], references: [id])
+  /// Position inside its status column.
+  order Int @default(0)
+
+  /// Set when the task enters a DONE-category status, cleared when it leaves.
+  completedAt   DateTime?
+  completedBy   User?     @relation("TaskCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  completedById String?
+
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assigneeId String?
+
+  createdBy   User?   @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
 
   parentTaskId String?
-  parentTask   Task?   @relation("Subtasks", fields: [parentTaskId], references: [id], map: "fk_task_parentTaskId")
+  parentTask   Task?   @relation("Subtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
   subtasks     Task[]  @relation("Subtasks")
 
   blocks    TaskBlock[] @relation("Blocks")
   blockedBy TaskBlock[] @relation("BlockedBy")
 
-  attachments   Attachment[]
-  comments      TaskComment[]
-  tags          TaskTag[]
-  activities    TaskActivity[]
   checklist     TaskChecklistItem[]
-  collaborators TaskCollaborator[]
-  customFields  TaskCustomField[]
-  achievements  Achievement[]
+  tags          TaskTag[]
   notifications NotificationLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, number])
+  @@index([projectId, statusId, order])
+  @@index([assigneeId])
+  @@index([dueDate])
 }
 
 model TaskBlock {
   blockerId String
   blockedId String
 
-  blocker Task @relation("Blocks", fields: [blockerId], references: [id])
-  blocked Task @relation("BlockedBy", fields: [blockedId], references: [id])
+  blocker Task @relation("Blocks", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked Task @relation("BlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@id([blockerId, blockedId])
 }
@@ -458,7 +417,6 @@ model Place {
   location   Location? @relation(fields: [locationId], references: [id])
   locationId String?
 
-  tasks   Task[]
   members PlaceMember[]
 
   aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
@@ -512,21 +470,10 @@ model TaskChecklistItem {
   taskId    String
   content   String
   done      Boolean  @default(false)
-  order     Int?
+  order     Int      @default(0)
   createdAt DateTime @default(now())
-}
 
-model TaskCustomField {
-  id        String   @id @default(uuid())
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  taskId    String
-  name      String
-  value     String
-  type      String?
-  order     Int?
-  createdAt DateTime @default(now())
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
+  @@index([taskId, order])
 }
 
 model Tag {
@@ -544,65 +491,8 @@ model TaskTag {
   taskId String
   tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId  String
-}
 
-model TaskActivity {
-  id        String   @id @default(uuid())
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  taskId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  type      String
-  timestamp DateTime @default(now())
-  details   String?
-}
-
-model TaskComment {
-  id        String   @id @default(uuid())
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  taskId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  comment   String
-  createdAt DateTime @default(now())
-}
-
-model Attachment {
-  id           String   @id @default(uuid())
-  fileUrl      String
-  fileType     FileType
-  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  taskId       String
-  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
-  uploadedById String
-  createdAt    DateTime @default(now())
-
-  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
-  aiContextId String?
-}
-
-model Achievement {
-  id          String   @id @default(uuid())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  name        String
-  description String?
-  achievedAt  DateTime @default(now())
-  taskId      String?
-  task        Task?    @relation(fields: [taskId], references: [id])
-
-  aiContext   AiContext? @relation(fields: [aiContextId], references: [id])
-  aiContextId String?
-}
-
-model TaskCollaborator {
-  id        String           @id @default(uuid())
-  task      Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  taskId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  role      CollaboratorRole @default(COLLABORATOR)
-  createdAt DateTime         @default(now())
+  @@unique([taskId, tagId])
 }
 
 model NotificationLog {
@@ -746,13 +636,10 @@ model AiContext {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  achievement Achievement[]
-  attachment  Attachment[]
-  task        Task[]
-  place       Place[]
-  person      Person[]
-  user        User[]
-  history     AiHistory[]
+  place   Place[]
+  person  Person[]
+  user    User[]
+  history AiHistory[]
 }
 
 model AiHistory {
@@ -2920,4 +2807,109 @@ model ContactSettingsTranslation {
   updatedAt DateTime @updatedAt
 
   @@unique([settingsId, locale])
+}
+
+// ============================================================================
+// Projects, tasks and sharing (docs/projects-design.md)
+// ============================================================================
+
+enum ProjectType {
+  GENERAL
+  LIST // shopping-style list: quantities, quick check-off
+  TRIP // linked to a photo entry, packing
+  DIY // something to make: BOM and a build journal
+}
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  ON_HOLD
+  DONE
+  CANCELLED
+}
+
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+/// What a workflow status means, whatever it is called (D13, I8).
+enum StatusCategory {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model Project {
+  id String @id @default(uuid())
+
+  title       String
+  description String? // markdown
+  type        ProjectType   @default(GENERAL)
+  status      ProjectStatus @default(PLANNED)
+
+  /// ASTRO — prefixes task keys; unique per owner.
+  key         String
+  /// Next task number. Incremented in the same transaction that creates a task.
+  taskCounter Int    @default(0)
+
+  startDate DateTime?
+  dueDate   DateTime?
+  color     String?
+  icon      String?
+
+  /// The owner's personal inbox: one per account, cannot be deleted or shared.
+  isInbox         Boolean   @default(false)
+  isTemplate      Boolean   @default(false)
+  /// Lets viewers tick tasks off without editing them (a shared shopping list).
+  viewersCanCheck Boolean   @default(false)
+  archivedAt      DateTime?
+
+  owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  statuses ProjectTaskStatus[]
+  members  ProjectMember[]
+  tasks    Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ownerId, key])
+  @@index([ownerId, archivedAt])
+}
+
+model ProjectTaskStatus {
+  id String @id @default(uuid())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  name     String
+  color    String?
+  category StatusCategory
+  order    Int
+
+  tasks Task[]
+
+  @@unique([projectId, name])
+  @@index([projectId, order])
+}
+
+/// Everyone with access besides the owner, who is implied by Project.ownerId.
+model ProjectMember {
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  role        ProjectRole
+  invitedById String?
+
+  createdAt DateTime @default(now())
+
+  @@id([projectId, userId])
+  @@index([userId])
 }
