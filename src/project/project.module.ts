@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { NotificationModule } from '../notification/notification.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import { BomService } from './bom.service';
 import { BuildController } from './build.controller';
@@ -14,11 +15,12 @@ import { ProjectShareService } from './project-share.service';
 import { ProjectService } from './project.service';
 import { SharedController } from './shared.controller';
 import { TaskController } from './task.controller';
+import { TaskReminderService } from './task-reminder.service';
 import { TaskService } from './task.service';
 
 /** Projects, tasks and sharing (docs/projects-design.md). */
 @Module({
-  imports: [WebsocketModule],
+  imports: [WebsocketModule, NotificationModule],
   controllers: [
     ProjectController,
     TaskController,
@@ -35,6 +37,7 @@ import { TaskService } from './task.service';
     ProjectEventsService,
     ProjectService,
     ProjectShareService,
+    TaskReminderService,
     TaskService,
   ],
   exports: [ProjectAccessService, ProjectEventsService, ProjectService],

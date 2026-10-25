@@ -27,4 +27,8 @@ export class PatchUserSettingsDto {
   /** A visitor sent an inquiry through the public contact form. */
   @IsBoolean({ optional: true })
   inquiryEmailNotifications?: boolean;
+
+  /** A task's reminder time came. */
+  @IsBoolean({ optional: true })
+  taskEmailNotifications?: boolean;
 }

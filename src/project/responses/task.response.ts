@@ -95,6 +95,9 @@ export class TaskResponse {
   @IsEnum({ enum: { RepeatType } })
   repeat: RepeatType;
 
+  @IsString({ optional: true, nullable: true })
+  repeatCustom: string | null;
+
   /** Shopping-list items. */
   @IsNumber({ optional: true, nullable: true })
   quantity: number | null;

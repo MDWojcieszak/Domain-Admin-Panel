@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
 
 import { toBoolean } from '../../common/helpers/cast.helper';
+import { CUSTOM_REPEAT } from '../task-rules';
 
 export class CreateTaskDto {
   @IsString({ minLength: 1, maxLength: 500 })
@@ -26,6 +27,14 @@ export class CreateTaskDto {
 
   @IsEnum({ enum: { RepeatType }, optional: true })
   repeat?: RepeatType;
+
+  /** With repeat CUSTOM: "3d", "2w", "6m", "1y". */
+  @IsString({
+    optional: true,
+    nullable: true,
+    pattern: { regex: CUSTOM_REPEAT },
+  })
+  repeatCustom?: string | null;
 
   @IsNumber({ min: 0, optional: true, nullable: true })
   quantity?: number | null;
@@ -64,6 +73,14 @@ export class UpdateTaskDto {
 
   @IsEnum({ enum: { RepeatType }, optional: true })
   repeat?: RepeatType;
+
+  /** With repeat CUSTOM: "3d", "2w", "6m", "1y". */
+  @IsString({
+    optional: true,
+    nullable: true,
+    pattern: { regex: CUSTOM_REPEAT },
+  })
+  repeatCustom?: string | null;
 
   @IsNumber({ min: 0, optional: true, nullable: true })
   quantity?: number | null;

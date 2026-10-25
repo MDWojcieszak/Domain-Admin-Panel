@@ -701,6 +701,8 @@ model UserSettings {
   tripEmailNotifications         Boolean @default(true)
   /// A visitor sent an inquiry through the public contact form.
   inquiryEmailNotifications      Boolean @default(true)
+  /// A task's reminder time came (docs/projects-design.md, phase 6).
+  taskEmailNotifications         Boolean @default(true)
 }
 
 model SocialMedia {

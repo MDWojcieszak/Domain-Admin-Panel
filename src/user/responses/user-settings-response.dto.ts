@@ -27,4 +27,7 @@ export class UserSettingsResponseDto {
 
   @IsBoolean()
   inquiryEmailNotifications: boolean;
+
+  @IsBoolean()
+  taskEmailNotifications: boolean;
 }

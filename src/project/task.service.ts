@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, StatusCategory } from '@prisma/client';
+import { Prisma, RepeatType, StatusCategory } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -17,6 +17,7 @@ import {
 } from './dto';
 import { ProjectAccess, ProjectAccessService } from './project-access.service';
 import { taskKey } from './project-defaults';
+import { nextOccurrence } from './task-rules';
 import { ProjectEventsService } from './project-events.service';
 import { USER_SELECT } from './project.service';
 import {
@@ -179,6 +180,7 @@ export class TaskService {
           dueDate: nullableDate(dto.dueDate),
           reminderAt: nullableDate(dto.reminderAt),
           repeat: dto.repeat,
+          repeatCustom: dto.repeatCustom ?? null,
           quantity: dto.quantity ?? null,
           unit: dto.unit ?? null,
           assigneeId: dto.assigneeId ?? null,
@@ -222,6 +224,7 @@ export class TaskService {
       dueDate: nullableDate(dto.dueDate),
       reminderAt: nullableDate(dto.reminderAt),
       repeat: dto.repeat,
+      repeatCustom: dto.repeatCustom,
       quantity: dto.quantity,
       unit: dto.unit,
       assigneeId: dto.assigneeId,
@@ -243,6 +246,7 @@ export class TaskService {
     }
 
     await this.prisma.task.update({ where: { id: taskId }, data });
+    if (data.completedAt) await this.repeatAfterDone(taskId, userId);
     this.notify(userId, project.id, taskId);
     return this.detail(taskId);
   }
@@ -293,6 +297,12 @@ export class TaskService {
       }
     });
 
+    if (
+      target.category === StatusCategory.DONE &&
+      current.status.category !== StatusCategory.DONE
+    ) {
+      await this.repeatAfterDone(taskId, userId);
+    }
     this.notify(userId, project.id, taskId);
     return this.detail(taskId);
   }
@@ -344,6 +354,9 @@ export class TaskService {
         ...completion(current.status.category, target.category, actorId),
       },
     });
+    if (target.category === StatusCategory.DONE) {
+      await this.repeatAfterDone(taskId, actorId);
+    }
 
     this.notify(actorId, projectId, taskId);
   }
@@ -556,6 +569,70 @@ export class TaskService {
     }
   }
 
+  /**
+   * A repeating task, once done, hands its repeat on to the next occurrence:
+   * a fresh copy due one step later (checklist unticked), so the done one
+   * stays done and ticking it again never makes a second copy.
+   */
+  private async repeatAfterDone(taskId: string, actorId: string | null) {
+    const task = await this.prisma.task.findUniqueOrThrow({
+      where: { id: taskId },
+      include: { checklist: { orderBy: { order: 'asc' } } },
+    });
+    const base = task.dueDate ?? new Date();
+    const due = nextOccurrence(base, task.repeat, task.repeatCustom);
+    if (!due) return;
+    const todo = await this.firstStatus(task.projectId, StatusCategory.TODO);
+
+    const next = await this.prisma.$transaction(async (tx) => {
+      const { taskCounter } = await tx.project.update({
+        where: { id: task.projectId },
+        data: { taskCounter: { increment: 1 } },
+        select: { taskCounter: true },
+      });
+      const last = await tx.task.findFirst({
+        where: { statusId: todo.id },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+      await tx.task.update({
+        where: { id: taskId },
+        data: { repeat: RepeatType.NONE, repeatCustom: null },
+      });
+      return tx.task.create({
+        data: {
+          projectId: task.projectId,
+          number: taskCounter,
+          title: task.title,
+          notes: task.notes,
+          statusId: todo.id,
+          priority: task.priority,
+          dueDate: due,
+          reminderAt: task.reminderAt
+            ? new Date(
+                task.reminderAt.getTime() + (due.getTime() - base.getTime()),
+              )
+            : null,
+          repeat: task.repeat,
+          repeatCustom: task.repeatCustom,
+          quantity: task.quantity,
+          unit: task.unit,
+          assigneeId: task.assigneeId,
+          parentTaskId: task.parentTaskId,
+          createdById: actorId ?? task.createdById,
+          order: (last?.order ?? -1) + 1,
+          checklist: {
+            create: task.checklist.map((c) => ({
+              content: c.content,
+              order: c.order,
+            })),
+          },
+        },
+      });
+    });
+    this.notify(actorId, task.projectId, next.id);
+  }
+
   private notify(actorId: string | null, projectId: string, taskId: string) {
     void this.events.changed({ projectId, kind: 'task', taskId, actorId });
   }
@@ -588,6 +665,7 @@ export const toTask = (task: TaskRow): TaskResponse => ({
   dueDate: task.dueDate,
   reminderAt: task.reminderAt,
   repeat: task.repeat,
+  repeatCustom: task.repeatCustom,
   quantity: task.quantity === null ? null : Number(task.quantity),
   unit: task.unit,
   order: task.order,

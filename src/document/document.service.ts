@@ -12,7 +12,9 @@ import { Prisma } from '@prisma/client';
 import { createHash, randomUUID } from 'crypto';
 import { createReadStream } from 'fs';
 import { copyFile, mkdir, open, readFile, rename, rm } from 'fs/promises';
-import { dirname } from 'path';
+import { execFile } from 'child_process';
+import { dirname, join } from 'path';
+import { promisify } from 'util';
 import * as sharp from 'sharp';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -36,7 +38,7 @@ import {
   titleFromName,
   verifyDocument,
 } from './document-rules';
-import { documentPath } from './document-storage';
+import { DOCUMENT_TMP_DIR, documentPath } from './document-storage';
 import {
   CreateDocumentLinkDto,
   DocumentFileQueryDto,
@@ -49,6 +51,11 @@ import {
   DocumentResponse,
   UploadDocumentResponse,
 } from './responses';
+
+const execFileAsync = promisify(execFile);
+
+/** poppler's page renderer; in the image since phase 6 (Dockerfile). */
+const PDFTOPPM = process.env.PDFTOPPM_PATH || 'pdftoppm';
 
 /** Larger images keep no preview: decoding them is not worth the memory. */
 const PREVIEW_MAX_BYTES = 100 * 1024 * 1024;
@@ -244,8 +251,10 @@ export class DocumentService {
 
       const preview =
         kind === 'IMAGE' && file.size <= PREVIEW_MAX_BYTES
-          ? await this.makePreviews(id, finalPath)
-          : null;
+          ? await this.makePreviews(id, await readFile(finalPath))
+          : kind === 'PDF'
+            ? await this.pdfPreview(id, finalPath)
+            : null;
 
       try {
         await this.prisma.document.create({
@@ -496,11 +505,13 @@ export class DocumentService {
   }
 
   /** Thumbnail and large preview; a file sharp cannot read simply has none. */
-  private async makePreviews(id: string, originalPath: string) {
+  /**
+   * Thumbnail and large preview from image bytes (from memory, not the path:
+   * libvips keeps files it opened, which on Windows stops the original from
+   * ever being deleted). A file sharp cannot read simply has none.
+   */
+  private async makePreviews(id: string, original: Buffer) {
     try {
-      // From memory, not the path: libvips keeps files it opened, which on
-      // Windows stops the original from ever being deleted.
-      const original = await readFile(originalPath);
       const metadata = await sharp(original).metadata();
       const target = documentPath(id, null, 'thumb');
       await mkdir(dirname(target), { recursive: true });
@@ -527,6 +538,50 @@ export class DocumentService {
       await rm(documentPath(id, null, 'thumb'), { force: true });
       await rm(documentPath(id, null, 'large'), { force: true });
       return null;
+    }
+  }
+
+  /**
+   * A PDF's first page, rendered by poppler's pdftoppm, as the preview. The
+   * size fields stay empty: they describe images, not pages. Without the tool
+   * (a development machine) a PDF just has no preview.
+   */
+  private async pdfPreview(id: string, path: string) {
+    const prefix = join(DOCUMENT_TMP_DIR, `${id}-page`);
+    try {
+      await mkdir(DOCUMENT_TMP_DIR, { recursive: true });
+      await execFileAsync(
+        PDFTOPPM,
+        [
+          '-f',
+          '1',
+          '-l',
+          '1',
+          '-singlefile',
+          '-png',
+          '-scale-to',
+          '1920',
+          path,
+          prefix,
+        ],
+        { timeout: 30_000 },
+      );
+      const page = await readFile(`${prefix}.png`);
+      return (await this.makePreviews(id, page))
+        ? { width: null, height: null }
+        : null;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT') {
+        this.logger.debug('pdftoppm is not installed: PDFs get no preview.');
+      } else {
+        this.logger.warn(
+          `No preview for PDF ${id}: ${(error as Error).message}`,
+        );
+      }
+      return null;
+    } finally {
+      await rm(`${prefix}.png`, { force: true }).catch(() => undefined);
     }
   }
 

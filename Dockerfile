@@ -4,6 +4,12 @@ FROM node:22
 # Set the working directory
 WORKDIR /app
 
+# poppler's pdftoppm renders the first page of an uploaded PDF as its preview
+# (src/document). Without it PDFs still upload, just with no thumbnail.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends poppler-utils \
+  && rm -rf /var/lib/apt/lists/*
+
 # Copy package.json and package-lock.json
 COPY package.json yarn.lock ./
 

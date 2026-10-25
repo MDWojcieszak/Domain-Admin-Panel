@@ -20,7 +20,8 @@ export type NotificationSetting =
   | 'processEmailNotifications'
   | 'photoMediaEmailNotifications'
   | 'tripEmailNotifications'
-  | 'inquiryEmailNotifications';
+  | 'inquiryEmailNotifications'
+  | 'taskEmailNotifications';
 
 /** Schema defaults — decides whether a user with NO settings row opts in. */
 const DEFAULT_ON: Record<NotificationSetting, boolean> = {
@@ -30,6 +31,7 @@ const DEFAULT_ON: Record<NotificationSetting, boolean> = {
   photoMediaEmailNotifications: true,
   tripEmailNotifications: true,
   inquiryEmailNotifications: true,
+  taskEmailNotifications: true,
 };
 
 export interface EmailNotification {
