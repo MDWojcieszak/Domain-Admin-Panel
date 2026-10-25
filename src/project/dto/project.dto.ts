@@ -4,7 +4,10 @@ import {
   ProjectType,
   StatusCategory,
 } from '@prisma/client';
+import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsString } from 'nestjs-swagger-dto';
+
+import { toBoolean } from '../../common/helpers/cast.helper';
 
 import { PROJECT_KEY } from '../project-defaults';
 
@@ -97,10 +100,13 @@ export class ListProjectsQueryDto {
   @IsString({ optional: true })
   q?: string;
 
+  // From the query string, where "false" must mean false.
+  @Transform(({ value }) => toBoolean(value))
   @IsBoolean({ optional: true })
   archived?: boolean;
 
   /** Templates only, instead of projects. */
+  @Transform(({ value }) => toBoolean(value))
   @IsBoolean({ optional: true })
   templates?: boolean;
 }

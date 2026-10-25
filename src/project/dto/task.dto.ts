@@ -1,5 +1,8 @@
 import { RepeatType, StatusCategory, TaskPriority } from '@prisma/client';
+import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsNumber, IsString } from 'nestjs-swagger-dto';
+
+import { toBoolean } from '../../common/helpers/cast.helper';
 
 export class CreateTaskDto {
   @IsString({ minLength: 1, maxLength: 500 })
@@ -101,6 +104,7 @@ export class ListTasksQueryDto {
   q?: string;
 
   /** Include subtasks as their own rows. */
+  @Transform(({ value }) => toBoolean(value))
   @IsBoolean({ optional: true })
   withSubtasks?: boolean;
 }
