@@ -7,6 +7,7 @@ import {
   deriveProjectKey,
   taskKey,
 } from './project-defaults';
+import { dateShift, shifted } from './project-copy.service';
 import { hashShareToken, isLinkActive } from './project-share.service';
 import { completion } from './task.service';
 
@@ -108,5 +109,23 @@ describe('share links (D3, I3)', () => {
       completedAt: expect.any(Date),
       completedById: null,
     });
+  });
+});
+
+describe('duplicate dates (D12)', () => {
+  it('moves dates by the distance between the old and the new start', () => {
+    const shift = dateShift(
+      new Date('2026-01-01T12:00:00Z'),
+      new Date('2026-03-01T12:00:00Z'),
+    );
+    expect(shifted(new Date('2026-01-10T12:00:00Z'), shift)).toEqual(
+      new Date('2026-03-10T12:00:00Z'),
+    );
+    expect(shifted(null, shift)).toBeNull();
+  });
+
+  it('leaves dates alone without both starts', () => {
+    expect(dateShift(null, new Date())).toBe(0);
+    expect(dateShift(new Date(), null)).toBe(0);
   });
 });

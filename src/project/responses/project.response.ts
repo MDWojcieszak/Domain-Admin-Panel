@@ -13,6 +13,21 @@ import {
   IsString,
 } from 'nestjs-swagger-dto';
 
+/** The shoot a trip is for: name and dates, nothing behind photoEntry.read. */
+export class ProjectPhotoEntryResponse {
+  @IsString()
+  id: string;
+
+  @IsString()
+  name: string;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  startDate: Date | null;
+
+  @IsDate({ format: 'date-time', optional: true, nullable: true })
+  endDate: Date | null;
+}
+
 /** Just enough of an account to show who is who. */
 export class ProjectUserResponse {
   @IsString()
@@ -122,6 +137,9 @@ export class ProjectSummaryResponse {
   @IsBoolean()
   viewersCanCheck: boolean;
 
+  @IsNested({ type: ProjectPhotoEntryResponse, optional: true, nullable: true })
+  photoEntry: ProjectPhotoEntryResponse | null;
+
   @IsDate({ format: 'date-time', optional: true, nullable: true })
   archivedAt: Date | null;
 
@@ -153,4 +171,16 @@ export class ProjectDetailResponse extends ProjectSummaryResponse {
 
   @IsNested({ type: ProjectMemberResponse, isArray: true })
   members: ProjectMemberResponse[];
+}
+
+export class DuplicateProjectResponse {
+  @IsNested({ type: ProjectDetailResponse })
+  project: ProjectDetailResponse;
+
+  /**
+   * Documents left out of the copy: pinned by someone else, they are theirs
+   * to pin again (D8).
+   */
+  @IsNumber({ type: 'integer' })
+  skippedDocuments: number;
 }

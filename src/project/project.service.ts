@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,9 +10,12 @@ import {
   Project,
   ProjectRole,
   ProjectType,
+  Role,
   StatusCategory,
 } from '@prisma/client';
 
+import { PERMISSIONS } from '../common/acl/permissions';
+import { PermissionsService } from '../common/acl/permissions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AddProjectMemberDto,
@@ -56,6 +60,7 @@ export class ProjectService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly events: ProjectEventsService,
+    private readonly permissions: PermissionsService,
   ) {}
 
   // — projects —
@@ -70,7 +75,7 @@ export class ProjectService {
     const projects = await this.prisma.project.findMany({
       where: {
         OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-        isTemplate: false,
+        isTemplate: !!query.templates,
         archivedAt: query.archived ? { not: null } : null,
         ...(query.status ? { status: query.status } : {}),
         ...(query.type ? { type: query.type } : {}),
@@ -112,6 +117,7 @@ export class ProjectService {
   ): Promise<ProjectDetailResponse> {
     const type = dto.type ?? ProjectType.GENERAL;
     const key = await this.resolveKey(userId, dto.title, dto.key);
+    await this.assertPhotoEntry(userId, dto.photoEntryId);
 
     const project = await this.prisma.project.create({
       data: {
@@ -125,6 +131,7 @@ export class ProjectService {
         color: dto.color ?? null,
         icon: dto.icon ?? null,
         viewersCanCheck: dto.viewersCanCheck ?? type === ProjectType.LIST,
+        photoEntryId: dto.photoEntryId ?? null,
         ownerId: userId,
         statuses: {
           create: DEFAULT_STATUSES[type].map((status, order) => ({
@@ -156,6 +163,10 @@ export class ProjectService {
       );
     }
 
+    if (dto.photoEntryId !== project.photoEntryId) {
+      await this.assertPhotoEntry(userId, dto.photoEntryId);
+    }
+
     let key: string | undefined;
     if (dto.key && dto.key !== project.key) {
       key = await this.resolveKey(project.ownerId, project.title, dto.key);
@@ -174,6 +185,7 @@ export class ProjectService {
         color: dto.color,
         icon: dto.icon,
         viewersCanCheck: dto.viewersCanCheck,
+        photoEntryId: dto.photoEntryId,
         archivedAt:
           dto.archived === undefined
             ? undefined
@@ -508,7 +520,7 @@ export class ProjectService {
       });
   }
 
-  private async resolveKey(
+  async resolveKey(
     ownerId: string,
     title: string,
     requested?: string,
@@ -553,6 +565,9 @@ export class ProjectService {
       owner: { select: USER_SELECT },
       members: { where: { userId }, select: { role: true } },
       _count: { select: { members: true } },
+      photoEntry: {
+        select: { id: true, name: true, startDate: true, endDate: true },
+      },
     } satisfies Prisma.ProjectInclude;
   }
 
@@ -561,6 +576,7 @@ export class ProjectService {
       owner: ProjectSummaryResponse['owner'];
       members: { role: ProjectRole }[];
       _count: { members: number };
+      photoEntry: ProjectSummaryResponse['photoEntry'];
     },
     userId: string,
     progress?: ProjectProgressResponse,
@@ -579,6 +595,7 @@ export class ProjectService {
       isInbox: project.isInbox,
       isTemplate: project.isTemplate,
       viewersCanCheck: project.viewersCanCheck,
+      photoEntry: project.photoEntry,
       archivedAt: project.archivedAt,
       role:
         project.ownerId === userId
@@ -590,6 +607,30 @@ export class ProjectService {
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     };
+  }
+
+  /**
+   * A trip may point at a shoot only for someone who can read shoots: the
+   * link shows its name and dates to every member.
+   */
+  private async assertPhotoEntry(userId: string, photoEntryId?: string | null) {
+    if (!photoEntryId) return;
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { role: true },
+    });
+    const allowed =
+      user.role === Role.OWNER ||
+      (await this.permissions.getEffectivePermissions(userId)).has(
+        PERMISSIONS.PHOTO_ENTRY_READ,
+      );
+    if (!allowed) {
+      throw new ForbiddenException('Linking a shoot takes photoEntry.read.');
+    }
+    const found = await this.prisma.photoEntry.count({
+      where: { id: photoEntryId },
+    });
+    if (!found) throw new BadRequestException('No such photo entry.');
   }
 
   /** Counted from the tasks, per category — never stored (I5). */

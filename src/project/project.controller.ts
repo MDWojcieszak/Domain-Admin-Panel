@@ -22,6 +22,7 @@ import {
   CreateProjectDto,
   CreateProjectStatusDto,
   CreateShareLinkDto,
+  DuplicateProjectDto,
   CreateTaskDto,
   ListProjectsQueryDto,
   ListTasksQueryDto,
@@ -30,10 +31,12 @@ import {
   UpdateProjectMemberDto,
   UpdateProjectStatusDto,
 } from './dto';
+import { ProjectCopyService } from './project-copy.service';
 import { ProjectShareService } from './project-share.service';
 import { ProjectService } from './project.service';
 import {
   CreatedShareLinkResponse,
+  DuplicateProjectResponse,
   ProjectDetailResponse,
   ProjectMemberResponse,
   ProjectStatusResponse,
@@ -57,6 +60,7 @@ export class ProjectController {
     private readonly projects: ProjectService,
     private readonly tasks: TaskService,
     private readonly shares: ProjectShareService,
+    private readonly copies: ProjectCopyService,
   ) {}
 
   @Get()
@@ -155,6 +159,20 @@ export class ProjectController {
     @Query('moveToStatusId') moveToStatusId: string,
   ): Promise<ProjectStatusResponse[]> {
     return this.projects.removeStatus(userId, id, statusId, moveToStatusId);
+  }
+
+  /**
+   * A fresh copy: the plan without its history (D12). From a template, this
+   * is "new from template"; with asTemplate, "save as template".
+   */
+  @Post(':id/duplicate')
+  @ApiOkResponse({ type: DuplicateProjectResponse })
+  duplicate(
+    @GetCurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: DuplicateProjectDto,
+  ): Promise<DuplicateProjectResponse> {
+    return this.copies.duplicate(userId, id, dto);
   }
 
   // — public links (owner) —

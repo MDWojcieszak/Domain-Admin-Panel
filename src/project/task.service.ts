@@ -114,6 +114,8 @@ export class TaskService {
         status: { category: { not: StatusCategory.DONE } },
         project: {
           archivedAt: null,
+          // A template's tasks are a plan to copy, not work to do.
+          isTemplate: false,
           OR: [{ ownerId: userId }, { members: { some: { userId } } }],
         },
         OR: [

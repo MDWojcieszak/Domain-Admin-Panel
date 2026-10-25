@@ -1387,6 +1387,8 @@ model PhotoEntry {
   astroObjects PhotoEntryAstroObject[]
   immichAlbums PhotoEntryImmichAlbum[]
   gear         PhotoEntryGear[]
+  /// Trip projects planning this shoot.
+  projects     Project[]
   comments     PhotoEntryComment[]
   publications PhotoEntryPublication[]
 
@@ -2870,10 +2872,13 @@ model Project {
   icon      String?
 
   /// The owner's personal inbox: one per account, cannot be deleted or shared.
-  isInbox         Boolean   @default(false)
-  isTemplate      Boolean   @default(false)
+  isInbox         Boolean     @default(false)
+  isTemplate      Boolean     @default(false)
+  /// A trip's shoot: its gear list is the trip's camera packing (D6).
+  photoEntry      PhotoEntry? @relation(fields: [photoEntryId], references: [id], onDelete: SetNull)
+  photoEntryId    String?
   /// Lets viewers tick tasks off without editing them (a shared shopping list).
-  viewersCanCheck Boolean   @default(false)
+  viewersCanCheck Boolean     @default(false)
   archivedAt      DateTime?
 
   owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)

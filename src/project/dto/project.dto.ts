@@ -39,6 +39,10 @@ export class CreateProjectDto {
 
   @IsBoolean({ optional: true })
   viewersCanCheck?: boolean;
+
+  /** A trip's shoot; linking one takes photoEntry.read. */
+  @IsString({ optional: true, nullable: true })
+  photoEntryId?: string | null;
 }
 
 export class UpdateProjectDto {
@@ -74,6 +78,10 @@ export class UpdateProjectDto {
   @IsBoolean({ optional: true })
   viewersCanCheck?: boolean;
 
+  /** A trip's shoot; linking one takes photoEntry.read. */
+  @IsString({ optional: true, nullable: true })
+  photoEntryId?: string | null;
+
   @IsBoolean({ optional: true })
   archived?: boolean;
 }
@@ -91,6 +99,27 @@ export class ListProjectsQueryDto {
 
   @IsBoolean({ optional: true })
   archived?: boolean;
+
+  /** Templates only, instead of projects. */
+  @IsBoolean({ optional: true })
+  templates?: boolean;
+}
+
+/**
+ * A copy to start over with (D12): structure and plans, no ticks, no people,
+ * no history. Dates move with the new start.
+ */
+export class DuplicateProjectDto {
+  @IsString({ minLength: 1, maxLength: 200 })
+  title: string;
+
+  /** Due dates shift by the distance between the old start and this one. */
+  @IsString({ isDate: { format: 'date-time' }, optional: true, nullable: true })
+  startDate?: string | null;
+
+  /** Keep it as a template instead of a working project. */
+  @IsBoolean({ optional: true })
+  asTemplate?: boolean;
 }
 
 export class CreateProjectStatusDto {
