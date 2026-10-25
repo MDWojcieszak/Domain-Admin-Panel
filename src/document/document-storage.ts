@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 import { DocumentVariant } from './document-rules';
 
@@ -6,8 +6,11 @@ import { DocumentVariant } from './document-rules';
  * Where documents live on disk. Read from the environment at load time, since
  * the upload interceptor needs it before any provider exists.
  */
-export const DOCUMENT_ROOT =
-  process.env.DOCUMENT_STORAGE_PATH || '/app/public/document';
+export const DOCUMENT_ROOT = resolve(
+  // Resolved, so every path below is absolute on any OS: on Windows /app
+  // loses its drive letter, a path res.sendFile refuses.
+  process.env.DOCUMENT_STORAGE_PATH || '/app/public/document',
+);
 
 /** 200 MB unless DOCUMENT_MAX_MB says otherwise: models and PDFs run large. */
 export const DOCUMENT_MAX_BYTES =
