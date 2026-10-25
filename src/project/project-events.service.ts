@@ -3,7 +3,12 @@ import { Injectable } from '@nestjs/common';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { ProjectAccessService } from './project-access.service';
 
-export type ProjectChangeKind = 'project' | 'status' | 'member' | 'task';
+export type ProjectChangeKind =
+  | 'project'
+  | 'status'
+  | 'member'
+  | 'task'
+  | 'document';
 
 export interface ProjectChangedEvent {
   projectId: string;

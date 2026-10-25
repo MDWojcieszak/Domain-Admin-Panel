@@ -274,6 +274,8 @@ model User {
   tasksAssigned      Task[]             @relation("TaskAssignee")
   tasksCompleted     Task[]             @relation("TaskCompletedBy")
   projectShareLinks  ProjectShareLink[]
+  documents          Document[]
+  documentLinks      DocumentLink[]
 
   apiKeys              ApiKey[]
   integrationTokens    IntegrationToken[]
@@ -383,6 +385,7 @@ model Task {
 
   checklist     TaskChecklistItem[]
   tags          TaskTag[]
+  documents     DocumentLink[]
   notifications NotificationLog[]
 
   createdAt DateTime @default(now())
@@ -2870,10 +2873,11 @@ model Project {
   owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId String
 
-  statuses ProjectTaskStatus[]
-  members  ProjectMember[]
-  links    ProjectShareLink[]
-  tasks    Task[]
+  statuses  ProjectTaskStatus[]
+  members   ProjectMember[]
+  links     ProjectShareLink[]
+  tasks     Task[]
+  documents DocumentLink[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2947,4 +2951,75 @@ model ProjectMember {
 
   @@id([projectId, userId])
   @@index([userId])
+}
+
+// ============================================================================
+// Documents: any file, in its owner's library, pinned where it is needed
+// (docs/projects-design.md D8, D9, §4)
+// ============================================================================
+
+/// Decided from the file's signature first, its extension second.
+enum DocumentKind {
+  IMAGE
+  PDF
+  MODEL_3D
+  CAD
+  ARCHIVE
+  TEXT
+  OTHER
+}
+
+model Document {
+  id String @id @default(uuid())
+
+  title        String
+  /// What the document is: "Mount drawing, rev. B".
+  description  String?
+  /// As uploaded; only ever stored here, never used as a path.
+  originalName String
+  mimeType     String
+  kind         DocumentKind
+  sizeBytes    BigInt
+  /// Lower-case, sanitised; the stored file is <id>.<extension>.
+  extension    String?
+  sha256       String
+
+  /// Images only: preview files exist and their size is known.
+  hasPreview Boolean @default(false)
+  width      Int?
+  height     Int?
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  links DocumentLink[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, createdAt])
+  @@index([ownerId, sha256])
+}
+
+/// A document pinned to exactly one place (a CHECK in the migration, I6).
+model DocumentLink {
+  id String @id @default(uuid())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String?
+
+  addedBy   User   @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  addedById String
+
+  createdAt DateTime @default(now())
+
+  @@unique([documentId, projectId])
+  @@unique([documentId, taskId])
+  @@index([projectId])
+  @@index([taskId])
 }

@@ -21,6 +21,6 @@ import { TaskService } from './task.service';
     ProjectShareService,
     TaskService,
   ],
-  exports: [ProjectAccessService, ProjectService],
+  exports: [ProjectAccessService, ProjectEventsService, ProjectService],
 })
 export class ProjectModule {}
