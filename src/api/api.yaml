@@ -9033,6 +9033,30 @@ paths:
                 $ref: '#/components/schemas/TaskDetailResponse'
       tags: *ref_85
       security: *ref_86
+  /tasks/{id}/move-to-project:
+    post:
+      operationId: TaskController_moveToProject
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveTaskToProjectDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovedTaskResponse'
+      tags: *ref_85
+      security: *ref_86
   /tasks/{id}/toggle:
     post:
       operationId: TaskController_toggle
@@ -9255,6 +9279,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BomResponse'
+      tags: *ref_88
+      security: *ref_89
+  /projects/{id}/bom/shopping-list:
+    post:
+      operationId: BuildController_toShoppingList
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BomShoppingListDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BomShoppingListResponse'
       tags: *ref_88
       security: *ref_89
   /projects/{id}/bom/order:
@@ -21765,6 +21813,25 @@ components:
           minimum: 0
       required:
         - statusId
+    MoveTaskToProjectDto:
+      type: object
+      properties:
+        projectId:
+          type: string
+        statusId:
+          type: string
+      required:
+        - projectId
+    MovedTaskResponse:
+      type: object
+      properties:
+        task:
+          $ref: '#/components/schemas/TaskDetailResponse'
+        droppedDocuments:
+          type: integer
+      required:
+        - task
+        - droppedDocuments
     CreateChecklistItemDto:
       type: object
       properties:
@@ -22082,6 +22149,8 @@ components:
           type: integer
         documentCount:
           type: integer
+        onShoppingList:
+          type: boolean
       required:
         - id
         - name
@@ -22091,6 +22160,7 @@ components:
         - order
         - commentCount
         - documentCount
+        - onShoppingList
     BomCostResponse:
       type: object
       properties:
@@ -22184,6 +22254,27 @@ components:
           nullable: true
       required:
         - name
+    BomShoppingListDto:
+      type: object
+      properties:
+        targetProjectId:
+          type: string
+        title:
+          type: string
+          maxLength: 200
+    BomShoppingListResponse:
+      type: object
+      properties:
+        projectId:
+          type: string
+        added:
+          type: integer
+        alreadyListed:
+          type: integer
+      required:
+        - projectId
+        - added
+        - alreadyListed
     UpdateBomItemDto:
       type: object
       properties:
