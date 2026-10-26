@@ -80,3 +80,33 @@ export const REMINDER_ATTEMPTS = 3;
 /** One reminder: a task at one reminder time; moving the time makes a new one. */
 export const reminderKey = (taskId: string, reminderAt: Date) =>
   `${taskId}@${reminderAt.toISOString()}`;
+
+// — progress you can see —
+
+const DAY_MS = 86_400_000;
+
+const shiftDay = (day: string, by: number) =>
+  new Date(Date.parse(`${day}T12:00:00Z`) + by * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
+
+/** The Monday of the week a day falls in (YYYY-MM-DD in, YYYY-MM-DD out). */
+export const weekStart = (day: string) => {
+  const weekday = new Date(`${day}T12:00:00Z`).getUTCDay(); // 0 = Sunday
+  return shiftDay(day, -((weekday + 6) % 7));
+};
+
+/**
+ * Days in a row with something done, counting back from today; a streak
+ * still counts this morning if yesterday had something, so it does not
+ * break before the day has had a chance.
+ */
+export const streakDays = (doneDays: Set<string>, today: string) => {
+  let day = doneDays.has(today) ? today : shiftDay(today, -1);
+  let streak = 0;
+  while (doneDays.has(day)) {
+    streak++;
+    day = shiftDay(day, -1);
+  }
+  return streak;
+};

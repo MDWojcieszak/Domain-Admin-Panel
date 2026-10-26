@@ -24,6 +24,7 @@ import {
 import {
   ChecklistItemResponse,
   MovedTaskResponse,
+  MyTaskStatsResponse,
   TaskDetailResponse,
   TaskResponse,
 } from './responses';
@@ -44,6 +45,13 @@ export class TaskController {
     @Query() query: MyTasksQueryDto,
   ): Promise<TaskResponse[]> {
     return this.tasks.mine(userId, query.view);
+  }
+
+  /** What you finished today, this week, and your streak of days. */
+  @Get('stats')
+  @ApiOkResponse({ type: MyTaskStatsResponse })
+  stats(@GetCurrentUser('sub') userId: string): Promise<MyTaskStatsResponse> {
+    return this.tasks.stats(userId);
   }
 
   @Get(':id')

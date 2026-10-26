@@ -181,3 +181,21 @@ export class MovedTaskResponse {
   @IsNumber({ type: 'integer' })
   droppedDocuments: number;
 }
+
+/** Progress you can see: what you finished, and how regularly. */
+export class MyTaskStatsResponse {
+  @IsNumber({ type: 'integer' })
+  doneToday: number;
+
+  /** Since Monday. */
+  @IsNumber({ type: 'integer' })
+  doneThisWeek: number;
+
+  /** Days in a row with something done, today or yesterday included. */
+  @IsNumber({ type: 'integer' })
+  streakDays: number;
+
+  /** Your open tasks: assigned to you, or in your inbox. */
+  @IsNumber({ type: 'integer' })
+  open: number;
+}

@@ -1,6 +1,12 @@
 import { RepeatType } from '@prisma/client';
 
-import { nextOccurrence, reminderKey, repeatStep } from './task-rules';
+import {
+  nextOccurrence,
+  reminderKey,
+  repeatStep,
+  streakDays,
+  weekStart,
+} from './task-rules';
 
 const at = (iso: string) => new Date(iso);
 
@@ -60,5 +66,35 @@ describe('reminderKey', () => {
     expect(reminderKey('t', at('2026-01-01T08:00:00Z'))).not.toBe(
       reminderKey('t', at('2026-01-01T09:00:00Z')),
     );
+  });
+});
+
+describe('weekStart', () => {
+  it('goes back to Monday', () => {
+    expect(weekStart('2026-10-29')).toBe('2026-10-26'); // Thursday
+    expect(weekStart('2026-10-26')).toBe('2026-10-26'); // Monday
+    expect(weekStart('2026-11-01')).toBe('2026-10-26'); // Sunday
+  });
+});
+
+describe('streakDays', () => {
+  const days = (...d: string[]) => new Set(d);
+
+  it('counts days in a row back from today', () => {
+    expect(
+      streakDays(
+        days('2026-10-27', '2026-10-26', '2026-10-25', '2026-10-23'),
+        '2026-10-27',
+      ),
+    ).toBe(3);
+  });
+
+  it('keeps a streak alive until today is over', () => {
+    expect(streakDays(days('2026-10-26', '2026-10-25'), '2026-10-27')).toBe(2);
+  });
+
+  it('is zero after a missed day', () => {
+    expect(streakDays(days('2026-10-25'), '2026-10-27')).toBe(0);
+    expect(streakDays(days(), '2026-10-27')).toBe(0);
   });
 });

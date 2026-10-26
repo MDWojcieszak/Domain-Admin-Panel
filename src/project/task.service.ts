@@ -19,12 +19,14 @@ import {
 } from './dto';
 import { ProjectAccess, ProjectAccessService } from './project-access.service';
 import { taskKey } from './project-defaults';
-import { nextOccurrence } from './task-rules';
+import { dateIn } from './calendar/ical';
+import { nextOccurrence, streakDays, weekStart } from './task-rules';
 import { ProjectEventsService } from './project-events.service';
 import { USER_SELECT } from './project.service';
 import {
   ChecklistItemResponse,
   MovedTaskResponse,
+  MyTaskStatsResponse,
   TaskDetailResponse,
   TaskResponse,
 } from './responses';
@@ -137,6 +139,50 @@ export class TaskService {
       take: 500,
     });
     return tasks.map(toTask);
+  }
+
+  /**
+   * What you finished today, this week (from Monday) and how many days in a
+   * row: counted from who ticked tasks off, in the calendar's time zone.
+   */
+  async stats(
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<MyTaskStatsResponse> {
+    const zone = process.env.CALENDAR_TIMEZONE || 'Europe/Warsaw';
+    const today = dateIn(now, zone);
+    const [done, open] = await Promise.all([
+      this.prisma.task.findMany({
+        where: {
+          completedById: userId,
+          completedAt: { gte: new Date(now.getTime() - 120 * 86_400_000) },
+          project: { isTemplate: false },
+        },
+        select: { completedAt: true },
+      }),
+      this.prisma.task.count({
+        where: {
+          status: { category: { not: StatusCategory.DONE } },
+          project: {
+            archivedAt: null,
+            isTemplate: false,
+            OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+          },
+          OR: [
+            { assigneeId: userId },
+            { project: { isInbox: true, ownerId: userId } },
+          ],
+        },
+      }),
+    ]);
+    const days = done.map((t) => dateIn(t.completedAt!, zone));
+    const monday = weekStart(today);
+    return {
+      doneToday: days.filter((d) => d === today).length,
+      doneThisWeek: days.filter((d) => d >= monday).length,
+      streakDays: streakDays(new Set(days), today),
+      open,
+    };
   }
 
   async get(userId: string, taskId: string): Promise<TaskDetailResponse> {
