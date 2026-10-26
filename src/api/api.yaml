@@ -9633,6 +9633,82 @@ paths:
           description: ''
       tags: *ref_90
       security: *ref_91
+  /calendar/feed:
+    get:
+      operationId: CalendarController_get
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarFeedResponse'
+      tags: &ref_92
+        - Calendar
+      security:
+        - bearer: []
+    post:
+      operationId: CalendarController_rotate
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendarFeedDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedCalendarFeedResponse'
+      tags: *ref_92
+      security:
+        - bearer: []
+    patch:
+      operationId: CalendarController_update
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendarFeedDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarFeedResponse'
+      tags: *ref_92
+      security:
+        - bearer: []
+    delete:
+      operationId: CalendarController_remove
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_92
+      security:
+        - bearer: []
+  /calendar/{token}.ics:
+    get:
+      operationId: CalendarController_feed
+      summary: The iCal feed behind a calendar address
+      parameters:
+        - name: token
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags: *ref_92
   /documents:
     get:
       operationId: DocumentLibraryController_list
@@ -9677,7 +9753,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/DocumentResponse'
-      tags: &ref_92
+      tags: &ref_93
         - Documents
       security:
         - bearer: []
@@ -9701,7 +9777,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadDocumentResponse'
-      tags: *ref_92
+      tags: *ref_93
       security:
         - bearer: []
   /documents/{id}:
@@ -9720,7 +9796,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
-      tags: *ref_92
+      tags: *ref_93
       security:
         - bearer: []
     patch:
@@ -9744,7 +9820,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
-      tags: *ref_92
+      tags: *ref_93
       security:
         - bearer: []
     delete:
@@ -9758,7 +9834,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_92
+      tags: *ref_93
       security:
         - bearer: []
   /documents/{id}/links:
@@ -9783,7 +9859,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
-      tags: *ref_92
+      tags: *ref_93
       security:
         - bearer: []
   /documents/{id}/links/{linkId}:
@@ -9807,7 +9883,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
-      tags: *ref_92
+      tags: *ref_93
       security:
         - bearer: []
   /documents/{id}/file:
@@ -9847,7 +9923,7 @@ paths:
       responses:
         '200':
           description: ''
-      tags: *ref_92
+      tags: *ref_93
 info:
   title: WHCP Backend
   description: XD
@@ -22451,6 +22527,55 @@ components:
           maxLength: 10000
       required:
         - body
+    CalendarScope:
+      type: string
+      enum:
+        - MINE
+        - ALL
+    CalendarFeedResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        scope:
+          $ref: '#/components/schemas/CalendarScope'
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - enabled
+        - scope
+    CalendarFeedDto:
+      type: object
+      properties:
+        scope:
+          $ref: '#/components/schemas/CalendarScope'
+    CreatedCalendarFeedResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        scope:
+          $ref: '#/components/schemas/CalendarScope'
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        token:
+          type: string
+      required:
+        - enabled
+        - scope
+        - token
     DocumentKind:
       type: string
       enum:
