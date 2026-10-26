@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CalendarScope, Prisma, StatusCategory } from '@prisma/client';
+import {
+  AccountStatus,
+  CalendarScope,
+  Prisma,
+  StatusCategory,
+} from '@prisma/client';
 import { randomBytes } from 'crypto';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -107,12 +112,22 @@ export class CalendarService {
     await this.prisma.calendarFeed.deleteMany({ where: { userId } });
   }
 
-  /** The .ics behind a token; an unknown or replaced token is a plain 404. */
+  /**
+   * The .ics behind a token; an unknown or replaced token is a plain 404, and
+   * so is the address of an account that may no longer sign in: deleting or
+   * disabling an account ends its sessions, and must end this too.
+   */
   async render(token: string, now: Date = new Date()): Promise<string> {
     const feed = await this.prisma.calendarFeed.findUnique({
       where: { tokenHash: hashShareToken(token) },
+      include: { user: { select: { deletedAt: true, accountStatus: true } } },
     });
-    if (!feed) throw new NotFoundException('No such calendar.');
+    if (
+      !feed ||
+      feed.user.deletedAt ||
+      feed.user.accountStatus === AccountStatus.DISABLED
+    )
+      throw new NotFoundException('No such calendar.');
     await this.prisma.calendarFeed.update({
       where: { id: feed.id },
       data: { lastUsedAt: now },
