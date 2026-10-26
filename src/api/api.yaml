@@ -10268,6 +10268,8 @@ components:
           type: boolean
         taskEmailNotifications:
           type: boolean
+        dailyDigestEmail:
+          type: boolean
       required:
         - id
         - serverStatusEmailNotifications
@@ -10279,6 +10281,7 @@ components:
         - tripEmailNotifications
         - inquiryEmailNotifications
         - taskEmailNotifications
+        - dailyDigestEmail
     PatchUserSettingsDto:
       type: object
       properties:
@@ -10299,6 +10302,8 @@ components:
         inquiryEmailNotifications:
           type: boolean
         taskEmailNotifications:
+          type: boolean
+        dailyDigestEmail:
           type: boolean
     PatchUserAdminDto:
       type: object
