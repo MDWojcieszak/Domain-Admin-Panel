@@ -8955,6 +8955,19 @@ paths:
         - Tasks
       security: &ref_86
         - bearer: []
+  /tasks/stats:
+    get:
+      operationId: TaskController_stats
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTaskStatsResponse'
+      tags: *ref_85
+      security: *ref_86
   /tasks/{id}:
     get:
       operationId: TaskController_get
@@ -21843,6 +21856,22 @@ components:
         - WEEK
         - OVERDUE
         - OPEN
+    MyTaskStatsResponse:
+      type: object
+      properties:
+        doneToday:
+          type: integer
+        doneThisWeek:
+          type: integer
+        streakDays:
+          type: integer
+        open:
+          type: integer
+      required:
+        - doneToday
+        - doneThisWeek
+        - streakDays
+        - open
     UpdateTaskDto:
       type: object
       properties:
