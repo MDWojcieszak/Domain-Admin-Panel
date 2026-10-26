@@ -5,7 +5,8 @@
   </head>
   <div
     style='display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0'
-  >{{subjectName}} {{headline}}.<div>
+  >{{subjectName}}
+    {{headline}}.<div>
       ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿
       ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿
       ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿
@@ -81,12 +82,21 @@
                             >Hi {{firstName}},</h1>
                             <h2
                               style='font-size:20px;font-weight:bold;text-align:center;max-width:450px;margin:auto'
-                            ><span
-                                style='color:#009DF8'
-                              >{{subjectName}}</span> {{headline}}.</h2>
+                            ><span style='color:#009DF8'>{{subjectName}}</span>
+                              {{headline}}.</h2>
                             <p
                               style='font-size:16px;line-height:24px;margin:16px 0;text-align:center'
                             >{{detail}}</p>
+                            {{#if items}}<table
+                                align='center'
+                                border='0'
+                                cellPadding='0'
+                                cellSpacing='0'
+                                role='presentation'
+                                style='max-width:480px;margin:0 auto 8px;text-align:left'
+                              ><tbody>{{#each items}}<tr><td
+                                        style='font-size:15px;line-height:22px;padding:6px 0;border-bottom:1px solid #2a2f38'
+                                      >{{this}}</td></tr>{{/each}}</tbody></table>{{/if}}
                           </td>
                         </tr>
                       </tbody>
@@ -104,12 +114,12 @@
                         <tr style='width:100%'>
                           <td data-id='__react-email-column'>
                             {{#if panelUrl}}<p
-                              style='font-size:14px;line-height:24px;margin:16px 0;text-align:center'
-                            ><a
-                                style='color:#FFF;text-decoration:none;background-color:#009DF8;border-radius:12px;font-weight:bold;cursor:pointer;padding:12px 40px;margin:auto'
-                                target='_blank'
-                                href='{{panelUrl}}'
-                              >Open the panel</a></p>{{/if}}
+                                style='font-size:14px;line-height:24px;margin:16px 0;text-align:center'
+                              ><a
+                                  style='color:#FFF;text-decoration:none;background-color:#009DF8;border-radius:12px;font-weight:bold;cursor:pointer;padding:12px 40px;margin:auto'
+                                  target='_blank'
+                                  href='{{panelUrl}}'
+                                >Open the panel</a></p>{{/if}}
                             <p
                               style='font-size:13px;line-height:22px;margin:16px 0;text-align:center;color:#888'
                             >You receive this because you enabled these email

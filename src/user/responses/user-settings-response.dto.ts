@@ -30,4 +30,7 @@ export class UserSettingsResponseDto {
 
   @IsBoolean()
   taskEmailNotifications: boolean;
+
+  @IsBoolean()
+  dailyDigestEmail: boolean;
 }

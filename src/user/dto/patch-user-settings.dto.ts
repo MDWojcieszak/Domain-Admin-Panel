@@ -31,4 +31,8 @@ export class PatchUserSettingsDto {
   /** A task's reminder time came. */
   @IsBoolean({ optional: true })
   taskEmailNotifications?: boolean;
+
+  /** A morning mail: what is due today, what is late, what is left to buy. */
+  @IsBoolean({ optional: true })
+  dailyDigestEmail?: boolean;
 }

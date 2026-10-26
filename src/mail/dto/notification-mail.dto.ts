@@ -23,6 +23,10 @@ export class NotificationMailDto {
   @IsString()
   detail: string;
 
+  /** A list under the explanation (a digest's lines); escaped like any text. */
+  @IsString({ isArray: true, optional: true })
+  items?: string[];
+
   /** Panel URL for the CTA button; empty string hides the button. */
   @IsString()
   panelUrl: string;

@@ -21,7 +21,8 @@ export type NotificationSetting =
   | 'photoMediaEmailNotifications'
   | 'tripEmailNotifications'
   | 'inquiryEmailNotifications'
-  | 'taskEmailNotifications';
+  | 'taskEmailNotifications'
+  | 'dailyDigestEmail';
 
 /** Schema defaults — decides whether a user with NO settings row opts in. */
 const DEFAULT_ON: Record<NotificationSetting, boolean> = {
@@ -32,6 +33,8 @@ const DEFAULT_ON: Record<NotificationSetting, boolean> = {
   tripEmailNotifications: true,
   inquiryEmailNotifications: true,
   taskEmailNotifications: true,
+  // A daily mail nobody asked for would be noise: off until turned on.
+  dailyDigestEmail: false,
 };
 
 export interface EmailNotification {
@@ -46,6 +49,10 @@ export interface EmailNotification {
   headline: string;
   detail: string;
   meta?: Prisma.InputJsonValue;
+  /** Lines listed under the detail, for digests. */
+  items?: string[];
+  /** Where in the panel the button goes, e.g. /projects/my-work. */
+  path?: string;
 }
 
 /** A notification about something one user owns — no permission involved. */
@@ -242,7 +249,10 @@ export class NotificationService {
         subjectName: n.subjectName,
         headline: n.headline,
         detail: n.detail,
-        panelUrl: this.panelUrl,
+        items: n.items,
+        panelUrl: this.panelUrl
+          ? `${this.panelUrl.replace(/\/+$/, '')}${n.path ?? ''}`
+          : '',
       });
       await this.log(user.id, n.logType, 'SENT', n.meta);
       return true;

@@ -709,6 +709,8 @@ model UserSettings {
   inquiryEmailNotifications      Boolean @default(true)
   /// A task's reminder time came (docs/projects-design.md, phase 6).
   taskEmailNotifications         Boolean @default(true)
+  /// A morning mail: what is due today, what is late, what is left to buy.
+  dailyDigestEmail               Boolean @default(false)
 }
 
 model SocialMedia {
