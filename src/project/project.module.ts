@@ -4,6 +4,8 @@ import { NotificationModule } from '../notification/notification.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import { BomService } from './bom.service';
 import { BuildController } from './build.controller';
+import { CalendarController } from './calendar/calendar.controller';
+import { CalendarService } from './calendar/calendar.service';
 import { ProjectCommentController } from './comment.controller';
 import { CommentService } from './comment.service';
 import { JournalService } from './journal.service';
@@ -27,8 +29,10 @@ import { TaskService } from './task.service';
     SharedController,
     BuildController,
     ProjectCommentController,
+    CalendarController,
   ],
   providers: [
+    CalendarService,
     BomService,
     CommentService,
     JournalService,
